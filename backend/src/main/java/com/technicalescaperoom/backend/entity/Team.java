@@ -1,5 +1,6 @@
 package com.technicalescaperoom.backend.entity;
 
+import com.technicalescaperoom.backend.enums.TeamGameState;
 import com.technicalescaperoom.backend.enums.TeamStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -40,6 +41,11 @@ public class Team {
     @Column(nullable = false, length = 50)
     @Builder.Default
     private TeamStatus status = TeamStatus.REGISTERED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "game_state", nullable = false, length = 50)
+    @Builder.Default
+    private TeamGameState gameState = TeamGameState.NOT_STARTED;
 
     @Column(name = "completed_at")
     private Instant completedAt;

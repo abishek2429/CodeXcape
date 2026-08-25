@@ -171,12 +171,23 @@ public class DatabaseConstraintsTest {
     @Test
     @DisplayName("7. Prevent duplicate team level progress for same level")
     void testPreventDuplicateTeamLevelProgress() {
-        Team devTeam = teamRepository.findByTeamCode("TEAM-001").orElseThrow();
+        Event event = eventRepository.findById(1L).orElseThrow();
+        Team team = teamRepository.save(Team.builder()
+                .event(event)
+                .teamCode("TEAM-DUP-PROGRESS")
+                .status(TeamStatus.REGISTERED)
+                .build());
         Level level1 = levelRepository.findByLevelNumber(1).orElseThrow();
+
+        teamLevelProgressRepository.saveAndFlush(TeamLevelProgress.builder()
+                .team(team)
+                .level(level1)
+                .levelStatus(LevelStatus.AVAILABLE)
+                .build());
 
         assertThatThrownBy(() -> {
             teamLevelProgressRepository.saveAndFlush(TeamLevelProgress.builder()
-                    .team(devTeam)
+                    .team(team)
                     .level(level1)
                     .levelStatus(LevelStatus.IN_PROGRESS)
                     .build());
