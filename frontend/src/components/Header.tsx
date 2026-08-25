@@ -37,6 +37,18 @@ export const Header: React.FC = () => {
             </Link>
 
             <Link
+              to="/player/login"
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+                location.pathname.startsWith('/player')
+                  ? 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              PLAYER PORTAL
+            </Link>
+
+            <Link
               to="/admin/events"
               className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
                 isAdminActive

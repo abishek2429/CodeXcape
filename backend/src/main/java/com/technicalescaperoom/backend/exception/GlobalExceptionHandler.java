@@ -25,6 +25,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    @ExceptionHandler(DuplicateLoginException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateLoginException(DuplicateLoginException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .message(ex.getMessage())
+                .timestamp(Instant.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(EventUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleEventUnavailableException(EventUnavailableException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(ex.getMessage())
+                .timestamp(Instant.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
         ErrorResponse response = ErrorResponse.builder()

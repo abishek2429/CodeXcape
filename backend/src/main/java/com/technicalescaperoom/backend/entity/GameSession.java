@@ -45,9 +45,9 @@ public class GameSession {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @UpdateTimestamp
     @Column(name = "last_activity_at", nullable = false)
-    private Instant lastActivityAt;
+    @Builder.Default
+    private Instant lastActivityAt = Instant.now();
 
     @Column(name = "disconnected_at")
     private Instant disconnectedAt;
