@@ -9,7 +9,8 @@ import { TeamListPage } from './pages/admin/TeamListPage';
 import { CreateTeamPage } from './pages/admin/CreateTeamPage';
 import { TeamDetailsPage } from './pages/admin/TeamDetailsPage';
 import { PlayerLoginPage } from './pages/player/PlayerLoginPage';
-import { PlayerSessionPage } from './pages/player/PlayerSessionPage';
+import { PlayerGamePage } from './pages/player/PlayerGamePage';
+import { PlayerWaitingPage } from './pages/player/PlayerWaitingPage';
 import { PlayerProtectedRoute } from './components/PlayerProtectedRoute';
 import { PlayerAuthProvider } from './context/PlayerAuthContext';
 
@@ -23,16 +24,25 @@ export const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<LandingPage />} />
 
-              {/* Player Phase 4 Routes */}
+              {/* Player Phase 4 & 5 Routes */}
               <Route path="/player/login" element={<PlayerLoginPage />} />
               <Route
-                path="/player"
+                path="/player/game"
                 element={
                   <PlayerProtectedRoute>
-                    <PlayerSessionPage />
+                    <PlayerGamePage />
                   </PlayerProtectedRoute>
                 }
               />
+              <Route
+                path="/player/waiting"
+                element={
+                  <PlayerProtectedRoute>
+                    <PlayerWaitingPage />
+                  </PlayerProtectedRoute>
+                }
+              />
+              <Route path="/player" element={<Navigate to="/player/game" replace />} />
 
               {/* Organizer / Admin Phase 3 Routes */}
               <Route path="/admin" element={<Navigate to="/admin/events" replace />} />

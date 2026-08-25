@@ -26,7 +26,7 @@ export const PlayerLoginPage: React.FC = () => {
         teamCode: teamCode.trim().toUpperCase(),
         playerNumber,
       });
-      navigate('/player', { replace: true });
+      navigate('/player/game', { replace: true });
     } catch (err: any) {
       setErrorMsg(err.message || 'Unable to connect to the game server. Please try again.');
     } finally {
