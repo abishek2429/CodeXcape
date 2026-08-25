@@ -1,0 +1,40 @@
+# Target build directories
+**/target/
+**/dist/
+**/build/
+**/out/
+
+# Node dependencies
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables & local secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDEs & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.iml
+.classpath
+.project
+.settings/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Database storage (if mapped locally)
+postgres_data/
+
+# Logs
+*.log
+logs/
