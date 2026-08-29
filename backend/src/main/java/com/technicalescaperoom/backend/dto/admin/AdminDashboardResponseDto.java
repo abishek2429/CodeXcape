@@ -19,5 +19,13 @@ public class AdminDashboardResponseDto {
     private Long totalTeams;
     private Long activeTeams;
     private Long completedTeams;
+    private Long disconnectedPlayers;
+    private Long bothPlayersOnlineTeams;
+    private Long onePlayerOfflineTeams;
+    private Long bothPlayersOfflineTeams;
+    private String serverStatus;
+    private Long eventDurationSeconds;
+    private java.time.Instant startTime;
+    private java.time.Instant endTime;
     private Map<Integer, Long> levelDistribution;
 }

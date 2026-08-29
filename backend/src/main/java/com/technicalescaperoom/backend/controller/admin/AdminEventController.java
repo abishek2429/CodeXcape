@@ -91,6 +91,16 @@ public class AdminEventController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{eventId}/emergency-stop")
+    public ResponseEntity<EventResponse> emergencyStop(
+            @PathVariable Long eventId,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
+        String reason = body != null ? body.get("reason") : "Organizer Emergency Stop Triggered";
+        EventResponse response = adminEventControlService.emergencyStop(principal, eventId, reason);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/{eventId}/passkey")
     public ResponseEntity<EventResponse> updatePasskey(
             @PathVariable Long eventId,

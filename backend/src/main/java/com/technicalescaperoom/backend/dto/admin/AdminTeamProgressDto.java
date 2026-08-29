@@ -24,6 +24,11 @@ public class AdminTeamProgressDto {
     private Boolean player2Completed;
     private String player1Name;
     private String player2Name;
+    private Boolean player1Connected;
+    private Boolean player2Connected;
+    private String connectionStatus;
+    private Long player1SessionId;
+    private Long player2SessionId;
     private Integer hintsUnlocked;
     private Instant completedAt;
 }

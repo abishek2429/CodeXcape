@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface GameSessionRepository extends JpaRepository<GameSession, Long> {
     Optional<GameSession> findBySessionToken(String sessionToken);
     Optional<GameSession> findByPlayerIdAndStatus(Long playerId, SessionStatus status);
+    Optional<GameSession> findTopByPlayerIdOrderByCreatedAtDesc(Long playerId);
+    java.util.List<GameSession> findByTeamId(Long teamId);
 }

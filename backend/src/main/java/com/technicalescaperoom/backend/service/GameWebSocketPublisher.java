@@ -21,6 +21,12 @@ public class GameWebSocketPublisher {
         String destination = "/topic/team/" + teamId;
         log.debug("Publishing WebSocket event {} to {}", event.getType(), destination);
         messagingTemplate.convertAndSend(destination, event);
+        broadcastToAdmin(event);
+    }
+
+    public void broadcastToAdmin(WebSocketEventDto event) {
+        if (event == null) return;
+        messagingTemplate.convertAndSend("/topic/admin", event);
     }
 
     public void notifyPlayerConnection(Long teamId, Long playerId, Integer playerNumber, String displayName, boolean connected) {

@@ -263,6 +263,34 @@ public class PlayerSessionService {
         clearSessionCookie(response);
     }
 
+    @Transactional
+    public void revokeSession(com.technicalescaperoom.backend.config.security.AdminPrincipal principal, Long sessionId) {
+        GameSession session = gameSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Game session not found for ID " + sessionId));
+
+        session.setStatus(SessionStatus.TERMINATED);
+        session.setIsConnected(false);
+        session.setDisconnectedAt(Instant.now());
+        gameSessionRepository.save(session);
+
+        Player player = session.getPlayer();
+        if (player != null) {
+            player.setStatus(PlayerStatus.DISCONNECTED);
+            playerRepository.save(player);
+        }
+
+        auditService.logEvent(
+                GameEventType.PLAYER_LOGOUT,
+                session.getTeam().getEvent(),
+                session.getTeam(),
+                player,
+                "{\"reason\": \"Revoked by Admin " + (principal != null ? principal.getUsername() : "SYSTEM") + "\"}",
+                "ADMIN"
+        );
+
+        log.info("Admin {} revoked session ID {} for Player {}", principal != null ? principal.getUsername() : "SYSTEM", sessionId, player != null ? player.getId() : "UNKNOWN");
+    }
+
     private void setSessionCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie(COOKIE_NAME, token);
         cookie.setHttpOnly(true);

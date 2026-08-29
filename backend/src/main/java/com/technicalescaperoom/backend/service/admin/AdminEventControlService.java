@@ -28,14 +28,29 @@ public class AdminEventControlService {
     private final GameWebSocketPublisher webSocketPublisher;
     private final PasswordEncoder passwordEncoder;
     private final AdminAuditService adminAuditService;
+    private final EventContentValidationService eventContentValidationService;
 
     @Transactional
     public EventResponse updateEventStatus(AdminPrincipal principal, Long eventId, EventStatus newStatus) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found for ID " + eventId));
 
+        if (newStatus == EventStatus.RUNNING || newStatus == EventStatus.READY) {
+            com.technicalescaperoom.backend.dto.admin.EventReadinessDto readiness = eventContentValidationService.validateEventReadiness(eventId);
+            if (!readiness.isOverallReady()) {
+                throw new IllegalStateException("Cannot start event. Content validation failed: " + String.join("; ", readiness.getValidationErrors()));
+            }
+        }
+
         EventStatus oldStatus = event.getStatus();
         event.setStatus(newStatus);
+        if (newStatus == EventStatus.RUNNING && event.getStartTime() == null) {
+            event.setStartTime(java.time.Instant.now());
+        }
+        if (newStatus == EventStatus.COMPLETED && event.getEndTime() == null) {
+            event.setEndTime(java.time.Instant.now());
+        }
+
         Event saved = eventRepository.save(event);
 
         log.info("Admin {} changed Event {} status from {} to {}",
@@ -59,6 +74,36 @@ public class AdminEventControlService {
 
         for (Team team : teams) {
             webSocketPublisher.notifyEventStatusChange(team.getId(), notificationMessage);
+        }
+
+        return mapToResponse(saved);
+    }
+
+    @Transactional
+    public EventResponse emergencyStop(AdminPrincipal principal, Long eventId, String reason) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found for ID " + eventId));
+
+        event.setStatus(EventStatus.PAUSED);
+        Event saved = eventRepository.save(event);
+
+        String auditReason = (reason != null && !reason.isBlank()) ? reason : "Organizer Emergency Stop Triggered";
+
+        adminAuditService.logAction(
+                principal,
+                "EMERGENCY_STOP",
+                "Event #" + eventId,
+                "Emergency Stop executed: " + auditReason
+        );
+
+        log.warn("🚨 EMERGENCY STOP triggered by Admin {} for Event #{}. Reason: {}",
+                principal != null ? principal.getUsername() : "SYSTEM", eventId, auditReason);
+
+        List<Team> teams = teamRepository.findByEventId(eventId);
+        String emergencyAlert = "🚨 EMERGENCY STOP TRIGGERED BY ORGANIZER. Gameplay is paused immediately. Reason: " + auditReason;
+
+        for (Team team : teams) {
+            webSocketPublisher.notifyEventStatusChange(team.getId(), emergencyAlert);
         }
 
         return mapToResponse(saved);

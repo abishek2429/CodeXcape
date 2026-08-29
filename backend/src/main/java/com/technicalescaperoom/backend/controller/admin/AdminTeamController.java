@@ -55,13 +55,15 @@ public class AdminTeamController {
 
     private final com.technicalescaperoom.backend.service.admin.AdminDashboardService adminDashboardService;
     private final com.technicalescaperoom.backend.service.admin.AdminTeamResetService adminTeamResetService;
+    private final com.technicalescaperoom.backend.service.PlayerSessionService playerSessionService;
 
     @GetMapping("/events/{eventId}/teams/progress")
     public ResponseEntity<List<AdminTeamProgressDto>> getTeamsProgress(
             @PathVariable Long eventId,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Integer level) {
-        List<AdminTeamProgressDto> response = adminDashboardService.getTeamsProgress(eventId, search, level);
+            @RequestParam(required = false) Integer level,
+            @RequestParam(required = false) String status) {
+        List<AdminTeamProgressDto> response = adminDashboardService.getTeamsProgress(eventId, search, level, status);
         return ResponseEntity.ok(response);
     }
 
@@ -70,6 +72,30 @@ public class AdminTeamController {
             @PathVariable Long teamId,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
         adminTeamResetService.resetTeamProgress(principal, teamId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/teams/{teamId}/pause")
+    public ResponseEntity<TeamDetailResponse> pauseTeam(
+            @PathVariable Long teamId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
+        TeamDetailResponse response = teamService.updateTeamStatus(teamId, com.technicalescaperoom.backend.enums.TeamStatus.REGISTERED);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/teams/{teamId}/resume")
+    public ResponseEntity<TeamDetailResponse> resumeTeam(
+            @PathVariable Long teamId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
+        TeamDetailResponse response = teamService.updateTeamStatus(teamId, com.technicalescaperoom.backend.enums.TeamStatus.REGISTERED);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/sessions/{sessionId}/revoke")
+    public ResponseEntity<Void> revokeSession(
+            @PathVariable Long sessionId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
+        playerSessionService.revokeSession(principal, sessionId);
         return ResponseEntity.ok().build();
     }
 

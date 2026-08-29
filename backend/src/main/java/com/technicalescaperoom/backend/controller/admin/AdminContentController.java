@@ -1,10 +1,10 @@
 package com.technicalescaperoom.backend.controller.admin;
 
 import com.technicalescaperoom.backend.config.security.AdminPrincipal;
-import com.technicalescaperoom.backend.entity.Hint;
-import com.technicalescaperoom.backend.entity.Question;
-import com.technicalescaperoom.backend.enums.AnswerType;
+import com.technicalescaperoom.backend.dto.admin.*;
 import com.technicalescaperoom.backend.service.admin.AdminContentService;
+import com.technicalescaperoom.backend.service.admin.EventContentValidationService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,39 +13,60 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/admin/events")
 @RequiredArgsConstructor
 public class AdminContentController {
 
     private final AdminContentService adminContentService;
+    private final EventContentValidationService eventContentValidationService;
 
-    @PutMapping("/questions/{questionId}")
-    public ResponseEntity<Question> updateQuestion(
-            @PathVariable Long questionId,
-            @RequestBody Map<String, Object> payload,
-            @AuthenticationPrincipal AdminPrincipal principal
-    ) {
-        String questionContent = (String) payload.get("questionContent");
-        String expectedAnswerHash = (String) payload.get("expectedAnswerHash");
-        String answerTypeStr = (String) payload.get("answerType");
-        Boolean isActive = (Boolean) payload.get("isActive");
-
-        AnswerType answerType = (answerTypeStr != null && !answerTypeStr.isBlank()) ? AnswerType.valueOf(answerTypeStr) : null;
-
-        Question updated = adminContentService.updateQuestion(principal, questionId, questionContent, expectedAnswerHash, answerType, isActive);
-        return ResponseEntity.ok(updated);
+    @GetMapping("/{eventId}/content")
+    public ResponseEntity<Map<String, Object>> getAllContent(@PathVariable Long eventId) {
+        Map<String, Object> content = adminContentService.getAllContentForEvent(eventId);
+        return ResponseEntity.ok(content);
     }
 
-    @PutMapping("/hints/{hintId}")
-    public ResponseEntity<Hint> updateHint(
-            @PathVariable Long hintId,
-            @RequestBody Map<String, Object> payload,
-            @AuthenticationPrincipal AdminPrincipal principal
-    ) {
-        String hintContent = (String) payload.get("hintContent");
-        Boolean isActive = (Boolean) payload.get("isActive");
+    @GetMapping("/{eventId}/validation")
+    public ResponseEntity<EventReadinessDto> validateEventReadiness(@PathVariable Long eventId) {
+        EventReadinessDto readiness = eventContentValidationService.validateEventReadiness(eventId);
+        return ResponseEntity.ok(readiness);
+    }
 
-        Hint updated = adminContentService.updateHint(principal, hintId, hintContent, isActive);
-        return ResponseEntity.ok(updated);
+    @PutMapping("/{eventId}/levels/{levelNumber}/questions")
+    public ResponseEntity<QuestionConfigDto> saveQuestion(
+            @PathVariable Long eventId,
+            @PathVariable Integer levelNumber,
+            @Valid @RequestBody QuestionConfigDto dto,
+            @AuthenticationPrincipal AdminPrincipal principal) {
+        QuestionConfigDto response = adminContentService.saveQuestionConfig(principal, eventId, levelNumber, dto);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{eventId}/levels/{levelNumber}/hint")
+    public ResponseEntity<HintConfigDto> saveHint(
+            @PathVariable Long eventId,
+            @PathVariable Integer levelNumber,
+            @Valid @RequestBody HintConfigDto dto,
+            @AuthenticationPrincipal AdminPrincipal principal) {
+        HintConfigDto response = adminContentService.saveHintConfig(principal, eventId, levelNumber, dto);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{eventId}/test-answer")
+    public ResponseEntity<AnswerTestResponseDto> testAnswer(
+            @PathVariable Long eventId,
+            @Valid @RequestBody AnswerTestRequestDto request,
+            @AuthenticationPrincipal AdminPrincipal principal) {
+        AnswerTestResponseDto response = adminContentService.testAnswer(principal, eventId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{eventId}/preview/player")
+    public ResponseEntity<PlayerSafePreviewDto> getPlayerSafePreview(
+            @PathVariable Long eventId,
+            @RequestParam Integer levelNumber,
+            @RequestParam Integer playerNumber) {
+        PlayerSafePreviewDto preview = adminContentService.getPlayerSafePreview(eventId, levelNumber, playerNumber);
+        return ResponseEntity.ok(preview);
     }
 }

@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface HintRepository extends JpaRepository<Hint, Long> {
     Optional<Hint> findByLevelIdAndIsActiveTrue(Long levelId);
+    java.util.List<Hint> findByLevelIdOrderByDisplayOrderAsc(Long levelId);
 }
