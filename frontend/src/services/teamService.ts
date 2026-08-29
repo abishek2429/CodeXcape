@@ -100,3 +100,71 @@ export async function deleteTeam(teamId: number): Promise<void> {
     throw new Error(errorData.message || 'Failed to delete team');
   }
 }
+
+// ---- Excel Team Import ----
+
+export interface TeamImportRow {
+  rowNumber: number;
+  teamName: string;
+  player1Name: string;
+  player2Name: string;
+  valid: boolean;
+  validationErrors: string[];
+}
+
+export interface TeamImportPreview {
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  duplicateRows: number;
+  rows: TeamImportRow[];
+  errors: string[];
+  warnings: string[];
+  importReady: boolean;
+}
+
+export interface TeamImportResult {
+  teamsCreated: number;
+  playersCreated: number;
+  duplicatesSkipped: number;
+  errorsEncountered: number;
+  createdTeamCodes: string[];
+  errors: string[];
+  importTimestamp: string;
+  summary: string;
+}
+
+export async function uploadTeamExcelPreview(eventId: number, file: File): Promise<TeamImportPreview> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE}/events/${eventId}/teams/import/preview`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to preview Excel import');
+  }
+
+  return response.json();
+}
+
+export async function confirmTeamImport(eventId: number, file: File): Promise<TeamImportResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE}/events/${eventId}/teams/import/confirm`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to confirm team import');
+  }
+
+  return response.json();
+}
+

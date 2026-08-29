@@ -2,11 +2,13 @@ package com.technicalescaperoom.backend.controller.admin;
 
 import com.technicalescaperoom.backend.dto.admin.*;
 import com.technicalescaperoom.backend.service.TeamService;
+import com.technicalescaperoom.backend.service.admin.TeamExcelImportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -16,6 +18,7 @@ import java.util.List;
 public class AdminTeamController {
 
     private final TeamService teamService;
+    private final TeamExcelImportService teamExcelImportService;
 
     @PostMapping("/events/{eventId}/teams")
     public ResponseEntity<TeamDetailResponse> createTeam(
@@ -103,5 +106,24 @@ public class AdminTeamController {
     public ResponseEntity<Void> deleteTeam(@PathVariable Long teamId) {
         teamService.deleteTeam(teamId);
         return ResponseEntity.noContent().build();
+    }
+
+    // ---- Excel Team Import Endpoints ----
+
+    @PostMapping("/events/{eventId}/teams/import/preview")
+    public ResponseEntity<TeamImportPreviewDto> previewExcelImport(
+            @PathVariable Long eventId,
+            @RequestParam("file") MultipartFile file) {
+        TeamImportPreviewDto preview = teamExcelImportService.parseAndValidate(eventId, file);
+        return ResponseEntity.ok(preview);
+    }
+
+    @PostMapping("/events/{eventId}/teams/import/confirm")
+    public ResponseEntity<TeamImportResultDto> confirmExcelImport(
+            @PathVariable Long eventId,
+            @RequestParam("file") MultipartFile file,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
+        TeamImportResultDto result = teamExcelImportService.importTeams(eventId, file, principal);
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 }
