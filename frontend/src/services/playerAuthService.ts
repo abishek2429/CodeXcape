@@ -1,6 +1,6 @@
 import { PlayerInfo, PlayerLoginRequest } from '../types/player';
 
-const API_BASE = '/api/player';
+const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/player` : '/api/player';
 
 export async function loginPlayer(payload: PlayerLoginRequest): Promise<PlayerInfo> {
   let response: Response;

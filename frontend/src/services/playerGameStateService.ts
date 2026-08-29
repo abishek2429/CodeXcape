@@ -16,7 +16,7 @@ export interface CurrentLevelResponse {
   difficulty: string;
 }
 
-const API_BASE = '/api/player/game';
+const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/player/game` : '/api/player/game';
 
 export async function fetchPlayerGameState(): Promise<PlayerGameStateResponse | null> {
   try {

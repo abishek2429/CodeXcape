@@ -63,7 +63,7 @@ const ADMIN_HEADERS = {
 };
 
 export async function fetchLeaderboard(eventId: number): Promise<LeaderboardEntry[]> {
-  const res = await fetch(`/api/admin/events/${eventId}/leaderboard`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/leaderboard`, {
     headers: ADMIN_HEADERS,
     credentials: 'include',
   });
@@ -72,7 +72,7 @@ export async function fetchLeaderboard(eventId: number): Promise<LeaderboardEntr
 }
 
 export async function fetchEventStatistics(eventId: number): Promise<EventStatistics> {
-  const res = await fetch(`/api/admin/events/${eventId}/statistics`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/statistics`, {
     headers: ADMIN_HEADERS,
     credentials: 'include',
   });
@@ -81,7 +81,7 @@ export async function fetchEventStatistics(eventId: number): Promise<EventStatis
 }
 
 export async function fetchPublicLeaderboard(eventId: number): Promise<PublicLeaderboard> {
-  const res = await fetch(`/api/public/events/${eventId}/leaderboard`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/public/events/${eventId}/leaderboard`, {
     headers: { 'Accept': 'application/json' },
   });
   if (!res.ok) throw new Error('Failed to fetch public leaderboard.');
@@ -89,9 +89,9 @@ export async function fetchPublicLeaderboard(eventId: number): Promise<PublicLea
 }
 
 export function getExportResultsUrl(eventId: number): string {
-  return `/api/admin/events/${eventId}/export/results`;
+  return `${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/export/results`;
 }
 
 export function getExportProgressUrl(eventId: number): string {
-  return `/api/admin/events/${eventId}/export/progress`;
+  return `${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/export/progress`;
 }

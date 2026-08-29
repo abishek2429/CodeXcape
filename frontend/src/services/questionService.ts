@@ -16,7 +16,7 @@ export interface AnswerSubmissionResponse {
   message: string;
 }
 
-const API_BASE = '/api/player/game/current';
+const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/player/game/current` : '/api/player/game/current';
 
 export async function fetchCurrentQuestion(): Promise<PlayerQuestionResponse | null> {
   try {

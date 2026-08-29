@@ -54,7 +54,7 @@ const ADMIN_HEADERS = {
 };
 
 export async function fetchDashboardStats(eventId: number): Promise<AdminDashboardStats> {
-  const res = await fetch(`/api/admin/events/${eventId}/dashboard`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/dashboard`, {
     headers: ADMIN_HEADERS,
     credentials: 'include',
   });
@@ -68,7 +68,7 @@ export async function fetchTeamsProgress(eventId: number, search?: string, level
   if (level) params.append('level', level.toString());
   if (status) params.append('status', status);
 
-  const res = await fetch(`/api/admin/events/${eventId}/teams/progress?${params.toString()}`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/teams/progress?${params.toString()}`, {
     headers: ADMIN_HEADERS,
     credentials: 'include',
   });
@@ -77,7 +77,7 @@ export async function fetchTeamsProgress(eventId: number, search?: string, level
 }
 
 export async function startEvent(eventId: number): Promise<void> {
-  const res = await fetch(`/api/admin/events/${eventId}/start`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/start`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -86,7 +86,7 @@ export async function startEvent(eventId: number): Promise<void> {
 }
 
 export async function pauseEvent(eventId: number): Promise<void> {
-  const res = await fetch(`/api/admin/events/${eventId}/pause`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/pause`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -95,7 +95,7 @@ export async function pauseEvent(eventId: number): Promise<void> {
 }
 
 export async function resumeEvent(eventId: number): Promise<void> {
-  const res = await fetch(`/api/admin/events/${eventId}/resume`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/resume`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -104,7 +104,7 @@ export async function resumeEvent(eventId: number): Promise<void> {
 }
 
 export async function endEvent(eventId: number): Promise<void> {
-  const res = await fetch(`/api/admin/events/${eventId}/end`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/end`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -113,7 +113,7 @@ export async function endEvent(eventId: number): Promise<void> {
 }
 
 export async function emergencyStopEvent(eventId: number, reason?: string): Promise<void> {
-  const res = await fetch(`/api/admin/events/${eventId}/emergency-stop`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/emergency-stop`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -123,7 +123,7 @@ export async function emergencyStopEvent(eventId: number, reason?: string): Prom
 }
 
 export async function pauseTeam(teamId: number): Promise<void> {
-  const res = await fetch(`/api/admin/teams/${teamId}/pause`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/teams/${teamId}/pause`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -132,7 +132,7 @@ export async function pauseTeam(teamId: number): Promise<void> {
 }
 
 export async function resumeTeam(teamId: number): Promise<void> {
-  const res = await fetch(`/api/admin/teams/${teamId}/resume`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/teams/${teamId}/resume`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -141,7 +141,7 @@ export async function resumeTeam(teamId: number): Promise<void> {
 }
 
 export async function revokeSession(sessionId: number): Promise<void> {
-  const res = await fetch(`/api/admin/sessions/${sessionId}/revoke`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/sessions/${sessionId}/revoke`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -150,7 +150,7 @@ export async function revokeSession(sessionId: number): Promise<void> {
 }
 
 export async function updateEventPasskey(eventId: number, passkey: string): Promise<void> {
-  const res = await fetch(`/api/admin/events/${eventId}/passkey`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/passkey`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -160,7 +160,7 @@ export async function updateEventPasskey(eventId: number, passkey: string): Prom
 }
 
 export async function resetTeam(teamId: number): Promise<void> {
-  const res = await fetch(`/api/admin/teams/${teamId}/reset`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/teams/${teamId}/reset`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -169,7 +169,7 @@ export async function resetTeam(teamId: number): Promise<void> {
 }
 
 export async function fetchAuditLogs(): Promise<AdminAuditLog[]> {
-  const res = await fetch(`/api/admin/events/audit-logs`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/audit-logs`, {
     headers: ADMIN_HEADERS,
     credentials: 'include',
   });
@@ -178,7 +178,7 @@ export async function fetchAuditLogs(): Promise<AdminAuditLog[]> {
 }
 
 export async function fetchEventContent(eventId: number): Promise<any> {
-  const res = await fetch(`/api/admin/events/${eventId}/content`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/content`, {
     headers: ADMIN_HEADERS,
     credentials: 'include',
   });
@@ -187,7 +187,7 @@ export async function fetchEventContent(eventId: number): Promise<any> {
 }
 
 export async function fetchEventValidation(eventId: number): Promise<any> {
-  const res = await fetch(`/api/admin/events/${eventId}/validation`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/validation`, {
     headers: ADMIN_HEADERS,
     credentials: 'include',
   });
@@ -202,7 +202,7 @@ export async function saveQuestion(eventId: number, levelNumber: number, data: {
   expectedAnswer: string;
   answerType?: string;
 }): Promise<any> {
-  const res = await fetch(`/api/admin/events/${eventId}/levels/${levelNumber}/questions`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/levels/${levelNumber}/questions`, {
     method: 'PUT',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -216,7 +216,7 @@ export async function saveQuestion(eventId: number, levelNumber: number, data: {
 }
 
 export async function saveHint(eventId: number, levelNumber: number, hintContent: string): Promise<any> {
-  const res = await fetch(`/api/admin/events/${eventId}/levels/${levelNumber}/hint`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/levels/${levelNumber}/hint`, {
     method: 'PUT',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -230,7 +230,7 @@ export async function saveHint(eventId: number, levelNumber: number, hintContent
 }
 
 export async function testAnswer(eventId: number, levelNumber: number, playerNumber: 'PLAYER_1' | 'PLAYER_2', candidateAnswer: string): Promise<{ result: string }> {
-  const res = await fetch(`/api/admin/events/${eventId}/test-answer`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/test-answer`, {
     method: 'POST',
     headers: ADMIN_HEADERS,
     credentials: 'include',
@@ -241,7 +241,7 @@ export async function testAnswer(eventId: number, levelNumber: number, playerNum
 }
 
 export async function fetchPlayerSafePreview(eventId: number, levelNumber: number, playerNumber: number): Promise<any> {
-  const res = await fetch(`/api/admin/events/${eventId}/preview/player?levelNumber=${levelNumber}&playerNumber=${playerNumber}`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/preview/player?levelNumber=${levelNumber}&playerNumber=${playerNumber}`, {
     headers: ADMIN_HEADERS,
     credentials: 'include',
   });

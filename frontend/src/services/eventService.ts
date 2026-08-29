@@ -1,6 +1,6 @@
 import { Event, CreateEventPayload, UpdateEventPayload, EventStatus } from '../types/event';
 
-const API_BASE = '/api/admin/events';
+const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/admin/events` : '/api/admin/events';
 
 export async function fetchEvents(): Promise<Event[]> {
   const response = await fetch(API_BASE, {

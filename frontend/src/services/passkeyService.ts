@@ -7,7 +7,7 @@ export interface FinalPasskeyResponse {
 export async function submitFinalPasskey(passkey: string): Promise<FinalPasskeyResponse> {
   let response: Response;
   try {
-    response = await fetch('/api/player/game/final-passkey', {
+    response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/player/game/final-passkey', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 import { Team, TeamDetail, CreateTeamPayload, UpdateTeamPayload, TeamStatus } from '../types/team';
 
-const API_BASE = '/api/admin';
+const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/admin` : '/api/admin';
 
 export async function fetchTeamsForEvent(eventId: number): Promise<Team[]> {
   const response = await fetch(`${API_BASE}/events/${eventId}/teams`, {
