@@ -1,10 +1,7 @@
-# Build Stage
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 WORKDIR /app
 COPY . .
-RUN sed -i 's/\r$//' ./mvnw || true
-RUN chmod +x ./mvnw || true
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 
 # Runtime Stage
