@@ -36,31 +36,78 @@ public class LeaderboardService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found for ID " + eventId));
 
         List<Team> teams = teamRepository.findByEventId(eventId);
-
-        // Partition completed and incomplete teams
-        List<Team> completedTeams = teams.stream()
-                .filter(t -> t.getGameState() == TeamGameState.COMPLETED && t.getCompletedAt() != null)
-                .sorted(Comparator.comparing(Team::getCompletedAt))
-                .collect(Collectors.toList());
-
-        List<Team> incompleteTeams = teams.stream()
-                .filter(t -> t.getGameState() != TeamGameState.COMPLETED || t.getCompletedAt() == null)
-                .collect(Collectors.toList());
+        teams.sort(getTeamComparator());
 
         List<LeaderboardEntryDto> result = new ArrayList<>();
-
-        // Rank completed teams
         int rank = 1;
-        for (Team team : completedTeams) {
+        for (Team team : teams) {
             result.add(buildLeaderboardEntry(event, team, rank++));
         }
 
-        // Add incomplete teams without rank
-        for (Team team : incompleteTeams) {
-            result.add(buildLeaderboardEntry(event, team, null));
-        }
-
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public Integer getTeamCurrentRank(Long teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+        
+        List<Team> allTeams = teamRepository.findByEventId(team.getEvent().getId());
+        allTeams.sort(getTeamComparator());
+        
+        for (int i = 0; i < allTeams.size(); i++) {
+            if (allTeams.get(i).getId().equals(teamId)) {
+                return i + 1;
+            }
+        }
+        return null;
+    }
+
+    public void recalculateAndBroadcastRanks(Long eventId, com.technicalescaperoom.backend.service.GameWebSocketPublisher webSocketPublisher) {
+        List<Team> allTeams = teamRepository.findByEventId(eventId);
+        allTeams.sort(getTeamComparator());
+        
+        for (int i = 0; i < allTeams.size(); i++) {
+            Team team = allTeams.get(i);
+            int newRank = i + 1;
+            // In a highly optimized system we would track prev rank and only notify if changed,
+            // but broadcasting to the team channel is lightweight enough.
+            webSocketPublisher.notifyRankChanged(team.getId(), newRank);
+        }
+    }
+
+    private Comparator<Team> getTeamComparator() {
+        return (t1, t2) -> {
+            boolean t1Completed = t1.getGameState() == TeamGameState.COMPLETED && t1.getCompletedAt() != null;
+            boolean t2Completed = t2.getGameState() == TeamGameState.COMPLETED && t2.getCompletedAt() != null;
+            
+            if (t1Completed && !t2Completed) return -1;
+            if (!t1Completed && t2Completed) return 1;
+            
+            if (t1Completed && t2Completed) {
+                return t1.getCompletedAt().compareTo(t2.getCompletedAt());
+            }
+            
+            // Both incomplete, sort by highest active level
+            int t1Level = getFastCurrentLevel(t1);
+            int t2Level = getFastCurrentLevel(t2);
+            if (t1Level != t2Level) {
+                return Integer.compare(t2Level, t1Level); // Descending
+            }
+            
+            // If tied on level, maintain a stable sort by ID
+            return t1.getId().compareTo(t2.getId());
+        };
+    }
+
+    private int getFastCurrentLevel(Team team) {
+        if (team.getGameState() == TeamGameState.COMPLETED || team.getGameState() == TeamGameState.FINAL_PASSKEY) return 6;
+        List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
+        return progressList.stream()
+                .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
+                .map(p -> p.getLevel().getLevelNumber())
+                .findFirst()
+                .orElse(1);
     }
 
     @Transactional(readOnly = true)

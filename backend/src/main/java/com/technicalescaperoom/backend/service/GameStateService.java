@@ -37,6 +37,8 @@ public class GameStateService {
     private final LevelRepository levelRepository;
     private final TeamLevelProgressRepository teamLevelProgressRepository;
     private final EventRepository eventRepository;
+    private final com.technicalescaperoom.backend.service.admin.LeaderboardService leaderboardService;
+    private final GameWebSocketPublisher webSocketPublisher;
 
     @Transactional
     public List<TeamLevelProgress> initializeTeamGameState(Team team) {
@@ -127,11 +129,14 @@ public class GameStateService {
                         .build())
                 .toList();
 
+        Integer currentRank = leaderboardService.getTeamCurrentRank(team.getId());
+
         return PlayerGameStateDto.builder()
                 .teamCode(team.getTeamCode())
                 .teamName(team.getTeamName())
                 .gameStatus(team.getGameState())
                 .currentLevel(currentLevelNumber)
+                .currentRank(currentRank)
                 .eventStatus(event.getStatus())
                 .levels(levelDtos)
                 .build();
@@ -215,6 +220,7 @@ public class GameStateService {
         }
 
         teamRepository.save(team);
+        leaderboardService.recalculateAndBroadcastRanks(team.getEvent().getId(), webSocketPublisher);
     }
 
     @Transactional
@@ -265,6 +271,8 @@ public class GameStateService {
             }
         }
 
+        Integer currentRank = leaderboardService.getTeamCurrentRank(team.getId());
+
         return com.technicalescaperoom.backend.dto.player.FullPlayerResyncStateDto.builder()
                 .teamId(team.getId())
                 .teamCode(team.getTeamCode())
@@ -273,6 +281,7 @@ public class GameStateService {
                 .displayName(principal.getDisplayName())
                 .gameState(team.getGameState())
                 .currentLevel(currentLevel)
+                .currentRank(currentRank)
                 .isCompleted(isCompleted)
                 .completedAt(team.getCompletedAt())
                 .myCompletedCurrentLevel(myCompleted)

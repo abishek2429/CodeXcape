@@ -18,6 +18,7 @@ public class PlayerGameStateDto {
     private String teamName;
     private TeamGameState gameStatus;
     private Integer currentLevel;
+    private Integer currentRank;
     private EventStatus eventStatus;
     private List<LevelProgressDto> levels;
 }

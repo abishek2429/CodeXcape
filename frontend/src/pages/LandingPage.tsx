@@ -537,7 +537,6 @@ export const LandingPage: React.FC = () => {
           <div className="flex items-center gap-4 text-[11px]">
             <Link to="/player/login" className="hover:text-cyan-400 transition">PLAYER LOGIN</Link>
             <Link to="/public-leaderboard" className="hover:text-cyan-400 transition">LIVE LEADERBOARD</Link>
-            <Link to="/admin/events" className="hover:text-cyan-400 transition">ORGANIZER HUB</Link>
           </div>
         </div>
       </footer>

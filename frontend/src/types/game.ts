@@ -46,4 +46,5 @@ export interface GameSessionState {
   gameStatusMessage: string | null;
   hints: HintData[];
   isFinalTerminalUnlocked: boolean;
+  currentRank?: number;
 }

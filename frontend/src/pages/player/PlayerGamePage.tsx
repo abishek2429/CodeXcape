@@ -14,7 +14,7 @@ import { FinalTerminal } from '../../components/game/FinalTerminal';
 import { GameStatus } from '../../components/game/GameStatus';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { GameErrorState } from '../../components/game/GameErrorState';
-import { Shield, Clock, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu } from 'lucide-react';
+import { Shield, Clock, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy } from 'lucide-react';
 import { GameSessionState, ChallengeData } from '../../types/game';
 
 import { fetchPlayerHints } from '../../services/hintService';
@@ -110,6 +110,7 @@ export const PlayerGamePage: React.FC = () => {
         ? 'CodeXcape Protocol neutralised! Escape successful.'
         : `Tier 0${serverState.currentLevel} challenge in progress.`
       : mockBase.gameStatusMessage,
+    currentRank: serverState?.currentRank,
   };
 
   const handleAnswerSubmit = async (answer: string) => {
@@ -281,6 +282,15 @@ export const PlayerGamePage: React.FC = () => {
                   <span className="text-slate-400">TEAM CODE:</span>
                   <span className="text-cyan-400 font-bold tracking-widest text-sm">{player.teamCode}</span>
                 </div>
+
+                {gameState.currentRank !== undefined && (
+                  <div className="flex justify-between items-center bg-purple-950/30 p-3 rounded-xl border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+                    <span className="text-purple-300 font-bold text-xs tracking-widest flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-amber-400" /> CURRENT RANK
+                    </span>
+                    <span className="text-amber-400 font-black tracking-widest text-lg">#{gameState.currentRank}</span>
+                  </div>
+                )}
 
                 <div className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
                   player.playerNumber === 1 ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200' : 'bg-slate-950/80 border-slate-800 text-slate-300'

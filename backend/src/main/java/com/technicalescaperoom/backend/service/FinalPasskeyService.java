@@ -36,6 +36,7 @@ public class FinalPasskeyService {
     private final GameWebSocketPublisher webSocketPublisher;
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
+    private final com.technicalescaperoom.backend.service.admin.LeaderboardService leaderboardService;
 
     @Transactional
     public FinalPasskeyResponseDto submitFinalPasskey(PlayerPrincipal principal, FinalPasskeySubmissionRequest request) {
@@ -131,6 +132,7 @@ public class FinalPasskeyService {
         );
 
         webSocketPublisher.notifyGameCompleted(team.getId());
+        leaderboardService.recalculateAndBroadcastRanks(team.getEvent().getId(), webSocketPublisher);
 
         return FinalPasskeyResponseDto.builder()
                 .status("COMPLETED")

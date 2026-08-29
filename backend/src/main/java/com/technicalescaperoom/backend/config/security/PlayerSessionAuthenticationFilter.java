@@ -29,10 +29,13 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
 
-    public static final String COOKIE_NAME = "PLAYER_SESSION";
-    public static final String HEADER_NAME = "X-Player-Session";
+    public static final String ADMIN_COOKIE_NAME = "ADMIN_SESSION";
+    public static final String ADMIN_HEADER_NAME = "X-Admin-Session";
+    public static final String PLAYER_COOKIE_NAME = "PLAYER_SESSION";
+    public static final String PLAYER_HEADER_NAME = "X-Player-Session";
 
     private final GameSessionRepository gameSessionRepository;
+    private final com.technicalescaperoom.backend.repository.AdminSessionRepository adminSessionRepository;
     private final ObjectMapper objectMapper;
 
     @Value("${app.player.session-timeout-minutes:60}")
@@ -42,6 +45,48 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        if (isProtectedAdminRoute(request)) {
+            handleAdminAuthentication(request, response, filterChain);
+            return;
+        }
+
+        if (isProtectedPlayerRoute(request)) {
+            handlePlayerAuthentication(request, response, filterChain);
+            return;
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private void handleAdminAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        String token = extractAdminToken(request);
+        if (token != null && !token.isBlank()) {
+            Optional<com.technicalescaperoom.backend.entity.AdminSession> sessionOpt = adminSessionRepository.findBySessionToken(token);
+            if (sessionOpt.isPresent() && sessionOpt.get().getStatus() == SessionStatus.ACTIVE) {
+                
+                // Update last activity
+                com.technicalescaperoom.backend.entity.AdminSession session = sessionOpt.get();
+                session.setLastActivityAt(Instant.now());
+                adminSessionRepository.save(session);
+
+                AdminPrincipal adminPrincipal = AdminPrincipal.builder()
+                        .username("admin")
+                        .role(com.technicalescaperoom.backend.enums.UserRole.ADMIN)
+                        .build();
+
+                org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
+                        new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                                adminPrincipal, token, adminPrincipal.getAuthorities());
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
+        sendJsonError(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Admin authentication required.");
+    }
+
+    private void handlePlayerAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String token = extractToken(request);
 
         if (token != null && !token.isBlank()) {
@@ -60,10 +105,8 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
                         session.setDisconnectedAt(Instant.now());
                         gameSessionRepository.save(session);
 
-                        if (isProtectedPlayerRoute(request)) {
-                            sendJsonError(response, HttpStatus.UNAUTHORIZED, "SESSION_EXPIRED", "Session has expired. Please log in again.");
-                            return;
-                        }
+                        sendJsonError(response, HttpStatus.UNAUTHORIZED, "SESSION_EXPIRED", "Session has expired. Please log in again.");
+                        return;
                     } else {
                         PlayerPrincipal principal = PlayerPrincipal.builder()
                                 .playerId(session.getPlayer().getId())
@@ -78,69 +121,27 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
 
                         PlayerAuthenticationToken authentication = new PlayerAuthenticationToken(principal, token);
                         SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                        if (isAdminRoute(request)) {
-                            log.warn("Player ID {} attempted to access admin route {}", session.getPlayer().getId(), request.getRequestURI());
-                            sendJsonError(response, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied. Player credentials cannot access admin endpoints.");
-                            return;
-                        }
+                        
+                        filterChain.doFilter(request, response);
+                        return;
                     }
-                } else if (isProtectedPlayerRoute(request)) {
+                } else {
                     sendJsonError(response, HttpStatus.UNAUTHORIZED, "INVALID_SESSION", "Session is inactive or terminated.");
                     return;
                 }
-            } else if (isProtectedPlayerRoute(request)) {
+            } else {
                 sendJsonError(response, HttpStatus.UNAUTHORIZED, "INVALID_SESSION", "Invalid authentication session.");
                 return;
             }
-        } else if (isProtectedPlayerRoute(request)) {
+        } else {
             sendJsonError(response, HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Authentication required to access player endpoints.");
             return;
         }
-
-        // Handle Admin route authentication
-        if (isAdminRoute(request)) {
-            String adminRoleHeader = request.getHeader("X-Admin-Role");
-            String adminUsernameHeader = request.getHeader("X-Admin-Username");
-
-            if (adminRoleHeader != null && (adminRoleHeader.equalsIgnoreCase("ADMIN") || adminRoleHeader.equalsIgnoreCase("ORGANIZER"))) {
-                com.technicalescaperoom.backend.enums.UserRole role = adminRoleHeader.equalsIgnoreCase("ADMIN")
-                        ? com.technicalescaperoom.backend.enums.UserRole.ADMIN
-                        : com.technicalescaperoom.backend.enums.UserRole.ORGANIZER;
-
-                String username = (adminUsernameHeader != null && !adminUsernameHeader.isBlank()) ? adminUsernameHeader.trim() : "organizer";
-
-                AdminPrincipal adminPrincipal = AdminPrincipal.builder()
-                        .username(username)
-                        .role(role)
-                        .build();
-
-                org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
-                        new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                                adminPrincipal, null, adminPrincipal.getAuthorities());
-
-                SecurityContextHolder.getContext().setAuthentication(auth);
-            } else if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                // Default admin access for dev/testing when no headers are passed
-                AdminPrincipal defaultAdmin = AdminPrincipal.builder()
-                        .username("organizer")
-                        .role(com.technicalescaperoom.backend.enums.UserRole.ORGANIZER)
-                        .build();
-
-                org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
-                        new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                                defaultAdmin, null, defaultAdmin.getAuthorities());
-
-                SecurityContextHolder.getContext().setAuthentication(auth);
-            }
-        }
-
-        filterChain.doFilter(request, response);
     }
 
-    private boolean isAdminRoute(HttpServletRequest request) {
+    private boolean isProtectedAdminRoute(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        return uri.startsWith("/api/admin/");
+        return uri.startsWith("/api/admin/") && !uri.equals("/api/admin/login");
     }
 
     private boolean isProtectedPlayerRoute(HttpServletRequest request) {
@@ -148,9 +149,28 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
         return uri.startsWith("/api/player/") && !uri.equals("/api/player/login");
     }
 
+    private String extractAdminToken(HttpServletRequest request) {
+        // 1. Check Header X-Admin-Session
+        String headerToken = request.getHeader(ADMIN_HEADER_NAME);
+        if (headerToken != null && !headerToken.isBlank()) {
+            return headerToken.trim();
+        }
+
+        // 2. Check Cookie
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if (ADMIN_COOKIE_NAME.equals(cookie.getName())) {
+                    return cookie.getValue().trim();
+                }
+            }
+        }
+
+        return null;
+    }
+
     private String extractToken(HttpServletRequest request) {
         // 1. Check Header X-Player-Session
-        String headerToken = request.getHeader(HEADER_NAME);
+        String headerToken = request.getHeader(PLAYER_HEADER_NAME);
         if (headerToken != null && !headerToken.isBlank()) {
             return headerToken.trim();
         }
@@ -164,7 +184,7 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
         // 3. Check Cookie
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
-                if (COOKIE_NAME.equals(cookie.getName())) {
+                if (PLAYER_COOKIE_NAME.equals(cookie.getName())) {
                     return cookie.getValue().trim();
                 }
             }

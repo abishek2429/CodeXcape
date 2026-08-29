@@ -21,6 +21,7 @@ public class FullPlayerResyncStateDto {
     private String displayName;
     private TeamGameState gameState;
     private Integer currentLevel;
+    private Integer currentRank;
     private Boolean isCompleted;
     private Instant completedAt;
     private Boolean partnerCompletedCurrentLevel;

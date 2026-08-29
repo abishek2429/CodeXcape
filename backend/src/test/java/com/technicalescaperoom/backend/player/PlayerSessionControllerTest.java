@@ -127,7 +127,7 @@ public class PlayerSessionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(cookie().exists(PlayerSessionAuthenticationFilter.COOKIE_NAME))
+                .andExpect(cookie().exists(PlayerSessionAuthenticationFilter.PLAYER_COOKIE_NAME))
                 .andExpect(jsonPath("$.teamCode", is("TEAM-017")))
                 .andExpect(jsonPath("$.playerNumber", is(1)))
                 .andExpect(jsonPath("$.playerName", is("Alice (Operator)")))
@@ -223,7 +223,7 @@ public class PlayerSessionControllerTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        Cookie sessionCookie = result.getResponse().getCookie(PlayerSessionAuthenticationFilter.COOKIE_NAME);
+        Cookie sessionCookie = result.getResponse().getCookie(PlayerSessionAuthenticationFilter.PLAYER_COOKIE_NAME);
 
         // Reconnect with valid cookie
         mockMvc.perform(post("/api/player/login")
@@ -243,7 +243,7 @@ public class PlayerSessionControllerTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        Cookie sessionCookie = result.getResponse().getCookie(PlayerSessionAuthenticationFilter.COOKIE_NAME);
+        Cookie sessionCookie = result.getResponse().getCookie(PlayerSessionAuthenticationFilter.PLAYER_COOKIE_NAME);
 
         mockMvc.perform(get("/api/player/me").cookie(sessionCookie))
                 .andExpect(status().isOk())
@@ -267,7 +267,7 @@ public class PlayerSessionControllerTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        Cookie sessionCookie = result.getResponse().getCookie(PlayerSessionAuthenticationFilter.COOKIE_NAME);
+        Cookie sessionCookie = result.getResponse().getCookie(PlayerSessionAuthenticationFilter.PLAYER_COOKIE_NAME);
 
         // Perform logout
         mockMvc.perform(post("/api/player/logout").cookie(sessionCookie))
@@ -292,7 +292,7 @@ public class PlayerSessionControllerTest {
                 .lastActivityAt(Instant.now().minusSeconds(7200))
                 .build());
 
-        Cookie expiredCookie = new Cookie(PlayerSessionAuthenticationFilter.COOKIE_NAME, "EXPIRED-TOKEN-123");
+        Cookie expiredCookie = new Cookie(PlayerSessionAuthenticationFilter.PLAYER_COOKIE_NAME, "EXPIRED-TOKEN-123");
 
         mockMvc.perform(get("/api/player/me").cookie(expiredCookie))
                 .andExpect(status().isUnauthorized())
@@ -307,14 +307,14 @@ public class PlayerSessionControllerTest {
         var resP1 = mockMvc.perform(post("/api/player/login").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(requestP1)))
                 .andExpect(status().isOk())
                 .andReturn();
-        Cookie cookieP1 = resP1.getResponse().getCookie(PlayerSessionAuthenticationFilter.COOKIE_NAME);
+        Cookie cookieP1 = resP1.getResponse().getCookie(PlayerSessionAuthenticationFilter.PLAYER_COOKIE_NAME);
 
         // Login Team 18 Player 1
         PlayerLoginRequest requestP18 = PlayerLoginRequest.builder().teamCode("TEAM-018").playerNumber(1).build();
         var resP18 = mockMvc.perform(post("/api/player/login").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(requestP18)))
                 .andExpect(status().isOk())
                 .andReturn();
-        Cookie cookieP18 = resP18.getResponse().getCookie(PlayerSessionAuthenticationFilter.COOKIE_NAME);
+        Cookie cookieP18 = resP18.getResponse().getCookie(PlayerSessionAuthenticationFilter.PLAYER_COOKIE_NAME);
 
         // Verify Team 17 Cookie receives ONLY Team 17 Player 1
         mockMvc.perform(get("/api/player/me").cookie(cookieP1))

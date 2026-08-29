@@ -16,47 +16,52 @@ import { PlayerProtectedRoute } from './components/PlayerProtectedRoute';
 import { PlayerAuthProvider } from './context/PlayerAuthContext';
 
 import { PublicLeaderboardPage } from './pages/public/PublicLeaderboardPage';
+import { AdminAuthProvider } from './context/AdminAuthContext';
+import { AdminProtectedRoute } from './components/AdminProtectedRoute';
+import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <PlayerAuthProvider>
-        <div className="min-h-screen bg-cyber-bg text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
-          <Header />
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/public-leaderboard" element={<PublicLeaderboardPage />} />
+      <AdminAuthProvider>
+        <PlayerAuthProvider>
+          <div className="min-h-screen bg-cyber-bg text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+            <Header />
+            <main className="flex-1">
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/public-leaderboard" element={<PublicLeaderboardPage />} />
 
-              {/* Player Phase 4 & 5 Routes */}
-              <Route path="/player/login" element={<PlayerLoginPage />} />
-              <Route
-                path="/player/game"
-                element={
-                  <PlayerProtectedRoute>
-                    <PlayerGamePage />
-                  </PlayerProtectedRoute>
-                }
-              />
-              <Route
-                path="/player/waiting"
-                element={
-                  <PlayerProtectedRoute>
-                    <PlayerWaitingPage />
-                  </PlayerProtectedRoute>
-                }
-              />
-              <Route path="/player" element={<Navigate to="/player/game" replace />} />
+                {/* Player Phase 4 & 5 Routes */}
+                <Route path="/player/login" element={<PlayerLoginPage />} />
+                <Route
+                  path="/player/game"
+                  element={
+                    <PlayerProtectedRoute>
+                      <PlayerGamePage />
+                    </PlayerProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/player/waiting"
+                  element={
+                    <PlayerProtectedRoute>
+                      <PlayerWaitingPage />
+                    </PlayerProtectedRoute>
+                  }
+                />
+                <Route path="/player" element={<Navigate to="/player/game" replace />} />
 
-              {/* Organizer / Admin Phase 3 & 12 Control Panel Routes */}
-              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="/admin/events" element={<EventListPage />} />
-              <Route path="/admin/events/new" element={<CreateEventPage />} />
-              <Route path="/admin/events/:eventId" element={<EventDetailsPage />} />
-              <Route path="/admin/events/:eventId/teams" element={<TeamListPage />} />
-              <Route path="/admin/events/:eventId/teams/new" element={<CreateTeamPage />} />
-              <Route path="/admin/teams/:teamId" element={<TeamDetailsPage />} />
+                {/* Organizer / Admin Routes */}
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+                <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboardPage /></AdminProtectedRoute>} />
+                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="/admin/events" element={<AdminProtectedRoute><EventListPage /></AdminProtectedRoute>} />
+                <Route path="/admin/events/new" element={<AdminProtectedRoute><CreateEventPage /></AdminProtectedRoute>} />
+                <Route path="/admin/events/:eventId" element={<AdminProtectedRoute><EventDetailsPage /></AdminProtectedRoute>} />
+                <Route path="/admin/events/:eventId/teams" element={<AdminProtectedRoute><TeamListPage /></AdminProtectedRoute>} />
+                <Route path="/admin/events/:eventId/teams/new" element={<AdminProtectedRoute><CreateTeamPage /></AdminProtectedRoute>} />
+                <Route path="/admin/teams/:teamId" element={<AdminProtectedRoute><TeamDetailsPage /></AdminProtectedRoute>} />
 
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/" replace />} />
@@ -64,6 +69,7 @@ export const App: React.FC = () => {
           </main>
         </div>
       </PlayerAuthProvider>
+      </AdminAuthProvider>
     </BrowserRouter>
   );
 };

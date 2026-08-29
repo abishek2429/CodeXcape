@@ -8,32 +8,20 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 
 @Entity
-@Table(name = "game_sessions")
+@Table(name = "admin_sessions")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class GameSession {
+public class AdminSession {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "team_id", nullable = false)
-    private Team team;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "player_id", nullable = false)
-    private Player player;
-
-    @Column(name = "session_token", nullable = false, unique = true)
+    @Column(name = "session_token", nullable = false, unique = true, length = 255)
     private String sessionToken;
-
-    @Column(name = "is_connected", nullable = false)
-    @Builder.Default
-    private Boolean isConnected = true;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
@@ -47,7 +35,4 @@ public class GameSession {
     @Column(name = "last_activity_at", nullable = false)
     @Builder.Default
     private Instant lastActivityAt = Instant.now();
-
-    @Column(name = "disconnected_at")
-    private Instant disconnectedAt;
 }

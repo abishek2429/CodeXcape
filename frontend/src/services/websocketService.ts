@@ -8,7 +8,8 @@ export type WebSocketEventType =
   | 'NEXT_LEVEL_UNLOCKED'
   | 'HINT_UNLOCKED'
   | 'GAME_COMPLETED'
-  | 'GAME_STATE_UPDATED';
+  | 'GAME_STATE_UPDATED'
+  | 'RANK_CHANGED';
 
 export interface WebSocketEventPayload {
   type: WebSocketEventType;
@@ -18,6 +19,7 @@ export interface WebSocketEventPayload {
   displayName?: string;
   levelNumber?: number;
   nextLevelNumber?: number;
+  newRank?: number;
   message?: string;
   timestamp?: string;
 }

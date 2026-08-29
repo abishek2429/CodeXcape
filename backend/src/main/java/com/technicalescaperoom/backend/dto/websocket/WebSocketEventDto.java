@@ -20,6 +20,7 @@ public class WebSocketEventDto {
     private String displayName;
     private Integer levelNumber;
     private Integer nextLevelNumber;
+    private Integer newRank;
     private String message;
     
     @Builder.Default

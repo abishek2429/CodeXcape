@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Terminal, Trophy, LayoutDashboard, Menu, X } from 'lucide-react';
+import { Terminal, Trophy, Menu, X } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isPlayerRoute = location.pathname.startsWith('/player');
-  const isAdminRoute = location.pathname.startsWith('/admin');
   const isLeaderboardRoute = location.pathname === '/public-leaderboard';
   const isHomeRoute = location.pathname === '/';
 
@@ -71,17 +70,6 @@ export const Header: React.FC = () => {
             <span>LEADERBOARD</span>
           </Link>
 
-          <Link
-            to="/admin/events"
-            className={`px-3.5 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 ${
-              isAdminRoute
-                ? 'bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 font-semibold shadow-[0_0_12px_rgba(0,240,255,0.15)]'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5 text-cyan-400" />
-            <span>ORGANIZER HUB</span>
-          </Link>
         </div>
 
         {/* Server Telemetry Badge & Mobile Toggle */}
@@ -136,14 +124,6 @@ export const Header: React.FC = () => {
           >
             <Trophy className="w-4 h-4 text-amber-400" />
             LEADERBOARD
-          </Link>
-          <Link
-            to="/admin/events"
-            onClick={() => setMobileMenuOpen(false)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg ${isAdminRoute ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'text-slate-300'}`}
-          >
-            <LayoutDashboard className="w-4 h-4 text-cyan-400" />
-            ORGANIZER HUB
           </Link>
         </div>
       )}

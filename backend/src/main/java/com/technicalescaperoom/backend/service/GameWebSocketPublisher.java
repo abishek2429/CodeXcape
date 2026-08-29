@@ -106,4 +106,14 @@ public class GameWebSocketPublisher {
                 .build();
         broadcastToTeam(teamId, event);
     }
+
+    public void notifyRankChanged(Long teamId, Integer newRank) {
+        WebSocketEventDto event = WebSocketEventDto.builder()
+                .type(WebSocketEventType.RANK_CHANGED)
+                .teamId(teamId)
+                .newRank(newRank)
+                .timestamp(Instant.now())
+                .build();
+        broadcastToTeam(teamId, event);
+    }
 }

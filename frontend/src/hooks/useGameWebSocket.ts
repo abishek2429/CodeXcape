@@ -66,6 +66,13 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData }: UseGam
       if (onRefreshData) onRefreshData();
     });
 
+    const unsubRankChanged = webSocketService.subscribe('RANK_CHANGED', (payload: WebSocketEventPayload) => {
+      if (payload.newRank) {
+        setLatestNotification(`Leaderboard updated! Your team is now rank #${payload.newRank}`);
+      }
+      if (onRefreshData) onRefreshData();
+    });
+
     return () => {
       unsubStatus();
       unsubConnected();
@@ -75,6 +82,7 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData }: UseGam
       unsubNextLevel();
       unsubHintUnlocked();
       unsubGameCompleted();
+      unsubRankChanged();
       webSocketService.disconnect();
     };
   }, [teamId, playerNumber]);
