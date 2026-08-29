@@ -33,6 +33,9 @@ public class Question {
     @Column(name = "question_content", nullable = false, columnDefinition = "TEXT")
     private String questionContent;
 
+    @Column(name = "puzzle_context", length = 255)
+    private String puzzleContext;
+
     @Column(name = "expected_answer_hash", nullable = false)
     private String expectedAnswerHash;
 

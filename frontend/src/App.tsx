@@ -8,11 +8,14 @@ import { EventDetailsPage } from './pages/admin/EventDetailsPage';
 import { TeamListPage } from './pages/admin/TeamListPage';
 import { CreateTeamPage } from './pages/admin/CreateTeamPage';
 import { TeamDetailsPage } from './pages/admin/TeamDetailsPage';
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { PlayerLoginPage } from './pages/player/PlayerLoginPage';
 import { PlayerGamePage } from './pages/player/PlayerGamePage';
 import { PlayerWaitingPage } from './pages/player/PlayerWaitingPage';
 import { PlayerProtectedRoute } from './components/PlayerProtectedRoute';
 import { PlayerAuthProvider } from './context/PlayerAuthContext';
+
+import { PublicLeaderboardPage } from './pages/public/PublicLeaderboardPage';
 
 export const App: React.FC = () => {
   return (
@@ -23,6 +26,7 @@ export const App: React.FC = () => {
           <main className="flex-1">
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/public-leaderboard" element={<PublicLeaderboardPage />} />
 
               {/* Player Phase 4 & 5 Routes */}
               <Route path="/player/login" element={<PlayerLoginPage />} />
@@ -44,8 +48,9 @@ export const App: React.FC = () => {
               />
               <Route path="/player" element={<Navigate to="/player/game" replace />} />
 
-              {/* Organizer / Admin Phase 3 Routes */}
-              <Route path="/admin" element={<Navigate to="/admin/events" replace />} />
+              {/* Organizer / Admin Phase 3 & 12 Control Panel Routes */}
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="/admin/events" element={<EventListPage />} />
               <Route path="/admin/events/new" element={<CreateEventPage />} />
               <Route path="/admin/events/:eventId" element={<EventDetailsPage />} />

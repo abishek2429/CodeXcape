@@ -53,6 +53,26 @@ public class AdminTeamController {
         return ResponseEntity.ok(response);
     }
 
+    private final com.technicalescaperoom.backend.service.admin.AdminDashboardService adminDashboardService;
+    private final com.technicalescaperoom.backend.service.admin.AdminTeamResetService adminTeamResetService;
+
+    @GetMapping("/events/{eventId}/teams/progress")
+    public ResponseEntity<List<AdminTeamProgressDto>> getTeamsProgress(
+            @PathVariable Long eventId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Integer level) {
+        List<AdminTeamProgressDto> response = adminDashboardService.getTeamsProgress(eventId, search, level);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/teams/{teamId}/reset")
+    public ResponseEntity<Void> resetTeam(
+            @PathVariable Long teamId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
+        adminTeamResetService.resetTeamProgress(principal, teamId);
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/teams/{teamId}")
     public ResponseEntity<Void> deleteTeam(@PathVariable Long teamId) {
         teamService.deleteTeam(teamId);

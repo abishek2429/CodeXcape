@@ -27,10 +27,17 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
           </span>
         </div>
 
-        {/* Challenge Title */}
-        <h3 className="text-xl font-bold text-white font-mono mb-3 tracking-tight">
-          {challenge.title}
-        </h3>
+        {/* Challenge Title & Puzzle Context */}
+        <div className="mb-3">
+          <h3 className="text-xl font-bold text-white font-mono tracking-tight">
+            {challenge.title}
+          </h3>
+          {challenge.puzzleContext && (
+            <span className="inline-block mt-1 text-xs font-mono px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/40 text-cyan-400">
+              Puzzle Context: {challenge.puzzleContext}
+            </span>
+          )}
+        </div>
 
         {/* Challenge Content Description */}
         <div className="p-4 rounded-lg bg-slate-950/80 border border-slate-800/90 text-slate-200 font-sans text-base leading-relaxed tracking-normal shadow-inner">

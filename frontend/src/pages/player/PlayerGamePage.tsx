@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { usePlayerAuth } from '../../context/PlayerAuthContext';
 import { getMockGameState } from '../../services/mockGameState';
 import { fetchPlayerGameState, PlayerGameStateResponse } from '../../services/playerGameStateService';
+import { fetchCurrentQuestion, submitAnswer, PlayerQuestionResponse } from '../../services/questionService';
+import { useGameWebSocket } from '../../hooks/useGameWebSocket';
 import { GameHeader } from '../../components/game/GameHeader';
 import { LevelProgress } from '../../components/game/LevelProgress';
 import { ChallengePanel } from '../../components/game/ChallengePanel';
@@ -12,48 +14,94 @@ import { FinalTerminal } from '../../components/game/FinalTerminal';
 import { GameStatus } from '../../components/game/GameStatus';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { GameErrorState } from '../../components/game/GameErrorState';
-import { Shield, User, Clock, CheckCircle } from 'lucide-react';
-import { GameSessionState } from '../../types/game';
+import { Shield, User, Clock, CheckCircle, Radio } from 'lucide-react';
+import { GameSessionState, ChallengeData } from '../../types/game';
+
+import { fetchPlayerHints } from '../../services/hintService';
+import { HintData } from '../../types/game';
 
 export const PlayerGamePage: React.FC = () => {
   const { player, logout, authStatus } = usePlayerAuth();
   const [serverState, setServerState] = useState<PlayerGameStateResponse | null>(null);
-  const [isLoadingServerState, setIsLoadingServerState] = useState(true);
+  const [liveQuestion, setLiveQuestion] = useState<PlayerQuestionResponse | null>(null);
+  const [hints, setHints] = useState<HintData[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [feedbackIsError, setFeedbackIsError] = useState(false);
+
+  const loadData = async () => {
+    try {
+      const [stateData, questionData, hintsData] = await Promise.all([
+        fetchPlayerGameState(),
+        fetchCurrentQuestion(),
+        fetchPlayerHints(),
+      ]);
+      setServerState(stateData);
+      setLiveQuestion(questionData);
+      if (hintsData && hintsData.length > 0) {
+        setHints(hintsData);
+      }
+    } catch (err) {
+      // Gracefully handle network errors
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  const { partnerStatus, wsConnectionStatus, latestNotification } = useGameWebSocket({
+    teamId: player?.teamId,
+    playerNumber: player?.playerNumber,
+    onRefreshData: loadData,
+  });
 
   useEffect(() => {
-    let isMounted = true;
     if (authStatus === 'AUTHENTICATED' && player) {
-      fetchPlayerGameState().then((data) => {
-        if (isMounted) {
-          setServerState(data);
-          setIsLoadingServerState(false);
-        }
-      });
+      loadData();
     }
-    return () => {
-      isMounted = false;
-    };
   }, [authStatus, player]);
 
-  if (authStatus === 'INITIALIZING' || !player || isLoadingServerState) {
-    return <GameLoadingState message="Fetching Live Game State from Server..." />;
+  if (authStatus === 'INITIALIZING' || !player || isLoadingData) {
+    return <GameLoadingState message="Fetching Player Challenge & Game State..." />;
   }
 
   if (authStatus !== 'AUTHENTICATED') {
     return <GameErrorState message="Player session expired or unauthenticated." />;
   }
 
-  // Base mock state for Level 1 demo content
+  // Base fallback mock state
   const mockBase = getMockGameState(player.playerNumber);
 
-  // Merge server-authoritative level progress if available
+  // Build live challenge data from server question response if available
+  const activeChallenge: ChallengeData = liveQuestion
+    ? {
+        levelNumber: liveQuestion.levelNumber,
+        title: liveQuestion.puzzleContext ? liveQuestion.puzzleContext : `Level ${liveQuestion.levelNumber} - Player ${player.playerNumber} Challenge`,
+        puzzleContext: liveQuestion.puzzleContext,
+        description: liveQuestion.questionContent,
+        answerType: liveQuestion.answerType,
+        placeholderText: liveQuestion.answerType === 'NUMERIC' ? 'Enter numeric answer...' : 'Enter your solution...',
+      }
+    : mockBase.challenge;
+
+  const isChallengeCompleted = liveQuestion?.isCompleted ?? false;
+
+  // Merge live server level progress
   const gameState: GameSessionState = {
     ...mockBase,
     currentLevel: serverState ? serverState.currentLevel : mockBase.currentLevel,
     levels: serverState && serverState.levels.length > 0 ? serverState.levels : mockBase.levels,
+    challenge: activeChallenge,
+    partner: {
+      ...mockBase.partner,
+      status: partnerStatus === 'CONNECTED' ? 'CONNECTED' : 'DISCONNECTED',
+    },
+    connectionStatus: wsConnectionStatus === 'CONNECTED' ? 'CONNECTED' : wsConnectionStatus === 'RECONNECTING' ? 'RECONNECTING' : 'DISCONNECTED',
+    hints: hints.length > 0 ? hints : mockBase.hints,
     isFinalTerminalUnlocked: serverState?.gameStatus === 'FINAL_PASSKEY' || serverState?.gameStatus === 'COMPLETED',
-    gameStatusMessage: serverState
+    gameStatusMessage: isChallengeCompleted
+      ? 'Correct ✓ Your challenge is complete. Waiting for your teammate...'
+      : serverState
       ? serverState.gameStatus === 'NOT_STARTED'
         ? 'Event has not started yet. Waiting for organizer to launch gameplay...'
         : serverState.gameStatus === 'FINAL_PASSKEY'
@@ -64,12 +112,30 @@ export const PlayerGamePage: React.FC = () => {
       : mockBase.gameStatusMessage,
   };
 
-  const handleAnswerSubmit = (_answer: string) => {
+  const handleAnswerSubmit = async (answer: string) => {
+    if (isSubmitting || isChallengeCompleted) return;
+
     setIsSubmitting(true);
-    // Placeholder action for Phase 6 (Question/Answer engine in Phase 7)
-    setTimeout(() => {
+    setFeedbackMsg(null);
+
+    try {
+      const res = await submitAnswer(answer);
+      if (res.correct) {
+        setFeedbackIsError(false);
+        setFeedbackMsg(res.message || 'Correct! Your challenge is complete.');
+        // Refresh question and game state
+        await loadData();
+      } else {
+        setFeedbackIsError(true);
+        setFeedbackMsg(res.message || 'Incorrect answer. Try again.');
+      }
+    } catch (err: any) {
+      setFeedbackIsError(true);
+      setFeedbackMsg(err.message || 'Failed to submit answer. Please try again.');
+    } finally {
+      setIsLoadingData(false);
       setIsSubmitting(false);
-    }, 600);
+    }
   };
 
   // Screen State 1: Event / Game Not Started
@@ -80,7 +146,7 @@ export const PlayerGamePage: React.FC = () => {
           player={player}
           currentLevel={1}
           totalLevels={6}
-          connectionStatus="CONNECTED"
+          connectionStatus={gameState.connectionStatus}
           onLogout={logout}
         />
         <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-12 flex items-center justify-center">
@@ -107,7 +173,7 @@ export const PlayerGamePage: React.FC = () => {
           player={player}
           currentLevel={6}
           totalLevels={6}
-          connectionStatus="CONNECTED"
+          connectionStatus={gameState.connectionStatus}
           onLogout={logout}
         />
         <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-12 flex items-center justify-center">
@@ -139,15 +205,56 @@ export const PlayerGamePage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <GameStatus message={gameState.gameStatusMessage} />
+
+            {/* Real-time WebSocket Notification Alert */}
+            {latestNotification && (
+              <div className="p-3.5 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-200 font-mono text-xs flex items-center gap-3 shadow-lg animate-pulse">
+                <Radio className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>{latestNotification}</span>
+              </div>
+            )}
+
+            {/* Answer Feedback Alert Banner */}
+            {feedbackMsg && (
+              <div
+                className={`p-4 rounded-xl font-mono text-xs flex items-center gap-3 shadow-lg animate-fade-in ${
+                  feedbackIsError
+                    ? 'bg-red-950/60 border border-red-500/40 text-red-200'
+                    : 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-200'
+                }`}
+              >
+                <CheckCircle className={`w-5 h-5 shrink-0 ${feedbackIsError ? 'text-red-400' : 'text-emerald-400'}`} />
+                <span>{feedbackMsg}</span>
+              </div>
+            )}
+
             <ChallengePanel challenge={gameState.challenge} playerNumber={player.playerNumber} />
-            <AnswerInput
-              answerType={gameState.challenge.answerType}
-              placeholderText={gameState.challenge.placeholderText}
-              options={gameState.challenge.options}
-              onSubmit={handleAnswerSubmit}
-              isSubmitting={isSubmitting}
+
+            {isChallengeCompleted ? (
+              <div className="bg-slate-900/90 backdrop-blur-md border border-emerald-500/40 rounded-xl p-6 shadow-xl font-mono text-center space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 text-xs font-bold uppercase">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Your Challenge Completed</span>
+                </div>
+                <p className="text-xs text-slate-300 font-sans">
+                  You have solved your question for Level {gameState.currentLevel}. Waiting for your teammate to complete their challenge.
+                </p>
+              </div>
+            ) : (
+              <AnswerInput
+                answerType={gameState.challenge.answerType}
+                placeholderText={gameState.challenge.placeholderText}
+                options={gameState.challenge.options}
+                onSubmit={handleAnswerSubmit}
+                isSubmitting={isSubmitting}
+              />
+            )}
+
+            <FinalTerminal
+              isUnlocked={gameState.isFinalTerminalUnlocked}
+              isCompleted={serverState?.gameStatus === 'COMPLETED'}
+              onSuccess={loadData}
             />
-            <FinalTerminal isUnlocked={gameState.isFinalTerminalUnlocked} />
           </div>
 
           <div className="space-y-6">

@@ -11,5 +11,6 @@ import java.util.Optional;
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findByLevelId(Long levelId);
+    List<Question> findByLevelIdAndIsActiveTrue(Long levelId);
     Optional<Question> findByLevelIdAndPlayerNumberAndIsActiveTrue(Long levelId, QuestionPlayer playerNumber);
 }

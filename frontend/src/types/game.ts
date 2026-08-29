@@ -15,6 +15,7 @@ export interface LevelProgressItem {
 export interface ChallengeData {
   levelNumber: number;
   title: string;
+  puzzleContext?: string;
   description: string;
   answerType: AnswerType;
   options?: string[];

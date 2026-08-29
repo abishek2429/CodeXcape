@@ -10,4 +10,6 @@ import java.util.List;
 public interface AnswerAttemptRepository extends JpaRepository<AnswerAttempt, Long> {
     List<AnswerAttempt> findByTeamId(Long teamId);
     List<AnswerAttempt> findByTeamIdAndPlayerIdAndLevelId(Long teamId, Long playerId, Long levelId);
+    long countByTeamIdAndPlayerIdAndLevelIdAndQuestionId(Long teamId, Long playerId, Long levelId, Long questionId);
+    void deleteByTeamId(Long teamId);
 }

@@ -174,7 +174,7 @@ public class GameStateService {
         Level level = levelRepository.findByLevelNumber(levelNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Level " + levelNumber + " not found."));
 
-        TeamLevelProgress progress = teamLevelProgressRepository.findByTeamIdAndLevelId(teamId, level.getId())
+        TeamLevelProgress progress = teamLevelProgressRepository.findForUpdateByTeamIdAndLevelId(teamId, level.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Level progress not initialized for team."));
 
         // Prevention of Level Skipping & Invalid Transitions
@@ -232,5 +232,51 @@ public class GameStateService {
         }
 
         log.info("Started gameplay for event ID {}. Initialized {} teams.", eventId, teams.size());
+    }
+
+    @Transactional(readOnly = true)
+    public com.technicalescaperoom.backend.dto.player.FullPlayerResyncStateDto getFullResyncStateForPlayer(PlayerPrincipal principal) {
+        if (principal == null) {
+            throw new ResourceNotFoundException("No authenticated player session found.");
+        }
+
+        Team team = teamRepository.findById(principal.getTeamId())
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found for ID " + principal.getTeamId()));
+
+        List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
+        TeamLevelProgress activeProgress = progressList.stream()
+                .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
+                .findFirst()
+                .orElse(null);
+
+        int currentLevel = (activeProgress != null) ? activeProgress.getLevel().getLevelNumber() : (team.getGameState() == TeamGameState.COMPLETED ? 6 : 1);
+        boolean isCompleted = (team.getGameState() == TeamGameState.COMPLETED);
+
+        boolean myCompleted = false;
+        boolean partnerCompleted = false;
+
+        if (activeProgress != null) {
+            if (principal.getPlayerNumber() == 1) {
+                myCompleted = Boolean.TRUE.equals(activeProgress.getPlayer1Completed());
+                partnerCompleted = Boolean.TRUE.equals(activeProgress.getPlayer2Completed());
+            } else {
+                myCompleted = Boolean.TRUE.equals(activeProgress.getPlayer2Completed());
+                partnerCompleted = Boolean.TRUE.equals(activeProgress.getPlayer1Completed());
+            }
+        }
+
+        return com.technicalescaperoom.backend.dto.player.FullPlayerResyncStateDto.builder()
+                .teamId(team.getId())
+                .teamCode(team.getTeamCode())
+                .teamName(team.getTeamName())
+                .playerNumber(principal.getPlayerNumber())
+                .displayName(principal.getDisplayName())
+                .gameState(team.getGameState())
+                .currentLevel(currentLevel)
+                .isCompleted(isCompleted)
+                .completedAt(team.getCompletedAt())
+                .myCompletedCurrentLevel(myCompleted)
+                .partnerCompletedCurrentLevel(partnerCompleted)
+                .build();
     }
 }

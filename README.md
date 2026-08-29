@@ -78,7 +78,34 @@ technical-escape-room/
 
 ---
 
-## Running Locally
+## Running CodeXcape
+
+### 🚀 1-Click Launch (Antigravity IDE / Terminal)
+
+In **Antigravity IDE**, simply click the **Run** button at the top (or press `Ctrl+Shift+B` / `Cmd+Shift+B` to trigger default task **"Run CodeXcape App (1-Click)"**).
+
+Alternatively, execute the 1-click runner script directly from the root directory:
+
+**Windows (PowerShell / CMD):**
+```cmd
+.\run.bat
+```
+*(or `.\run.ps1`)*
+
+**Linux / macOS:**
+```bash
+chmod +x ./run.sh
+./run.sh
+```
+
+This single command automatically:
+1. Starts the PostgreSQL container via Docker Compose.
+2. Launches the Spring Boot backend on `http://localhost:8080`.
+3. Launches the React Vite frontend dev server on `http://localhost:5173`.
+
+---
+
+### Manual Step-by-Step Execution
 
 ### 1. Start PostgreSQL Database
 

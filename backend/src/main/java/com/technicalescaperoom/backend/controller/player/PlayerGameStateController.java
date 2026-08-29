@@ -29,4 +29,10 @@ public class PlayerGameStateController {
         CurrentLevelDto currentLevel = gameStateService.getCurrentLevelForPlayer(principal);
         return ResponseEntity.ok(currentLevel);
     }
+
+    @GetMapping("/resync")
+    public ResponseEntity<com.technicalescaperoom.backend.dto.player.FullPlayerResyncStateDto> getFullResyncState(@AuthenticationPrincipal PlayerPrincipal principal) {
+        com.technicalescaperoom.backend.dto.player.FullPlayerResyncStateDto state = gameStateService.getFullResyncStateForPlayer(principal);
+        return ResponseEntity.ok(state);
+    }
 }

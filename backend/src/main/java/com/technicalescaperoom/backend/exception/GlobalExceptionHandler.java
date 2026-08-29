@@ -55,6 +55,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @ExceptionHandler(IncompleteLevelContentException.class)
+    public ResponseEntity<ErrorResponse> handleIncompleteLevelContentException(IncompleteLevelContentException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
+                .message(ex.getMessage())
+                .timestamp(Instant.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
         ErrorResponse response = ErrorResponse.builder()

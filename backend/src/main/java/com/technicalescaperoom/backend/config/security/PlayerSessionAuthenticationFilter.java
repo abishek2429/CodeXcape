@@ -78,6 +78,12 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
 
                         PlayerAuthenticationToken authentication = new PlayerAuthenticationToken(principal, token);
                         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                        if (isAdminRoute(request)) {
+                            log.warn("Player ID {} attempted to access admin route {}", session.getPlayer().getId(), request.getRequestURI());
+                            sendJsonError(response, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied. Player credentials cannot access admin endpoints.");
+                            return;
+                        }
                     }
                 } else if (isProtectedPlayerRoute(request)) {
                     sendJsonError(response, HttpStatus.UNAUTHORIZED, "INVALID_SESSION", "Session is inactive or terminated.");
@@ -92,7 +98,49 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Handle Admin route authentication
+        if (isAdminRoute(request)) {
+            String adminRoleHeader = request.getHeader("X-Admin-Role");
+            String adminUsernameHeader = request.getHeader("X-Admin-Username");
+
+            if (adminRoleHeader != null && (adminRoleHeader.equalsIgnoreCase("ADMIN") || adminRoleHeader.equalsIgnoreCase("ORGANIZER"))) {
+                com.technicalescaperoom.backend.enums.UserRole role = adminRoleHeader.equalsIgnoreCase("ADMIN")
+                        ? com.technicalescaperoom.backend.enums.UserRole.ADMIN
+                        : com.technicalescaperoom.backend.enums.UserRole.ORGANIZER;
+
+                String username = (adminUsernameHeader != null && !adminUsernameHeader.isBlank()) ? adminUsernameHeader.trim() : "organizer";
+
+                AdminPrincipal adminPrincipal = AdminPrincipal.builder()
+                        .username(username)
+                        .role(role)
+                        .build();
+
+                org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
+                        new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                                adminPrincipal, null, adminPrincipal.getAuthorities());
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            } else if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                // Default admin access for dev/testing when no headers are passed
+                AdminPrincipal defaultAdmin = AdminPrincipal.builder()
+                        .username("organizer")
+                        .role(com.technicalescaperoom.backend.enums.UserRole.ORGANIZER)
+                        .build();
+
+                org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
+                        new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                                defaultAdmin, null, defaultAdmin.getAuthorities());
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+        }
+
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isAdminRoute(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return uri.startsWith("/api/admin/");
     }
 
     private boolean isProtectedPlayerRoute(HttpServletRequest request) {
