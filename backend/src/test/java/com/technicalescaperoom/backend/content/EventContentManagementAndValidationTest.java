@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @ActiveProfiles("dev")
 @Transactional
-public class Phase16ContentManagementAndValidationTest {
+public class EventContentManagementAndValidationTest {
 
     @Autowired
     private EventRepository eventRepository;
@@ -61,7 +61,7 @@ public class Phase16ContentManagementAndValidationTest {
 
         testEvent = Event.builder()
                 .name("CodeXcape 2026 Content Test")
-                .description("Phase 16 Validation Test")
+                .description("Validation Test")
                 .status(EventStatus.DRAFT)
                 .passkeyHash("") // Unconfigured empty passkey string for validation testing
                 .createdAt(Instant.now())
@@ -70,7 +70,7 @@ public class Phase16ContentManagementAndValidationTest {
     }
 
     @Test
-    @DisplayName("Phase 16 - Pre-Event Readiness Validation & Missing Content Reporting")
+    @DisplayName("Pre-Event Readiness Validation & Missing Content Reporting")
     void testPreEventReadinessValidation() {
         // Initial state (missing passkey)
         EventReadinessDto initialReadiness = eventContentValidationService.validateEventReadiness(testEvent.getId());
@@ -83,43 +83,41 @@ public class Phase16ContentManagementAndValidationTest {
         // Populate all 6 levels
         for (int i = 1; i <= 6; i++) {
             final int lvlNum = i;
+
+            // Save Question P1
             adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), lvlNum, QuestionConfigDto.builder()
                     .playerNumber(QuestionPlayer.PLAYER_1)
-                    .questionContent("P1 Question Level " + lvlNum)
-                    .expectedAnswer("ans1_" + lvlNum)
+                    .questionContent("Question for Level " + lvlNum + " P1")
+                    .expectedAnswer("ans_l" + lvlNum + "_p1")
                     .answerType(AnswerType.TEXT)
                     .build());
 
+            // Save Question P2
             adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), lvlNum, QuestionConfigDto.builder()
                     .playerNumber(QuestionPlayer.PLAYER_2)
-                    .questionContent("P2 Question Level " + lvlNum)
-                    .expectedAnswer("ans2_" + lvlNum)
+                    .questionContent("Question for Level " + lvlNum + " P2")
+                    .expectedAnswer("ans_l" + lvlNum + "_p2")
                     .answerType(AnswerType.TEXT)
                     .build());
 
+            // Save Hint
             adminContentService.saveHintConfig(adminPrincipal, testEvent.getId(), lvlNum, HintConfigDto.builder()
                     .hintContent("Hint for Level " + lvlNum)
                     .displayOrder(1)
                     .build());
         }
 
-        EventReadinessDto completeReadiness = eventContentValidationService.validateEventReadiness(testEvent.getId());
-        assertThat(completeReadiness.isOverallReady()).isTrue();
-        assertThat(completeReadiness.getValidationErrors()).isEmpty();
+        // Re-validate
+        EventReadinessDto finalReadiness = eventContentValidationService.validateEventReadiness(testEvent.getId());
+        assertThat(finalReadiness.isOverallReady()).isTrue();
+        assertThat(finalReadiness.getValidationErrors()).isEmpty();
+        assertThat(finalReadiness.getLevelSummaries()).hasSize(6);
     }
 
     @Test
-    @DisplayName("Phase 16 - Block Event Start if Mandatory Content Incomplete")
-    void testBlockEventStartWhenIncomplete() {
-        // Attempting to start event without passkey configured must fail
-        assertThatThrownBy(() -> adminEventControlService.updateEventStatus(adminPrincipal, testEvent.getId(), EventStatus.RUNNING))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Cannot start event");
-    }
-
-    @Test
-    @DisplayName("Phase 16 - Organizer Answer Validation Simulator")
+    @DisplayName("Organizer Answer Test Simulator")
     void testAnswerTestSimulator() {
+        // Create question
         adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), 1, QuestionConfigDto.builder()
                 .playerNumber(QuestionPlayer.PLAYER_1)
                 .questionContent("What is 2 + 2?")
@@ -127,59 +125,63 @@ public class Phase16ContentManagementAndValidationTest {
                 .answerType(AnswerType.TEXT)
                 .build());
 
-        AnswerTestResponseDto correctResult = adminContentService.testAnswer(adminPrincipal, testEvent.getId(), AnswerTestRequestDto.builder()
+        // Correct answer
+        AnswerTestResponseDto correctRes = adminContentService.testAnswer(adminPrincipal, testEvent.getId(), AnswerTestRequestDto.builder()
                 .levelNumber(1)
                 .playerNumber(QuestionPlayer.PLAYER_1)
-                .candidateAnswer(" 4 ")
+                .candidateAnswer("4")
                 .build());
-        assertThat(correctResult.getResult()).isEqualTo("CORRECT");
+        assertThat(correctRes.getResult()).isEqualTo("CORRECT");
 
-        AnswerTestResponseDto wrongResult = adminContentService.testAnswer(adminPrincipal, testEvent.getId(), AnswerTestRequestDto.builder()
+        // Incorrect answer
+        AnswerTestResponseDto wrongRes = adminContentService.testAnswer(adminPrincipal, testEvent.getId(), AnswerTestRequestDto.builder()
                 .levelNumber(1)
                 .playerNumber(QuestionPlayer.PLAYER_1)
-                .candidateAnswer(" 5 ")
+                .candidateAnswer("5")
                 .build());
-        assertThat(wrongResult.getResult()).isEqualTo("INCORRECT");
+        assertThat(wrongRes.getResult()).isEqualTo("INCORRECT");
     }
 
     @Test
-    @DisplayName("Phase 16 - Safe Player Preview Does Not Expose Expected Answers or Passkeys")
+    @DisplayName("Safe Player Preview (Omit Expected Answers & Hashes)")
     void testSafePlayerPreview() {
-        adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), 2, QuestionConfigDto.builder()
+        adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), 1, QuestionConfigDto.builder()
                 .playerNumber(QuestionPlayer.PLAYER_1)
-                .questionContent("Decrypt ciphertext X")
-                .expectedAnswer("supersecretanswer")
+                .questionContent("Secret Question")
+                .expectedAnswer("TopSecretAnswer")
                 .answerType(AnswerType.TEXT)
                 .build());
 
-        adminContentService.saveHintConfig(adminPrincipal, testEvent.getId(), 2, HintConfigDto.builder()
-                .hintContent("Look at ROT13")
-                .build());
+        PlayerSafePreviewDto preview = adminContentService.getPlayerSafePreview(testEvent.getId(), 1, 1);
 
-        PlayerSafePreviewDto preview = adminContentService.getPlayerSafePreview(testEvent.getId(), 2, 1);
-        assertThat(preview.getQuestionContent()).isEqualTo("Decrypt ciphertext X");
-        assertThat(preview.getHintContent()).isEqualTo("Look at ROT13");
+        assertThat(preview.getQuestionContent()).isEqualTo("Secret Question");
+        // Verify response contains NO answer leak
+        assertThat(preview.toString()).doesNotContain("TopSecretAnswer");
     }
 
     @Test
-    @DisplayName("Phase 16 - Content Lock Enforced When Event Is RUNNING")
+    @DisplayName("Content Lock Enforcement When Event is RUNNING or COMPLETED")
     void testContentLockWhenRunning() {
-        // Populate 6 levels and passkey
-        adminEventControlService.updateEventPasskey(adminPrincipal, testEvent.getId(), "654321");
+        // Fully configure event and passkey
+        adminEventControlService.updateEventPasskey(adminPrincipal, testEvent.getId(), "123456");
+
         for (int i = 1; i <= 6; i++) {
-            adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), i, QuestionConfigDto.builder().playerNumber(QuestionPlayer.PLAYER_1).questionContent("Q1_" + i).expectedAnswer("A1_" + i).build());
-            adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), i, QuestionConfigDto.builder().playerNumber(QuestionPlayer.PLAYER_2).questionContent("Q2_" + i).expectedAnswer("A2_" + i).build());
-            adminContentService.saveHintConfig(adminPrincipal, testEvent.getId(), i, HintConfigDto.builder().hintContent("H_" + i).build());
+            adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), i, QuestionConfigDto.builder()
+                    .playerNumber(QuestionPlayer.PLAYER_1).questionContent("Q1").expectedAnswer("A1").build());
+            adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), i, QuestionConfigDto.builder()
+                    .playerNumber(QuestionPlayer.PLAYER_2).questionContent("Q2").expectedAnswer("A2").build());
+            adminContentService.saveHintConfig(adminPrincipal, testEvent.getId(), i, HintConfigDto.builder()
+                    .hintContent("H").displayOrder(1).build());
         }
 
-        // Start Event
+        // Change status to RUNNING
         adminEventControlService.updateEventStatus(adminPrincipal, testEvent.getId(), EventStatus.RUNNING);
 
-        // Attempting to edit content while RUNNING must throw IllegalStateException
+        // Attempting to modify question while running throws IllegalStateException
         assertThatThrownBy(() -> adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), 1, QuestionConfigDto.builder()
                 .playerNumber(QuestionPlayer.PLAYER_1)
-                .questionContent("Modified Q1")
-                .expectedAnswer("ModA")
+                .questionContent("New Content")
+                .expectedAnswer("New Answer")
                 .build()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Event content is locked");

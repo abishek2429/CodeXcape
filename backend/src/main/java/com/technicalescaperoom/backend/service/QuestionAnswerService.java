@@ -48,6 +48,10 @@ public class QuestionAnswerService {
         Player player = playerRepository.findById(principal.getPlayerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Player not found."));
 
+        if (!player.getTeam().getId().equals(team.getId())) {
+            throw new ResourceNotFoundException("Player does not belong to the specified team.");
+        }
+
         Event event = team.getEvent();
         if (event.getStatus() != EventStatus.RUNNING && event.getStatus() != EventStatus.READY) {
             throw new EventUnavailableException("The event is not currently active.");
@@ -101,6 +105,10 @@ public class QuestionAnswerService {
 
         Player player = playerRepository.findById(principal.getPlayerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Player not found."));
+
+        if (!player.getTeam().getId().equals(team.getId())) {
+            throw new ResourceNotFoundException("Player does not belong to the specified team.");
+        }
 
         Event event = team.getEvent();
         if (event.getStatus() != EventStatus.RUNNING && event.getStatus() != EventStatus.READY) {

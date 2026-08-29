@@ -5,6 +5,7 @@ import com.technicalescaperoom.backend.dto.admin.EventResponse;
 import com.technicalescaperoom.backend.entity.Event;
 import com.technicalescaperoom.backend.entity.Team;
 import com.technicalescaperoom.backend.enums.EventStatus;
+import com.technicalescaperoom.backend.enums.UserRole;
 import com.technicalescaperoom.backend.exception.ResourceNotFoundException;
 import com.technicalescaperoom.backend.repository.EventRepository;
 import com.technicalescaperoom.backend.repository.TeamRepository;
@@ -32,6 +33,7 @@ public class AdminEventControlService {
 
     @Transactional
     public EventResponse updateEventStatus(AdminPrincipal principal, Long eventId, EventStatus newStatus) {
+        validateAdminRole(principal);
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found for ID " + eventId));
 
@@ -81,6 +83,7 @@ public class AdminEventControlService {
 
     @Transactional
     public EventResponse emergencyStop(AdminPrincipal principal, Long eventId, String reason) {
+        validateAdminRole(principal);
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found for ID " + eventId));
 
@@ -111,6 +114,7 @@ public class AdminEventControlService {
 
     @Transactional
     public EventResponse updateEventPasskey(AdminPrincipal principal, Long eventId, String newPasskey) {
+        validateAdminRole(principal);
         if (newPasskey == null || newPasskey.isBlank()) {
             throw new IllegalArgumentException("Passkey cannot be blank.");
         }
@@ -129,8 +133,16 @@ public class AdminEventControlService {
                 "Updated final passkey hash"
         );
 
-        log.info("Admin {} updated final passkey hash for Event #{}", principal != null ? principal.getUsername() : "SYSTEM", eventId);
+        log.info("Admin {} changed final passkey for Event #{}",
+                principal != null ? principal.getUsername() : "SYSTEM", eventId);
+
         return mapToResponse(saved);
+    }
+
+    private void validateAdminRole(AdminPrincipal principal) {
+        if (principal == null || (principal.getRole() != UserRole.ADMIN && principal.getRole() != UserRole.ORGANIZER)) {
+            throw new org.springframework.security.access.AccessDeniedException("Unauthorized administrative access.");
+        }
     }
 
     private EventResponse mapToResponse(Event event) {

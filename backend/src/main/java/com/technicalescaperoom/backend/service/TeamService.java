@@ -28,6 +28,7 @@ public class TeamService {
     private final PlayerRepository playerRepository;
     private final TeamCodeGenerator teamCodeGenerator;
     private final AuditService auditService;
+    private final GameStateService gameStateService;
 
     @Transactional
     public TeamDetailResponse createTeam(Long eventId, CreateTeamRequest request) {
@@ -78,6 +79,8 @@ public class TeamService {
 
         playerRepository.save(p1);
         playerRepository.save(p2);
+
+        gameStateService.initializeTeamGameState(savedTeam);
 
         auditService.logEvent(GameEventType.TEAM_CREATED, event, savedTeam, null,
                 "{\"teamCode\":\"" + teamCode + "\",\"teamName\":\"" + savedTeam.getTeamName() + "\"}");
