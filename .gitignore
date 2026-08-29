@@ -38,3 +38,9 @@ postgres_data/
 # Logs
 *.log
 logs/
+
+# Database Backups & Dumps
+*.sql
+*.bak
+backups/
+
