@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, CheckCircle } from 'lucide-react';
+import { Send, CheckCircle2, Terminal } from 'lucide-react';
 import { AnswerType } from '../../types/game';
 
 interface AnswerInputProps {
@@ -25,7 +25,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
     if (!answer.trim() || isSubmitting) return;
 
     onSubmit(answer.trim());
-    setSubmittedFeedback(`Answer "${answer.trim()}" recorded (Phase 5 Demo Mode)`);
+    setSubmittedFeedback(`Payload "${answer.trim()}" dispatched for verification.`);
 
     setTimeout(() => {
       setSubmittedFeedback(null);
@@ -33,15 +33,20 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl p-6 shadow-xl mb-6">
-      <h2 className="text-xs font-mono tracking-widest text-slate-400 uppercase font-semibold mb-3 flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-        Submit Solution
-      </h2>
+    <div className="cyber-panel p-6 sm:p-7 rounded-2xl border border-slate-800 shadow-2xl mb-6 font-mono">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+        <h2 className="text-xs font-mono tracking-widest text-slate-300 uppercase font-semibold flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-cyan-400" />
+          <span>TERMINAL SOLUTION DISPATCH</span>
+        </h2>
+        <span className="text-[10px] text-slate-500 uppercase tracking-widest">
+          {answerType} INPUT MODE
+        </span>
+      </div>
 
       {submittedFeedback && (
-        <div className="mb-4 p-3 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center gap-2 animate-fade-in">
-          <CheckCircle className="w-4 h-4 shrink-0" />
+        <div className="mb-4 p-3.5 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-200 text-xs font-mono flex items-center gap-2.5 animate-fade-in shadow-lg">
+          <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
           <span>{submittedFeedback}</span>
         </div>
       )}
@@ -54,48 +59,53 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
                 key={idx}
                 type="button"
                 onClick={() => setAnswer(option)}
-                className={`p-3 rounded-lg border font-mono text-sm text-left transition cursor-pointer ${
+                className={`p-3.5 rounded-xl border font-mono text-sm text-left transition-all duration-200 cursor-pointer flex items-center gap-3 ${
                   answer === option
-                    ? 'bg-cyan-950/60 border-cyan-500 text-cyan-200 shadow-md'
-                    : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                    ? 'bg-cyan-950/60 border-cyan-400 text-cyan-200 shadow-[0_0_20px_rgba(0,240,255,0.2)] ring-1 ring-cyan-400'
+                    : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
                 }`}
               >
-                <span className="text-cyan-400 font-bold mr-2">[{String.fromCharCode(65 + idx)}]</span>
-                {option}
+                <span className="w-6 h-6 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-bold flex items-center justify-center text-xs">
+                  {String.fromCharCode(65 + idx)}
+                </span>
+                <span className="truncate">{option}</span>
               </button>
             ))}
           </div>
         ) : (
           <div className="relative">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400 font-mono font-bold text-sm pointer-events-none">
+              &gt;
+            </div>
             <input
               type={answerType === 'NUMERIC' ? 'number' : 'text'}
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              placeholder={placeholderText || (answerType === 'NUMERIC' ? 'Enter numeric answer...' : 'Enter your solution...')}
+              placeholder={placeholderText || (answerType === 'NUMERIC' ? 'Enter numeric solution...' : 'ENTER SOLUTION_')}
               disabled={isSubmitting}
-              className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-lg px-4 py-3.5 text-white font-mono text-base placeholder-slate-600 outline-none transition disabled:opacity-50"
+              className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 rounded-xl pl-9 pr-24 py-3.5 text-white font-mono text-sm placeholder-slate-600 outline-none transition-all shadow-inner disabled:opacity-50"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs uppercase">
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-500 font-mono uppercase bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
               {answerType}
             </div>
           </div>
         )}
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2">
           <button
             type="submit"
             disabled={!answer.trim() || isSubmitting}
-            className="w-full sm:w-auto bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-mono font-bold tracking-wider py-3 px-6 rounded-lg shadow-lg shadow-cyan-950/50 transition transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 uppercase cursor-pointer"
+            className="w-full sm:w-auto cyber-btn-primary py-3 px-6 rounded-xl font-mono font-bold text-xs tracking-wider uppercase transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Submitting...</span>
+                <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
+                <span>VERIFYING PAYLOAD...</span>
               </>
             ) : (
               <>
-                <span>SUBMIT ANSWER</span>
-                <Send className="w-4 h-4" />
+                <span>TRANSMIT SOLUTION</span>
+                <Send className="w-3.5 h-3.5" />
               </>
             )}
           </button>
@@ -104,3 +114,4 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
     </div>
   );
 };
+

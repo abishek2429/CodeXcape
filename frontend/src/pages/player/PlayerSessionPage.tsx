@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePlayerAuth } from '../../context/PlayerAuthContext';
+import { LogOut, Clock } from 'lucide-react';
 
 export const PlayerSessionPage: React.FC = () => {
   const { player, logout } = usePlayerAuth();
@@ -9,67 +10,66 @@ export const PlayerSessionPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 bg-[#0a0d14] relative overflow-hidden">
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 bg-cyber-bg relative overflow-hidden font-sans">
       {/* Background Accent Lines */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="w-full max-w-lg bg-slate-900/90 backdrop-blur-md border border-cyan-900/40 rounded-xl p-8 shadow-2xl relative z-10 text-center">
+      <div className="w-full max-w-lg cyber-panel hud-corner p-8 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl relative z-10 text-center">
         
         {/* Connection Pulse Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-mono text-xs tracking-wider uppercase mb-6">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-          Connected ✓
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-mono text-xs tracking-widest uppercase mb-6 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 radar-ping text-emerald-400"></span>
+          <span>NODE TELEMETRY: CONNECTED</span>
         </div>
 
-        <h1 className="text-3xl font-extrabold tracking-tight text-white font-mono uppercase bg-gradient-to-r from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent mb-8">
-          CODEXCAPE
+        <h1 className="text-3xl font-black tracking-wider text-white font-heading uppercase mb-8">
+          CODEXCAPE // SESSION
         </h1>
 
-        <div className="bg-slate-950/70 border border-slate-800 rounded-lg p-6 mb-8 text-left space-y-4 font-mono">
+        <div className="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-6 mb-8 text-left space-y-3.5 font-mono text-xs shadow-inner">
           <div className="flex justify-between items-center border-b border-slate-800/80 pb-3">
-            <span className="text-slate-400 text-xs uppercase tracking-wider">Team Code</span>
-            <span className="text-cyan-400 font-bold text-lg tracking-widest">{player?.teamCode}</span>
+            <span className="text-slate-400 uppercase tracking-wider">TEAM ACCESS CODE</span>
+            <span className="text-cyan-400 font-bold text-base tracking-widest">{player?.teamCode}</span>
           </div>
 
           <div className="flex justify-between items-center border-b border-slate-800/80 pb-3">
-            <span className="text-slate-400 text-xs uppercase tracking-wider">Team Name</span>
+            <span className="text-slate-400 uppercase tracking-wider">TEAM IDENTIFIER</span>
             <span className="text-white font-semibold">{player?.teamName || 'N/A'}</span>
           </div>
 
           <div className="flex justify-between items-center border-b border-slate-800/80 pb-3">
-            <span className="text-slate-400 text-xs uppercase tracking-wider">Player Role</span>
-            <span className="text-cyan-300 font-semibold">Player {player?.playerNumber}</span>
+            <span className="text-slate-400 uppercase tracking-wider">OPERATIONAL ROLE</span>
+            <span className="text-cyan-300 font-bold">
+              {player?.playerNumber === 1 ? 'Player 1 (Operator)' : 'Player 2 (Analyzer)'}
+            </span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-slate-400 text-xs uppercase tracking-wider">Player Identity</span>
-            <span className="text-slate-200 text-sm">{player?.playerName}</span>
+            <span className="text-slate-400 uppercase tracking-wider">PLAYER IDENTITY</span>
+            <span className="text-slate-200">{player?.playerName}</span>
           </div>
         </div>
 
-        {/* Phase 5 Game Area Placeholder Message */}
-        <div className="p-6 rounded-lg bg-cyan-950/20 border border-cyan-800/30 text-cyan-200 mb-8 flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-cyan-900/40 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-            <svg className="w-5 h-5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        {/* Waiting Message */}
+        <div className="p-6 rounded-2xl bg-cyan-950/30 border border-cyan-500/30 text-cyan-200 mb-8 flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-[0_0_20px_rgba(0,240,255,0.2)] animate-pulse">
+            <Clock className="w-6 h-6" />
           </div>
           <div>
-            <p className="font-mono text-sm font-semibold tracking-wide uppercase text-white">Waiting for game...</p>
-            <p className="text-xs text-slate-400 mt-1">Your player session is active. Waiting for event organizer to start gameplay.</p>
+            <p className="font-mono text-xs font-bold tracking-wider uppercase text-white">READY & SYNCHRONIZED</p>
+            <p className="text-xs text-slate-400 font-mono mt-1">Your player session is active. Waiting for event organizer to authorize gameplay tier release.</p>
           </div>
         </div>
 
         <button
           onClick={handleLogout}
-          className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-mono text-sm tracking-wider py-3 px-4 rounded-lg border border-slate-700 transition flex items-center justify-center gap-2 uppercase cursor-pointer"
+          className="w-full bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-mono text-xs tracking-wider py-3.5 px-4 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2 uppercase cursor-pointer shadow-lg"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          <span>Disconnect / Logout</span>
+          <LogOut className="w-4 h-4 text-rose-400" />
+          <span>DISCONNECT / TERMINATE SESSION</span>
         </button>
       </div>
     </div>
   );
 };
+

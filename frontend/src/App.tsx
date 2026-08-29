@@ -21,7 +21,7 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <PlayerAuthProvider>
-        <div className="min-h-screen bg-[#0a0d14] text-slate-100 flex flex-col font-sans">
+        <div className="min-h-screen bg-cyber-bg text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
           <Header />
           <main className="flex-1">
             <Routes>
