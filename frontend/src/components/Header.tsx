@@ -18,7 +18,7 @@ export const Header: React.FC = () => {
             <h1 className="text-xl font-extrabold tracking-wider text-white font-mono flex items-center gap-2">
               CODE<span className="text-cyan-400">XCAPE</span>
             </h1>
-            <p className="text-xs text-slate-400 font-mono">TECHNICAL ESCAPE ROOM</p>
+            <p className="text-xs text-slate-400 font-mono">CODEXCAPE</p>
           </div>
         </Link>
 

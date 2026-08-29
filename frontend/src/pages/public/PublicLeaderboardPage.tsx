@@ -57,7 +57,7 @@ export const PublicLeaderboardPage: React.FC = () => {
             <h1 className="text-3xl font-extrabold tracking-widest text-white uppercase flex items-center gap-3">
               CODEXCAPE <span className="text-cyan-400 text-sm px-3 py-1 rounded bg-cyan-950/80 border border-cyan-500/40">LIVE LEADERBOARD</span>
             </h1>
-            <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">Technical Escape Room Live Leaderboard</p>
+            <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">CodeXcape Live Leaderboard</p>
           </div>
         </div>
 

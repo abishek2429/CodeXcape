@@ -59,7 +59,7 @@ export const EventListPage: React.FC = () => {
             <Activity className="w-7 h-7 text-cyan-400" />
             EVENT MANAGEMENT
           </h1>
-          <p className="text-sm text-slate-400 mt-1">Configure and manage technical escape room competitions.</p>
+          <p className="text-sm text-slate-400 mt-1">Configure and manage CodeXcape competitions.</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -95,7 +95,7 @@ export const EventListPage: React.FC = () => {
         <div className="py-20 text-center rounded-2xl bg-slate-900/40 border border-slate-800">
           <Calendar className="w-12 h-12 text-slate-600 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-slate-200 font-mono">No Events Registered</h3>
-          <p className="text-sm text-slate-400 mt-1 mb-4">Create your first technical escape room competition.</p>
+          <p className="text-sm text-slate-400 mt-1 mb-4">Create your first CodeXcape competition.</p>
           <Link
             to="/admin/events/new"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 text-sm font-mono transition"

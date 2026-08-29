@@ -22,7 +22,7 @@ export const PlayerSessionPage: React.FC = () => {
         </div>
 
         <h1 className="text-3xl font-extrabold tracking-tight text-white font-mono uppercase bg-gradient-to-r from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent mb-8">
-          TECHNICAL ESCAPE ROOM
+          CODEXCAPE
         </h1>
 
         <div className="bg-slate-950/70 border border-slate-800 rounded-lg p-6 mb-8 text-left space-y-4 font-mono">

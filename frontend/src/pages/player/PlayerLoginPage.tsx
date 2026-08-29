@@ -47,7 +47,7 @@ export const PlayerLoginPage: React.FC = () => {
             Player Portal Access
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-white font-mono uppercase bg-gradient-to-r from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent">
-            TECHNICAL ESCAPE ROOM
+            CODEXCAPE
           </h1>
           <p className="text-sm text-slate-400 mt-1">Enter your team code and player role to join session</p>
         </div>
