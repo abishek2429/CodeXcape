@@ -1,5 +1,6 @@
 import React from 'react';
 import { Cpu } from 'lucide-react';
+import { Card } from '../ui/Card';
 
 interface Props {
   message?: string;
@@ -7,23 +8,21 @@ interface Props {
 
 export const GameLoadingState: React.FC<Props> = ({ message = 'INITIALIZING CODEXCAPE ENVIRONMENT...' }) => {
   return (
-    <div className="min-h-[75vh] flex items-center justify-center px-4 bg-cyber-bg">
-      <div className="flex flex-col items-center gap-5 text-cyan-400 font-mono text-center cyber-panel p-8 sm:p-10 rounded-3xl border border-cyan-500/30 shadow-2xl max-w-sm">
-        <div className="relative">
-          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.2)]">
-            <Cpu className="w-8 h-8 text-cyan-400 animate-pulse" />
+    <div style={{ minHeight: '75vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <Card style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', padding: '40px', maxWidth: '350px', textAlign: 'center' }}>
+        <div style={{ position: 'relative' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '16px', backgroundColor: 'rgba(0, 217, 255, 0.1)', border: '1px solid rgba(0, 217, 255, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(0, 217, 255, 0.2)' }}>
+            <Cpu size={32} color="var(--accent-cyan)" className="animate-pulse" />
           </div>
-          <div className="absolute -inset-1 rounded-2xl border border-cyan-400/30 animate-spin"></div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-xs tracking-widest uppercase font-bold text-white font-mono">{message}</p>
-          <div className="w-32 bg-slate-950 h-1.5 rounded-full overflow-hidden mx-auto border border-slate-800">
-            <div className="h-full bg-cyan-400 w-1/2 animate-pulse"></div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', alignItems: 'center' }}>
+          <p style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 'bold', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{message}</p>
+          <div style={{ width: '128px', backgroundColor: 'var(--bg-dark)', height: '6px', borderRadius: '9999px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+            <div style={{ height: '100%', backgroundColor: 'var(--accent-cyan)', width: '50%' }} className="animate-pulse"></div>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };
-

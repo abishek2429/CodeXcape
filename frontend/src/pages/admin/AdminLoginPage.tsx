@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { ShieldAlert, LogIn, Lock } from 'lucide-react';
+import { Card } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
 
 export const AdminLoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
@@ -42,70 +45,71 @@ export const AdminLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cyber-darker flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', backgroundColor: 'var(--bg-void)' }}>
+      <div style={{ maxWidth: '450px', width: '100%' }}>
         {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-cyan-900/30 border border-cyan-500/30 mb-6 shadow-[0_0_30px_rgba(6,182,212,0.15)] relative">
-            <div className="absolute inset-0 rounded-full border border-cyan-400/20 animate-ping" style={{ animationDuration: '3s' }}></div>
-            <ShieldAlert className="w-10 h-10 text-cyan-400" />
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(0, 217, 255, 0.1)', border: '1px solid rgba(0, 217, 255, 0.3)', marginBottom: '24px', boxShadow: '0 0 30px rgba(0, 217, 255, 0.15)', position: 'relative' }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(0, 217, 255, 0.2)' }} className=""></div>
+            <ShieldAlert size={40} color="var(--accent-cyan)" />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white mb-2" style={{ textShadow: '0 0 20px rgba(6,182,212,0.5)' }}>
+          <h1 style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '0.05em' }}>
             MISSION CONTROL
           </h1>
-          <p className="text-cyan-400/70 tracking-widest text-sm font-medium">ADMINISTRATIVE ACCESS ONLY</p>
+          <p style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontSize: '12px', letterSpacing: '0.1em', fontWeight: 600 }}>
+            ADMINISTRATIVE ACCESS ONLY
+          </p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-cyber-dark/80 backdrop-blur-xl border border-cyan-900/50 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)] relative overflow-hidden group">
-          {/* Decorative elements */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <Card style={{ padding: '32px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: 'linear-gradient(to right, transparent, var(--accent-cyan), transparent)', opacity: 0.8 }}></div>
           
-          <form onSubmit={handleLogin} className="space-y-6 relative z-10">
+          <form onSubmit={handleLogin} style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl text-sm flex items-start gap-3">
-                <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fda4af', padding: '16px', borderRadius: '12px', fontSize: '12px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <ShieldAlert size={20} color="var(--status-error)" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <p>{error}</p>
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-400 ml-1 block">Authorization Key</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-cyan-500/50" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginLeft: '4px', fontFamily: 'var(--font-mono)' }}>Authorization Key</label>
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                  <Lock size={20} color="rgba(0, 217, 255, 0.5)" />
                 </div>
-                <input
+                <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-11 pr-4 py-4 bg-black/40 border border-cyan-900/50 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all duration-300"
                   placeholder="Enter admin password"
                   required
+                  style={{ paddingLeft: '48px', paddingRight: '16px', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
                 />
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 px-6 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl font-bold tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
+              style={{ width: '100%', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', letterSpacing: '0.05em' }}
             >
               {isLoading ? (
-                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div style={{ width: '24px', height: '24px', border: '2px solid rgba(255, 255, 255, 0.3)', borderTopColor: 'white', borderRadius: '50%' }} className="animate-spin"></div>
               ) : (
                 <>
-                  <LogIn className="w-5 h-5" />
-                  INITIALIZE UPLINK
+                  <LogIn size={20} />
+                  <span>INITIALIZE UPLINK</span>
                 </>
               )}
-            </button>
+            </Button>
           </form>
-        </div>
+        </Card>
         
         {/* Footer */}
-        <div className="text-center mt-8">
-          <p className="text-slate-600 text-xs tracking-wider">
+        <div style={{ textAlign: 'center', marginTop: '32px' }}>
+          <p style={{ color: 'var(--text-tertiary)', fontSize: '10px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
             SECURE CONNECTION ESTABLISHED • ENCRYPTED CHANNEL
           </p>
         </div>

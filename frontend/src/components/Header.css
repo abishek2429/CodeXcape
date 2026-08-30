@@ -1,0 +1,206 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--border-color);
+  background-color: rgba(5, 7, 13, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all var(--transition-fast);
+}
+
+.header-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px var(--space-m);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-logo-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  text-decoration: none;
+}
+
+.brand-icon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(to bottom right, rgba(0,217,255,0.2), rgba(139,92,246,0.1));
+  border: 1px solid var(--accent-cyan-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.brand-logo-wrapper:hover .brand-icon {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 20px var(--accent-cyan-glow);
+}
+
+.brand-x {
+  font-family: var(--font-sans);
+  font-weight: 900;
+  font-size: 20px;
+  color: var(--accent-cyan);
+}
+
+.brand-text {
+  font-family: var(--font-sans);
+  font-weight: 900;
+  font-size: 20px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+}
+
+.brand-text-accent {
+  color: var(--accent-cyan);
+  text-shadow: 0 0 10px rgba(0,217,255,0.6);
+}
+
+.brand-subtitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+}
+
+.desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  background-color: rgba(31, 41, 55, 0.5);
+}
+
+.nav-link.active-cyan {
+  background-color: rgba(0, 217, 255, 0.15);
+  border-color: var(--accent-cyan-glow);
+  color: var(--accent-cyan);
+  font-weight: 600;
+  box-shadow: 0 0 12px rgba(0, 217, 255, 0.15);
+}
+
+.nav-link.active-purple {
+  background-color: rgba(139, 92, 246, 0.15);
+  border-color: var(--accent-purple-glow);
+  color: #c4b5fd;
+  font-weight: 600;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.15);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+}
+
+.telemetry-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background-color: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.telemetry-online {
+  color: var(--status-success);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.mobile-menu-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 8px;
+  cursor: pointer;
+}
+
+.mobile-menu-btn:hover {
+  color: var(--text-primary);
+}
+
+.mobile-drawer {
+  border-top: 1px solid var(--border-color);
+  background-color: rgba(8, 11, 18, 0.95);
+  backdrop-filter: blur(16px);
+  padding: var(--space-m);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.mobile-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px var(--space-m);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--text-secondary);
+}
+
+.mobile-nav-link.active-cyan {
+  background-color: rgba(0, 217, 255, 0.2);
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+.mobile-nav-link.active-purple {
+  background-color: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-btn, .telemetry-badge {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-menu-btn {
+    display: none;
+  }
+}

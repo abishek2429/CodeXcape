@@ -25,9 +25,9 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <AdminAuthProvider>
         <PlayerAuthProvider>
-          <div className="min-h-screen bg-cyber-bg text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+          <div className="min-h-screen flex flex-col">
             <Header />
-            <main className="flex-1">
+            <main className="h-full">
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/public-leaderboard" element={<PublicLeaderboardPage />} />

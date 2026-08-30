@@ -1,0 +1,75 @@
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700; /* Bold */
+  color: var(--text-primary);
+  margin-bottom: var(--space-m);
+}
+
+h1 {
+  font-size: clamp(48px, 5vw, 64px);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: clamp(32px, 4vw, 40px);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 600; /* Semi-bold */
+  line-height: 1.3;
+}
+
+p {
+  font-size: 16px;
+  margin-bottom: var(--space-m);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.text-system {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.text-technical {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.text-terminal {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.text-accent-cyan {
+  color: var(--accent-cyan);
+}
+
+.text-accent-purple {
+  color: var(--accent-purple);
+}
+
+.text-success {
+  color: var(--status-success);
+}
+
+.text-error {
+  color: var(--status-error);
+}
+
+.text-warning {
+  color: var(--status-warning);
+}

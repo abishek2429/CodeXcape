@@ -19,6 +19,8 @@ import { GameSessionState, ChallengeData } from '../../types/game';
 
 import { fetchPlayerHints } from '../../services/hintService';
 import { HintData } from '../../types/game';
+import './PlayerGamePage.css';
+import { Card } from '../../components/ui/Card';
 
 export const PlayerGamePage: React.FC = () => {
   const { player, logout, authStatus } = usePlayerAuth();
@@ -69,10 +71,8 @@ export const PlayerGamePage: React.FC = () => {
     return <GameErrorState message="Player session expired or unauthenticated. Please re-enter credentials." />;
   }
 
-  // Base fallback mock state
   const mockBase = getMockGameState(player.playerNumber);
 
-  // Build live challenge data from server question response if available
   const activeChallenge: ChallengeData = liveQuestion
     ? {
         levelNumber: liveQuestion.levelNumber,
@@ -86,7 +86,6 @@ export const PlayerGamePage: React.FC = () => {
 
   const isChallengeCompleted = liveQuestion?.isCompleted ?? false;
 
-  // Merge live server level progress
   const gameState: GameSessionState = {
     ...mockBase,
     currentLevel: serverState ? serverState.currentLevel : mockBase.currentLevel,
@@ -115,7 +114,6 @@ export const PlayerGamePage: React.FC = () => {
 
   const handleAnswerSubmit = async (answer: string) => {
     if (isSubmitting || isChallengeCompleted) return;
-
     setIsSubmitting(true);
     setFeedbackMsg(null);
 
@@ -124,7 +122,6 @@ export const PlayerGamePage: React.FC = () => {
       if (res.correct) {
         setFeedbackIsError(false);
         setFeedbackMsg(res.message || '✓ SOLUTION ACCEPTED: Node verified successfully.');
-        // Refresh question and game state
         await loadData();
       } else {
         setFeedbackIsError(true);
@@ -139,116 +136,84 @@ export const PlayerGamePage: React.FC = () => {
     }
   };
 
-  // Screen State 1: Event / Game Not Started
   if (serverState && serverState.gameStatus === 'NOT_STARTED') {
     return (
-      <div className="min-h-screen bg-cyber-bg text-slate-100 flex flex-col font-sans">
-        <GameHeader
-          player={player}
-          currentLevel={1}
-          totalLevels={6}
-          connectionStatus={gameState.connectionStatus}
-          onLogout={logout}
-        />
-        <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-12 flex items-center justify-center">
-          <div className="w-full cyber-panel hud-corner p-10 rounded-3xl text-center font-mono border border-cyan-500/30 shadow-2xl">
-            <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 flex items-center justify-center mx-auto mb-5 shadow-[0_0_20px_rgba(0,240,255,0.2)] animate-pulse-glow">
-              <Clock className="w-8 h-8 animate-pulse" />
-            </div>
-            <h1 className="text-2xl font-bold font-heading text-white uppercase mb-2">WAITING FOR EVENT INITIALIZATION</h1>
-            <p className="text-xs text-slate-400 font-mono mb-6 max-w-md mx-auto">
+      <div className="game-page">
+        <GameHeader player={player} currentLevel={1} totalLevels={6} connectionStatus={gameState.connectionStatus} onLogout={logout} />
+        <main className="game-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Card style={{ textAlign: 'center', padding: '40px' }}>
+            <Clock size={48} color="var(--accent-cyan)" style={{ margin: '0 auto 20px auto' }} className="animate-pulse" />
+            <h1 style={{ fontSize: '24px', marginBottom: '16px' }}>WAITING FOR EVENT INITIALIZATION</h1>
+            <p className="text-secondary font-mono" style={{ marginBottom: '24px' }}>
               Your team identity is verified. The console will automatically activate when the organizer releases the level locks.
             </p>
-            <div className="inline-block bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 text-xs text-cyan-300">
-              TEAM: <strong>{player.teamCode}</strong> | PLAYER 0{player.playerNumber}
+            <div className="team-pill-code" style={{ display: 'inline-block' }}>
+              TEAM: {player.teamCode} | PLAYER 0{player.playerNumber}
             </div>
-          </div>
+          </Card>
         </main>
       </div>
     );
   }
 
-  // Screen State 2: Game Completed
   if (serverState && serverState.gameStatus === 'COMPLETED') {
     return (
-      <div className="min-h-screen bg-cyber-bg text-slate-100 flex flex-col font-sans">
-        <GameHeader
-          player={player}
-          currentLevel={6}
-          totalLevels={6}
-          connectionStatus={gameState.connectionStatus}
-          onLogout={logout}
-        />
-        <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-12 flex items-center justify-center">
-          <div className="w-full cyber-panel hud-corner p-10 rounded-3xl border-2 border-emerald-500/40 text-center font-mono shadow-[0_0_50px_rgba(16,185,129,0.2)]">
-            <div className="w-20 h-20 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto mb-5 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-              <CheckCircle2 className="w-10 h-10 text-emerald-300" />
-            </div>
-            <h1 className="text-3xl font-black font-heading text-white uppercase mb-2">CODEXCAPE COMPLETED</h1>
-            <p className="text-xs text-emerald-300 font-mono mb-6 max-w-md mx-auto">
+      <div className="game-page">
+        <GameHeader player={player} currentLevel={6} totalLevels={6} connectionStatus={gameState.connectionStatus} onLogout={logout} />
+        <main className="game-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Card style={{ textAlign: 'center', padding: '40px', borderColor: 'var(--status-success)', boxShadow: '0 0 50px rgba(16, 185, 129, 0.2)' }}>
+            <CheckCircle2 size={64} color="var(--status-success)" style={{ margin: '0 auto 24px auto' }} />
+            <h1 style={{ fontSize: '32px', marginBottom: '16px' }}>CODEXCAPE COMPLETED</h1>
+            <p className="font-mono text-success" style={{ marginBottom: '24px' }}>
               Congratulations! Your team successfully completed all six technical challenges and cracked the final override terminal.
             </p>
-          </div>
+          </Card>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cyber-bg text-slate-100 flex flex-col font-sans">
-      <GameHeader
-        player={player}
-        currentLevel={gameState.currentLevel}
-        totalLevels={gameState.totalLevels}
-        connectionStatus={gameState.connectionStatus}
-        onLogout={logout}
-      />
+    <div className="game-page">
+      <GameHeader player={player} currentLevel={gameState.currentLevel} totalLevels={gameState.totalLevels} connectionStatus={gameState.connectionStatus} onLogout={logout} />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+      <main className="game-main">
         <LevelProgress levels={gameState.levels} currentLevel={gameState.currentLevel} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="game-grid">
+          <div className="panel-container">
             <GameStatus message={gameState.gameStatusMessage} />
 
-            {/* Real-time WebSocket Notification Alert */}
             {latestNotification && (
-              <div className="p-4 rounded-2xl bg-cyan-950/70 border border-cyan-500/50 text-cyan-200 font-mono text-xs flex items-center gap-3 shadow-[0_0_20px_rgba(0,240,255,0.2)] animate-pulse">
-                <Radio className="w-4 h-4 text-cyan-400 shrink-0" />
+              <div className="notification-banner animate-pulse">
+                <Radio size={16} />
                 <span>{latestNotification}</span>
               </div>
             )}
 
-            {/* Answer Feedback Alert Banner */}
             {feedbackMsg && (
-              <div
-                className={`p-4 rounded-2xl font-mono text-xs flex items-center gap-3 shadow-xl animate-fade-in ${
-                  feedbackIsError
-                    ? 'bg-rose-950/70 border border-rose-500/50 text-rose-200 shadow-rose-950/30'
-                    : 'bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 shadow-emerald-950/30'
-                }`}
-              >
-                {feedbackIsError ? (
-                  <AlertOctagon className="w-5 h-5 text-rose-400 shrink-0" />
-                ) : (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                )}
-                <span className="font-semibold">{feedbackMsg}</span>
+              <div className="notification-banner animate-fade-in" style={{ 
+                backgroundColor: feedbackIsError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                borderColor: feedbackIsError ? 'var(--status-error)' : 'var(--status-success)',
+                color: feedbackIsError ? '#fecdd3' : '#a7f3d0'
+              }}>
+                {feedbackIsError ? <AlertOctagon size={20} /> : <CheckCircle2 size={20} />}
+                <span style={{ fontWeight: 'bold' }}>{feedbackMsg}</span>
               </div>
             )}
 
             <ChallengePanel challenge={gameState.challenge} playerNumber={player.playerNumber} />
 
             {isChallengeCompleted ? (
-              <div className="cyber-panel border border-emerald-500/40 rounded-2xl p-6 shadow-xl font-mono text-center space-y-2">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-bold uppercase shadow-[0_0_12px_rgba(16,185,129,0.2)]">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>YOUR NODE VERIFIED</span>
+              <Card className="verified-panel">
+                <div className="verified-badge">
+                  <CheckCircle2 size={16} />
+                  YOUR NODE VERIFIED
                 </div>
-                <p className="text-xs text-slate-300 font-mono">
+                <p className="font-mono text-secondary">
                   You have solved your question for Tier 0{gameState.currentLevel}. Waiting for your partner node to complete their challenge.
                 </p>
-              </div>
+              </Card>
             ) : (
               <AnswerInput
                 answerType={gameState.challenge.answerType}
@@ -266,57 +231,49 @@ export const PlayerGamePage: React.FC = () => {
             />
           </div>
 
-          <div className="space-y-6">
+          <div className="panel-container">
             <PartnerStatus partner={gameState.partner} />
             <HintPanel hints={gameState.hints} />
 
-            {/* Team Identity Card */}
-            <div className="cyber-panel p-5 sm:p-6 rounded-2xl border border-slate-800 shadow-xl font-mono">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3 mb-4 text-slate-300">
-                <Shield className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-xs tracking-widest uppercase font-bold text-slate-300">TEAM MATRIX IDENTITY</h2>
+            <Card className="team-matrix-panel">
+              <div className="team-matrix-header">
+                <Shield size={14} color="var(--accent-cyan)" />
+                TEAM MATRIX IDENTITY
               </div>
 
-              <div className="space-y-3 text-xs">
-                <div className="flex justify-between items-center bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-                  <span className="text-slate-400">TEAM CODE:</span>
-                  <span className="text-cyan-400 font-bold tracking-widest text-sm">{player.teamCode}</span>
-                </div>
-
-                {gameState.currentRank !== undefined && (
-                  <div className="flex justify-between items-center bg-purple-950/30 p-3 rounded-xl border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
-                    <span className="text-purple-300 font-bold text-xs tracking-widest flex items-center gap-2">
-                      <Trophy className="w-4 h-4 text-amber-400" /> CURRENT RANK
-                    </span>
-                    <span className="text-amber-400 font-black tracking-widest text-lg">#{gameState.currentRank}</span>
-                  </div>
-                )}
-
-                <div className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
-                  player.playerNumber === 1 ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200' : 'bg-slate-950/80 border-slate-800 text-slate-300'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-                    <span className="font-semibold">PLAYER 01 {player.playerNumber === 1 ? '(YOU)' : ''}</span>
-                  </div>
-                  <span className="text-slate-400 text-[11px]">{player.playerNumber === 1 ? player.playerName : 'PARTNER'}</span>
-                </div>
-
-                <div className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
-                  player.playerNumber === 2 ? 'bg-purple-950/40 border-purple-500/50 text-purple-200' : 'bg-slate-950/80 border-slate-800 text-slate-300'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <Cpu className="w-3.5 h-3.5 text-purple-400" />
-                    <span className="font-semibold">PLAYER 02 {player.playerNumber === 2 ? '(YOU)' : ''}</span>
-                  </div>
-                  <span className="text-slate-400 text-[11px]">{player.playerNumber === 2 ? player.playerName : 'PARTNER'}</span>
-                </div>
+              <div className="matrix-row">
+                <span className="text-secondary">TEAM CODE:</span>
+                <span style={{ color: 'var(--accent-cyan)', fontWeight: 'bold' }}>{player.teamCode}</span>
               </div>
-            </div>
+
+              {gameState.currentRank !== undefined && (
+                <div className="matrix-row" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'var(--status-warning)' }}>
+                  <span style={{ color: 'var(--status-warning)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Trophy size={14} /> CURRENT RANK
+                  </span>
+                  <span style={{ color: 'var(--status-warning)', fontWeight: '900', fontSize: '16px' }}>#{gameState.currentRank}</span>
+                </div>
+              )}
+
+              <div className={`matrix-row ${player.playerNumber === 1 ? 'matrix-row-p1' : ''}`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Terminal size={14} />
+                  <strong>PLAYER 01 {player.playerNumber === 1 ? '(YOU)' : ''}</strong>
+                </div>
+                <span className="text-secondary">{player.playerNumber === 1 ? player.playerName : 'PARTNER'}</span>
+              </div>
+
+              <div className={`matrix-row ${player.playerNumber === 2 ? 'matrix-row-p2' : ''}`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Cpu size={14} />
+                  <strong>PLAYER 02 {player.playerNumber === 2 ? '(YOU)' : ''}</strong>
+                </div>
+                <span className="text-secondary">{player.playerNumber === 2 ? player.playerName : 'PARTNER'}</span>
+              </div>
+            </Card>
           </div>
         </div>
       </main>
     </div>
   );
 };
-

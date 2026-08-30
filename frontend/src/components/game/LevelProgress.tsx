@@ -1,6 +1,8 @@
 import React from 'react';
 import { CheckCircle2, Lock, Radio } from 'lucide-react';
 import { LevelProgressItem } from '../../types/game';
+import { Card } from '../ui/Card';
+import { StatusDot } from '../ui/StatusDot';
 
 interface LevelProgressProps {
   levels: LevelProgressItem[];
@@ -9,66 +11,78 @@ interface LevelProgressProps {
 
 export const LevelProgress: React.FC<LevelProgressProps> = ({ levels }) => {
   return (
-    <div className="w-full cyber-panel p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-xl mb-6 relative overflow-hidden">
-      <div className="flex items-center justify-between mb-3 px-1">
-        <h2 className="text-xs font-mono tracking-widest text-slate-400 uppercase font-semibold flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 radar-ping text-cyan-400"></span>
+    <Card style={{ padding: '20px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <StatusDot status="connected" />
           SECURITY CLEARANCE PROGRESSION
         </h2>
-        <span className="text-[11px] font-mono text-cyan-400/80 bg-cyan-950/40 px-2.5 py-0.5 rounded border border-cyan-500/30">
+        <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'rgba(0, 217, 255, 0.8)', backgroundColor: 'rgba(0, 217, 255, 0.1)', padding: '2px 10px', borderRadius: '4px', border: '1px solid rgba(0, 217, 255, 0.3)' }}>
           6 COOPERATIVE TIERS
         </span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
         {levels.map((lvl) => {
           const isCompleted = lvl.status === 'COMPLETED';
           const isCurrent = lvl.status === 'CURRENT';
           const isLocked = lvl.status === 'LOCKED';
 
+          let bgColor = 'rgba(15, 23, 42, 0.5)';
+          let borderColor = 'rgba(30, 41, 59, 0.8)';
+          let textColor = 'var(--text-tertiary)';
+          let shadow = 'none';
+
+          if (isCompleted) {
+            bgColor = 'rgba(16, 185, 129, 0.1)';
+            borderColor = 'rgba(16, 185, 129, 0.5)';
+            textColor = '#6ee7b7';
+            shadow = '0 0 15px rgba(16, 185, 129, 0.15)';
+          } else if (isCurrent) {
+            bgColor = 'rgba(0, 217, 255, 0.15)';
+            borderColor = 'var(--accent-cyan)';
+            textColor = '#a5f3fc';
+            shadow = '0 0 20px rgba(0, 217, 255, 0.25)';
+          }
+
           return (
             <div
               key={lvl.levelNumber}
-              tabIndex={0}
-              className={`relative flex flex-col p-3 rounded-xl border font-mono transition-all duration-300 outline-none ${
-                isCompleted
-                  ? 'bg-emerald-950/25 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-                  : isCurrent
-                  ? 'bg-cyan-950/50 border-cyan-400 text-cyan-200 shadow-[0_0_20px_rgba(0,240,255,0.25)] ring-1 ring-cyan-400/50'
-                  : 'bg-slate-950/50 border-slate-800/80 text-slate-500 opacity-60'
-              }`}
+              style={{
+                display: 'flex', flexDirection: 'column', padding: '12px', borderRadius: '12px', border: `1px solid ${borderColor}`,
+                backgroundColor: bgColor, color: textColor, boxShadow: shadow, transition: 'all 0.3s', fontFamily: 'var(--font-mono)'
+              }}
             >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   TIER 0{lvl.levelNumber}
                 </span>
 
-                {isCompleted && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
-                {isCurrent && <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />}
-                {isLocked && <Lock className="w-3 h-3 text-slate-600 shrink-0" />}
+                {isCompleted && <CheckCircle2 size={14} color="var(--status-success)" />}
+                {isCurrent && <Radio size={14} color="var(--accent-cyan)" className="animate-pulse" />}
+                {isLocked && <Lock size={12} color="var(--text-tertiary)" />}
               </div>
 
-              <p className="text-[11px] font-sans font-medium truncate text-slate-300" title={lvl.name}>
+              <p style={{ fontSize: '11px', fontFamily: 'var(--font-sans)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isLocked ? 'var(--text-tertiary)' : 'var(--text-primary)' }} title={lvl.name}>
                 {lvl.name.replace(/^Level \d+: /, '')}
               </p>
 
               {/* Progress bar track */}
-              <div className="mt-2.5 w-full bg-slate-950 h-1 rounded-full overflow-hidden">
+              <div style={{ marginTop: '10px', width: '100%', backgroundColor: 'var(--bg-void)', height: '4px', borderRadius: '4px', overflow: 'hidden' }}>
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    isCompleted
-                      ? 'w-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]'
-                      : isCurrent
-                      ? 'w-1/2 bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(0,240,255,0.8)]'
-                      : 'w-0 bg-slate-800'
-                  }`}
+                  style={{
+                    height: '100%', borderRadius: '4px', transition: 'all 0.5s',
+                    width: isCompleted ? '100%' : isCurrent ? '50%' : '0%',
+                    backgroundColor: isCompleted ? 'var(--status-success)' : isCurrent ? 'var(--accent-cyan)' : 'transparent',
+                    boxShadow: isCompleted ? '0 0 8px rgba(16, 185, 129, 0.8)' : isCurrent ? '0 0 8px rgba(0, 217, 255, 0.8)' : 'none',
+                  }}
+                  className={isCurrent ? 'animate-pulse' : ''}
                 ></div>
               </div>
             </div>
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 };
-

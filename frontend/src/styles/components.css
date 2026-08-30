@@ -1,0 +1,127 @@
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+  outline: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-primary {
+  background-color: var(--accent-cyan);
+  color: var(--bg-void);
+}
+
+.btn-primary:hover {
+  background-color: #33e1ff; /* Brighter cyan */
+  box-shadow: var(--shadow-cyan);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.btn-secondary:hover {
+  background-color: var(--accent-cyan-glow-dim);
+  box-shadow: var(--shadow-cyan);
+}
+
+.btn-danger {
+  background-color: var(--status-error);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c; /* Darker red */
+}
+
+.btn:disabled, .btn-disabled {
+  background-color: #374151; /* Gray */
+  color: #9CA3AF;
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+  transform: none;
+  border: none;
+}
+
+/* Inputs */
+.input-field {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  width: 100%;
+  transition: all var(--transition-fast);
+}
+
+.input-field:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: var(--shadow-cyan);
+  outline: none;
+}
+
+.input-field::placeholder {
+  color: var(--text-secondary);
+}
+
+.input-success {
+  border-color: var(--status-success) !important;
+}
+
+.input-error {
+  border-color: var(--status-error) !important;
+}
+
+/* Panels */
+.cyber-panel {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  padding: var(--space-xl);
+  border-radius: var(--radius-md);
+}
+
+/* Layout Utilities (since we removed Tailwind) */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.min-h-screen { min-height: 100vh; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.text-center { text-align: center; }
+
+/* Spacing Utilities */
+.mb-2 { margin-bottom: var(--space-s); }
+.mb-4 { margin-bottom: var(--space-m); }
+.mb-6 { margin-bottom: var(--space-l); }
+.mb-8 { margin-bottom: var(--space-xl); }
+
+.mt-2 { margin-top: var(--space-s); }
+.mt-4 { margin-top: var(--space-m); }
+.mt-6 { margin-top: var(--space-l); }
+.mt-8 { margin-top: var(--space-xl); }
+
+.gap-2 { gap: var(--space-s); }
+.gap-4 { gap: var(--space-m); }
+.gap-6 { gap: var(--space-l); }
+
+.p-4 { padding: var(--space-m); }
+.p-6 { padding: var(--space-l); }
+.p-8 { padding: var(--space-xl); }

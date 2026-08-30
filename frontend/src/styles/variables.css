@@ -1,0 +1,50 @@
+:root {
+  /* Colors */
+  --bg-void: #05070D;
+  --bg-dark: #080B12;
+  --bg-panel: #0D111C;
+  
+  --accent-cyan: #00D9FF;
+  --accent-cyan-glow: rgba(0, 217, 255, 0.4);
+  --accent-cyan-glow-dim: rgba(0, 217, 255, 0.15);
+  
+  --accent-purple: #8B5CF6;
+  --accent-purple-glow: rgba(139, 92, 246, 0.3);
+  
+  --status-success: #10B981;
+  --status-success-dim: rgba(16, 185, 129, 0.2);
+  --status-warning: #F59E0B;
+  --status-error: #EF4444;
+  --status-error-dim: rgba(239, 68, 68, 0.2);
+  
+  --border-color: #1F2937;
+  
+  --text-primary: #E5E7EB;
+  --text-secondary: rgba(156, 163, 175, 0.6); /* #9CA3AF with 60% opacity */
+  --text-tertiary: #6B7280;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-s: 8px;
+  --space-m: 16px;
+  --space-l: 24px;
+  --space-xl: 32px;
+  
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  
+  /* Animation */
+  --transition-fast: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-medium: 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-slow: 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  
+  /* Shadows */
+  --shadow-elevation: 0px 4px 12px rgba(0,0,0,0.5);
+  --shadow-cyan: 0 0 8px rgba(0, 217, 255, 0.4);
+  --shadow-purple: 0 0 10px rgba(139, 92, 246, 0.3);
+}

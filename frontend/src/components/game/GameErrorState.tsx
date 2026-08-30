@@ -1,5 +1,7 @@
 import React from 'react';
 import { AlertOctagon, RefreshCw } from 'lucide-react';
+import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
 
 interface Props {
   message?: string;
@@ -11,34 +13,34 @@ export const GameErrorState: React.FC<Props> = ({
   onRetry,
 }) => {
   return (
-    <div className="min-h-[75vh] flex items-center justify-center px-4 bg-cyber-bg">
-      <div className="max-w-md w-full p-8 sm:p-10 rounded-3xl cyber-panel border border-rose-500/40 shadow-2xl text-center font-mono relative overflow-hidden">
-        <div className="w-16 h-16 rounded-2xl bg-rose-950/60 border border-rose-500/50 text-rose-400 flex items-center justify-center mx-auto mb-5 shadow-[0_0_20px_rgba(244,63,94,0.3)] animate-pulse">
-          <AlertOctagon className="w-8 h-8" />
+    <div style={{ minHeight: '75vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <Card style={{ maxWidth: '400px', width: '100%', padding: '40px', textAlign: 'center', borderColor: 'rgba(244, 63, 94, 0.4)', boxShadow: '0 0 40px rgba(244, 63, 94, 0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ width: '64px', height: '64px', borderRadius: '16px', backgroundColor: 'rgba(159, 18, 57, 0.6)', border: '1px solid rgba(244, 63, 94, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fb7185', marginBottom: '20px', boxShadow: '0 0 20px rgba(244, 63, 94, 0.3)' }} className="animate-pulse">
+          <AlertOctagon size={32} />
         </div>
 
-        <div className="inline-block px-3 py-1 rounded-full bg-rose-950/80 border border-rose-500/40 text-rose-300 text-[10px] font-bold uppercase tracking-widest mb-3">
+        <div style={{ display: 'inline-block', padding: '4px 12px', borderRadius: '9999px', backgroundColor: 'rgba(136, 19, 55, 0.8)', border: '1px solid rgba(244, 63, 94, 0.4)', color: '#fda4af', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
           SECURITY EXCEPTION
         </div>
 
-        <h2 className="text-xl font-bold font-heading text-white uppercase tracking-wider mb-2">
+        <h2 style={{ fontSize: '20px', fontWeight: 'bold', fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
           TELEMETRY DISRUPTION
         </h2>
-        <p className="text-xs text-rose-200/90 font-mono leading-relaxed mb-6 bg-slate-950/80 p-4 rounded-xl border border-rose-900/40">
+        <p style={{ fontSize: '12px', color: '#fecdd3', fontFamily: 'var(--font-mono)', lineHeight: 1.6, marginBottom: '24px', backgroundColor: 'rgba(15, 23, 42, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(136, 19, 55, 0.4)', width: '100%' }}>
           {message}
         </p>
 
         {onRetry && (
-          <button
+          <Button
+            variant="secondary"
             onClick={onRetry}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white font-mono text-xs tracking-wider py-3.5 px-4 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2 uppercase cursor-pointer shadow-lg"
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}
           >
-            <RefreshCw className="w-4 h-4 text-cyan-400" />
+            <RefreshCw size={16} color="var(--accent-cyan)" />
             <span>RE-ESTABLISH CONNECTION</span>
-          </button>
+          </Button>
         )}
-      </div>
+      </Card>
     </div>
   );
 };
-

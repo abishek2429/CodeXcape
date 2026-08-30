@@ -1,0 +1,205 @@
+.login-page {
+  position: relative;
+  min-height: calc(100vh - 76px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-m);
+  overflow: hidden;
+}
+
+.login-glow-cyan {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 350px;
+  background-color: rgba(0, 217, 255, 0.1);
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+}
+
+.login-glow-purple {
+  position: absolute;
+  bottom: 25%;
+  right: 33%;
+  width: 400px;
+  height: 300px;
+  background-color: rgba(139, 92, 246, 0.1);
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+}
+
+.login-panel {
+  width: 100%;
+  max-width: 500px;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border-color: rgba(0, 217, 255, 0.2);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.terminal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-m);
+  background-color: rgba(8, 14, 26, 0.6);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 217, 255, 0.4);
+  box-shadow: 0 0 15px rgba(0, 217, 255, 0.15);
+}
+
+.login-title {
+  font-size: 30px;
+  font-weight: 900;
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.login-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.error-banner {
+  margin-bottom: var(--space-l);
+  padding: var(--space-m);
+  border-radius: var(--radius-md);
+  background-color: rgba(136, 19, 55, 0.3);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  color: #fecdd3;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-m);
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.form-group {
+  margin-bottom: var(--space-l);
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-m);
+}
+
+.role-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-m);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background-color: rgba(15, 23, 42, 0.6);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  transition: all 0.2s;
+  cursor: pointer;
+  text-align: left;
+}
+
+.role-btn:hover:not(:disabled) {
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+.role-btn.selected-cyan {
+  background-color: rgba(8, 51, 68, 0.5);
+  border-color: var(--accent-cyan);
+  color: #a5f3fc;
+  box-shadow: 0 0 20px rgba(0, 217, 255, 0.25);
+}
+
+.role-btn.selected-purple {
+  background-color: rgba(59, 7, 100, 0.5);
+  border-color: var(--accent-purple);
+  color: #d8b4fe;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.25);
+}
+
+.role-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.role-icon-cyan {
+  background-color: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  color: var(--accent-cyan);
+}
+
+.role-icon-purple {
+  background-color: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: var(--accent-purple);
+}
+
+.role-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.role-sub {
+  font-size: 10px;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 14px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(8, 51, 68, 0.5);
+}
+
+.login-footer {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(30, 41, 59, 0.8);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
