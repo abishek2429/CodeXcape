@@ -5,7 +5,8 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-xl) var(--space-m);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .login-glow-cyan {
