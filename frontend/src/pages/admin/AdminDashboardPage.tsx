@@ -54,7 +54,7 @@ export const AdminDashboardPage: React.FC = () => {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [teams, setTeams] = useState<AdminTeamProgress[]>([]);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');

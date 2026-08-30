@@ -1,7 +1,7 @@
 import React from 'react';
 import { Terminal, LogOut, Cpu } from 'lucide-react';
-import { PlayerInfo } from '../../../types/player';
-import { SystemConnectionStatus } from '../../../types/game';
+import { PlayerInfo } from '../../types/player';
+import { SystemConnectionStatus } from '../../types/game';
 import { StatusDot } from '../ui/StatusDot';
 import { Button } from '../ui/Button';
 

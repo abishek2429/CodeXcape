@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Terminal, Users, Code2, Cpu, Radio, ArrowRight, ShieldAlert, Zap, Layers, KeyRound } from 'lucide-react';
+import { Users, Code2, Cpu, ArrowRight, KeyRound } from 'lucide-react';
 import './LandingPage.css';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';

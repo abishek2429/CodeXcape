@@ -36,13 +36,6 @@ export const EventListPage: React.FC = () => {
   };
 
   const getStatusBadge = (status: EventStatus) => {
-    const styles: Record<EventStatus, string> = {
-      DRAFT: 'bg-slate-900 text-slate-400 border-slate-800',
-      READY: 'bg-cyan-950/80 text-cyan-400 border-cyan-500/40 shadow-[0_0_10px_rgba(0,240,255,0.15)]',
-      RUNNING: 'bg-emerald-950/80 text-emerald-400 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.2)] animate-pulse',
-      PAUSED: 'bg-amber-950/80 text-amber-400 border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.15)]',
-      COMPLETED: 'bg-purple-950/80 text-purple-300 border-purple-500/40',
-    };
     return (
       <span className="admin-dynamic-element">
         {status}
