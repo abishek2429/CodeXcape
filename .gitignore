@@ -41,6 +41,7 @@ logs/
 
 # Database Backups & Dumps
 *.sql
+!backend/src/main/resources/db/migration/*.sql
 *.bak
 backups/
 
