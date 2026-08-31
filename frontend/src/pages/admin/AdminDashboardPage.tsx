@@ -1027,7 +1027,7 @@ export const AdminDashboardPage: React.FC = () => {
 
               <div className="flex">
                 <a
-                  href={`/api/admin/events/${eventId}/export/results`}
+                  href={`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/export/results`}
                   download
                   className="flex items-center gap-2"
                 >
@@ -1035,7 +1035,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </a>
 
                 <a
-                  href={`/api/admin/events/${eventId}/export/progress`}
+                  href={`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/export/progress`}
                   download
                   className="admin-panel admin-btn-secondary flex items-center gap-2"
                 >
