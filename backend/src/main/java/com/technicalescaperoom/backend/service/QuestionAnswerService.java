@@ -25,7 +25,7 @@ public class QuestionAnswerService {
 
     private final TeamRepository teamRepository;
     private final PlayerRepository playerRepository;
-    private final LevelRepository levelRepository;
+
     private final QuestionRepository questionRepository;
     private final TeamLevelProgressRepository teamLevelProgressRepository;
     private final AnswerAttemptRepository answerAttemptRepository;
