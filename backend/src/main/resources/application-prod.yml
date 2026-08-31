@@ -43,8 +43,9 @@ security:
     secret: ${JWT_SECRET_KEY:DefaultProdSuperSecretJwtSigningKey98765432101234567890!}
     expiration-ms: 86400000
 
-cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost,http://127.0.0.1,http://codexcape.local}
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost,http://127.0.0.1,http://codexcape.local}
 
 logging:
   level:
