@@ -3,7 +3,6 @@ import { Terminal, LogOut, Cpu } from 'lucide-react';
 import { PlayerInfo } from '../../types/player';
 import { SystemConnectionStatus } from '../../types/game';
 import { StatusDot } from '../ui/StatusDot';
-import { Button } from '../ui/Button';
 
 interface GameHeaderProps {
   player: PlayerInfo;
@@ -29,63 +28,78 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
       <div className="game-header-brand">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{
-            width: '36px', height: '36px', borderRadius: '8px',
-            backgroundColor: 'rgba(0,217,255,0.1)', border: '1px solid rgba(0,217,255,0.4)',
+            width: '32px', height: '32px', borderRadius: 'var(--radius-sm)',
+            backgroundColor: 'var(--accent-cyan-faded)', border: '1px solid var(--accent-cyan)',
             color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 15px rgba(0,217,255,0.25)'
+            boxShadow: 'var(--glow-cyan-text)'
           }}>
             <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '18px' }}>X</span>
           </div>
           <div>
             <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '16px', display: 'flex', alignItems: 'center' }}>
               <span>CODE</span>
-              <span style={{ color: 'var(--accent-cyan)' }}>X</span>
+              <span className="title-accent">X</span>
               <span>CAPE</span>
             </div>
-            <span style={{ fontSize: '9px', color: 'rgba(0,217,255,0.8)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', display: 'block' }}>
+            <span className="terminal-text text-cyan" style={{ fontSize: '9px', display: 'block', marginTop: '-2px' }}>
               MISSION CONSOLE
             </span>
           </div>
         </div>
 
-        <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)', margin: '0 8px' }}></div>
+        <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-dim)', margin: '0 8px' }}></div>
 
         {/* Team Code Pill */}
         <div className="team-pill">
-          <span style={{ color: 'var(--text-secondary)' }}>TEAM:</span>
-          <span className="team-pill-code">{player.teamCode}</span>
+          <span className="text-muted">TEAM:</span>
+          <span className="badge badge-cyan">{player.teamCode}</span>
         </div>
       </div>
 
       {/* Center: Player Role & Level Badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div className={`player-role-badge ${isPlayer1 ? 'role-badge-p1' : 'role-badge-p2'}`}>
-          {isPlayer1 ? <Terminal size={14} /> : <Cpu size={14} />}
-          <span>PLAYER 0{player.playerNumber}</span>
+        <div className={`player-role-badge badge ${isPlayer1 ? 'badge-cyan' : 'badge-purple'}`}>
+          {isPlayer1 ? <Terminal size={12} /> : <Cpu size={12} />}
+          <span>NODE 0{player.playerNumber}</span>
         </div>
 
         <div className="level-indicator">
-          <span style={{ color: 'var(--text-secondary)' }}>LEVEL</span>
+          <span className="text-muted">TIER</span>
           <span className="level-num">{currentLevel}</span>
-          <span style={{ color: 'var(--text-tertiary)' }}>/ {totalLevels}</span>
+          <span className="text-muted">/ {totalLevels}</span>
         </div>
       </div>
 
       {/* Right: Telemetry Health & Logout */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div className="level-indicator" style={{ backgroundColor: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.3)', color: 'var(--status-success)' }}>
-          <StatusDot status="connected" />
-          <span style={{ textTransform: 'capitalize' }}>{connectionStatus.toLowerCase()}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="level-indicator badge-success" style={{ backgroundColor: 'var(--status-success-dim)', borderColor: 'var(--status-success)', color: 'var(--status-success)', gap: '6px' }}>
+          <StatusDot status={connectionStatus === 'CONNECTED' ? 'connected' : 'disconnected'} />
+          <span style={{ textTransform: 'uppercase', fontSize: '10px', fontWeight: 'bold' }}>{connectionStatus}</span>
         </div>
 
-        <Button
-          variant="secondary"
+        <button
           onClick={onLogout}
           title="Disconnect / Logout"
-          style={{ padding: '8px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+          style={{ 
+            padding: '8px', 
+            borderRadius: 'var(--radius-sm)', 
+            border: '1px solid var(--border-dim)', 
+            backgroundColor: 'var(--bg-dark)', 
+            color: 'var(--status-error)', 
+            cursor: 'pointer',
+            transition: 'all var(--transition-fast)'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--status-error-dim)';
+            e.currentTarget.style.borderColor = 'var(--status-error)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--bg-dark)';
+            e.currentTarget.style.borderColor = 'var(--border-dim)';
+          }}
         >
           <LogOut size={16} />
-        </Button>
+        </button>
       </div>
 
     </header>

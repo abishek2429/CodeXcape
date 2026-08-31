@@ -1,0 +1,109 @@
+.waiting-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.waiting-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-m);
+  position: relative;
+  z-index: 10;
+}
+
+.waiting-panel {
+  width: 100%;
+  max-width: 600px;
+  padding: var(--space-2xl) var(--space-xl);
+  text-align: center;
+}
+
+.waiting-top-line {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 250px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  box-shadow: 0 0 15px var(--accent-cyan);
+}
+
+.waiting-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-md);
+  background: var(--accent-cyan-faded);
+  border: 1px solid var(--accent-cyan-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-l) auto;
+}
+
+.waiting-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--accent-cyan);
+  animation: ping-soft 2s infinite;
+}
+
+.waiting-title {
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-m);
+}
+
+.waiting-desc {
+  font-size: 13px;
+  line-height: 1.8;
+  margin-bottom: var(--space-xl);
+  opacity: 0.8;
+}
+
+.waiting-identity-card {
+  background: rgba(0,0,0,0.5);
+  padding: var(--space-m);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-xl);
+}
+
+.identity-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-s) 0;
+  border-bottom: 1px dashed var(--border-dim);
+}
+
+.identity-label {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+}
+
+.identity-value {
+  display: flex;
+  align-items: center;
+}
+
+.waiting-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  margin-top: var(--space-l);
+}

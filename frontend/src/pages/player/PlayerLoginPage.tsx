@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlayerAuth } from '../../context/PlayerAuthContext';
-import { Terminal, Cpu, ArrowRight, AlertCircle, KeyRound } from 'lucide-react';
+import { Terminal, Cpu, ArrowRight, AlertOctagon, KeyRound } from 'lucide-react';
 import './PlayerLoginPage.css';
-import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
-import { StatusDot } from '../../components/ui/StatusDot';
 
 export const PlayerLoginPage: React.FC = () => {
   const [teamCode, setTeamCode] = useState('');
@@ -20,7 +16,7 @@ export const PlayerLoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamCode.trim()) {
-      setErrorMsg('Please enter a valid Team Code (e.g. TEAM-001).');
+      setErrorMsg('MISSING PARAMETER: TEAM_SECURITY_CODE');
       return;
     }
 
@@ -34,7 +30,7 @@ export const PlayerLoginPage: React.FC = () => {
       });
       navigate('/player/game', { replace: true });
     } catch (err: any) {
-      setErrorMsg(err.message || 'Access Denied: Unable to connect to game session. Verify team code.');
+      setErrorMsg(err.message || 'ACCESS DENIED: CONNECTION REJECTED');
     } finally {
       setIsLoading(false);
     }
@@ -42,76 +38,69 @@ export const PlayerLoginPage: React.FC = () => {
 
   return (
     <div className="login-page">
-      <div className="login-glow-cyan"></div>
-      <div className="login-glow-purple"></div>
-
-      <Card className="login-panel">
+      <div className="digital-noise-overlay"></div>
+      
+      <div className="cyber-panel login-panel animate-slide-up">
         <div className="login-header">
-          <div className="terminal-badge">
-            <StatusDot status="connected" />
-            CLEARANCE TERMINAL // ACCESS GATE
+          <div className="badge badge-cyan" style={{ marginBottom: '24px' }}>
+            <span className="indicator-dot indicator-connected" style={{ marginRight: '8px' }}></span>
+            CLEARANCE TERMINAL
           </div>
           
-          <h1 className="login-title">PLAYER AUTHENTICATION</h1>
-          <p className="login-subtitle">
-            Enter assigned team identifier and select your console node.
+          <h1 className="login-title">AUTHENTICATION</h1>
+          <p className="terminal-text text-muted" style={{ fontSize: '12px' }}>
+            &gt; ENTER ASSIGNED TEAM IDENTIFIER AND SELECT CONSOLE NODE_
           </p>
         </div>
 
         {errorMsg && (
-          <div className="error-banner">
-            <AlertCircle size={16} color="var(--status-error)" style={{ marginTop: '2px', flexShrink: 0 }} />
+          <div className="cyber-panel error-banner animate-glitch">
+            <AlertOctagon size={16} />
             <div>
-              <p style={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#fda4af' }}>AUTHENTICATION FAILED</p>
-              <p style={{ marginTop: '2px', lineHeight: 1.6 }}>{errorMsg}</p>
+              <p className="terminal-text text-error font-bold">SECURITY BREACH DETECTED</p>
+              <p className="text-muted" style={{ fontSize: '12px', marginTop: '4px' }}>{errorMsg}</p>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="teamCode" className="form-label">
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <KeyRound size={14} color="var(--accent-cyan)" />
-                TEAM SECURITY CODE
-              </span>
-              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>CASE INSENSITIVE</span>
+            <label htmlFor="teamCode" className="form-label terminal-text">
+              <KeyRound size={14} />
+              TEAM SECURITY CODE
             </label>
             <div style={{ position: 'relative' }}>
-              <Input
+              <input
                 id="teamCode"
                 type="text"
+                className="cyber-input"
                 value={teamCode}
                 onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
-                placeholder="e.g. TEAM-001"
+                placeholder="> INPUT HEX/ID_"
                 disabled={isLoading}
                 maxLength={30}
-                style={{ paddingRight: '60px' }}
               />
-              <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
-                HEX/ID
-              </div>
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">
-              SELECT CONSOLE PERSPECTIVE
+            <label className="form-label terminal-text">
+              <Cpu size={14} />
+              SELECT CONSOLE NODE
             </label>
             <div className="role-grid">
-              
               {/* Player 1 Option */}
               <button
                 type="button"
                 onClick={() => setPlayerNumber(1)}
                 disabled={isLoading}
-                className={`role-btn ${playerNumber === 1 ? 'selected-cyan' : ''}`}
+                className={`cyber-panel role-btn ${playerNumber === 1 ? 'selected-cyan' : ''}`}
               >
-                <div className="role-icon role-icon-cyan">
-                  <Terminal size={16} />
+                <div className="role-icon">
+                  <Terminal size={18} />
                 </div>
-                <div className="role-name">PLAYER 01</div>
-                <span className="role-sub" style={{ color: playerNumber === 1 ? 'rgba(103, 232, 249, 0.8)' : '' }}>PRIMARY OPERATOR</span>
+                <div className="role-name">NODE 01</div>
+                <span className="role-sub">PRIMARY</span>
               </button>
 
               {/* Player 2 Option */}
@@ -119,39 +108,37 @@ export const PlayerLoginPage: React.FC = () => {
                 type="button"
                 onClick={() => setPlayerNumber(2)}
                 disabled={isLoading}
-                className={`role-btn ${playerNumber === 2 ? 'selected-purple' : ''}`}
+                className={`cyber-panel role-btn ${playerNumber === 2 ? 'selected-purple' : ''}`}
               >
-                <div className="role-icon role-icon-purple">
-                  <Cpu size={16} />
+                <div className="role-icon">
+                  <Cpu size={18} />
                 </div>
-                <div className="role-name">PLAYER 02</div>
-                <span className="role-sub" style={{ color: playerNumber === 2 ? 'rgba(216, 180, 254, 0.8)' : '' }}>CRYPTIC ANALYZER</span>
+                <div className="role-name">NODE 02</div>
+                <span className="role-sub">SECONDARY</span>
               </button>
             </div>
           </div>
 
-          <Button
+          <button
             type="submit"
             disabled={isLoading || !teamCode.trim()}
-            className="submit-btn flex items-center justify-center gap-2"
+            className="btn btn-primary login-submit animate-pulse-glow"
           >
             {isLoading ? (
-              <span>AUTHENTICATING NODE...</span>
+              <span className="terminal-text">&gt; AUTHENTICATING...</span>
             ) : (
               <>
-                <span>CONNECT TO ESCAPE CONSOLE</span>
+                <span>CONNECT TO CONSOLE</span>
                 <ArrowRight size={16} />
               </>
             )}
-          </Button>
-
+          </button>
         </form>
 
-        <div className="login-footer">
+        <div className="login-footer terminal-text text-muted">
           SECURE 256-BIT ENCRYPTED SESSION // CODEXCAPE PROTOCOL
         </div>
-
-      </Card>
+      </div>
     </div>
   );
 };

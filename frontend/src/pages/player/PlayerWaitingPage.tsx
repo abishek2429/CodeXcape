@@ -3,6 +3,7 @@ import { usePlayerAuth } from '../../context/PlayerAuthContext';
 import { GameHeader } from '../../components/game/GameHeader';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { Radio, Users, Wifi, Terminal, ShieldCheck, Cpu } from 'lucide-react';
+import './PlayerWaitingPage.css';
 
 export const PlayerWaitingPage: React.FC = () => {
   const { player, logout, authStatus } = usePlayerAuth();
@@ -14,7 +15,9 @@ export const PlayerWaitingPage: React.FC = () => {
   const isP1 = player.playerNumber === 1;
 
   return (
-    <div className="min-h-screen bg-cyber-bg text-slate-100 flex flex-col font-sans relative">
+    <div className="waiting-page">
+      <div className="digital-noise-overlay"></div>
+      
       <GameHeader
         player={player}
         currentLevel={1}
@@ -23,64 +26,57 @@ export const PlayerWaitingPage: React.FC = () => {
         onLogout={logout}
       />
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-12 flex flex-col items-center justify-center relative z-10">
-        <div className="w-full cyber-panel hud-corner p-8 sm:p-12 rounded-3xl text-center relative overflow-hidden shadow-2xl border border-cyan-500/30">
+      <main className="waiting-main">
+        <div className="cyber-panel waiting-panel animate-slide-up">
           
           {/* Top illuminated line */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_rgba(0,240,255,0.8)]"></div>
+          <div className="waiting-top-line"></div>
 
           {/* Standby Pulse Icon */}
-          <div className="w-20 h-20 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(0,240,255,0.2)] animate-pulse-glow">
-            <Radio className="w-10 h-10 animate-pulse text-cyan-300" />
+          <div className="waiting-icon-wrapper animate-pulse-glow">
+            <Radio className="waiting-icon" />
           </div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold tracking-widest uppercase mb-3">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 radar-ping text-cyan-400"></span>
+          <div className="badge badge-cyan" style={{ marginBottom: '16px' }}>
+            <span className="indicator-dot indicator-connected" style={{ marginRight: '8px' }}></span>
             STANDBY FOR EVENT INITIALIZATION
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black font-heading tracking-tight text-white uppercase mb-3">
-            WAITING FOR GAME LAUNCH
-          </h1>
+          <h1 className="waiting-title">WAITING FOR LAUNCH</h1>
 
-          <p className="text-xs sm:text-sm text-slate-400 font-mono max-w-md mx-auto mb-8 leading-relaxed">
-            The event organizer has not released the level locks yet. Your node is verified and registered on the secure network.
+          <p className="terminal-text text-muted waiting-desc">
+            &gt; THE EVENT ORGANIZER HAS NOT RELEASED THE LEVEL LOCKS YET.<br/>
+            &gt; YOUR NODE IS VERIFIED AND REGISTERED ON THE SECURE NETWORK.
           </p>
 
           {/* Identity & Teammate Card */}
-          <div className="max-w-md mx-auto bg-slate-950/90 border border-slate-800 rounded-2xl p-6 font-mono space-y-4 text-left shadow-inner">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <span className="text-slate-500 text-xs uppercase tracking-wider">TEAM CODE</span>
-              <span className="text-cyan-400 font-bold text-sm bg-cyan-950/60 px-2.5 py-1 rounded border border-cyan-500/40">
-                {player.teamCode}
-              </span>
+          <div className="cyber-panel waiting-identity-card">
+            <div className="identity-row">
+              <span className="identity-label">TEAM CODE</span>
+              <span className="identity-value badge badge-cyan">{player.teamCode}</span>
             </div>
 
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <span className="text-slate-500 text-xs uppercase tracking-wider">ASSIGNED NODE</span>
-              <span className={`text-xs font-bold px-2.5 py-1 rounded flex items-center gap-1.5 ${
-                isP1 ? 'text-cyan-300 bg-cyan-950/40 border border-cyan-500/30' : 'text-purple-300 bg-purple-950/40 border border-purple-500/30'
-              }`}>
-                {isP1 ? <Terminal className="w-3.5 h-3.5" /> : <Cpu className="w-3.5 h-3.5" />}
+            <div className="identity-row">
+              <span className="identity-label">ASSIGNED NODE</span>
+              <span className={`identity-value badge ${isP1 ? 'badge-cyan' : 'badge-purple'}`}>
+                {isP1 ? <Terminal size={14} style={{ marginRight: '4px' }} /> : <Cpu size={14} style={{ marginRight: '4px' }} />}
                 PLAYER 0{player.playerNumber} ({isP1 ? 'OPERATOR' : 'ANALYZER'})
               </span>
             </div>
 
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-slate-400" />
-                <span className="text-slate-500 text-xs uppercase tracking-wider">NETWORK STATUS</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 text-xs font-bold">
-                <Wifi className="w-3 h-3" />
-                <span>LINK ACTIVE</span>
-              </div>
+            <div className="identity-row" style={{ borderBottom: 'none' }}>
+              <span className="identity-label">
+                <Users size={14} style={{ marginRight: '6px' }} /> NETWORK STATUS
+              </span>
+              <span className="identity-value badge badge-success">
+                <Wifi size={12} style={{ marginRight: '4px' }} /> LINK ACTIVE
+              </span>
             </div>
           </div>
 
-          <div className="mt-8 text-xs text-slate-500 font-mono flex items-center justify-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-cyan-400" />
-            <span>Do not refresh this screen. Gameplay will initialize automatically.</span>
+          <div className="waiting-footer terminal-text text-muted">
+            <ShieldCheck size={16} />
+            <span>DO NOT REFRESH. GAMEPLAY WILL INITIALIZE AUTOMATICALLY.</span>
           </div>
 
         </div>
@@ -88,4 +84,3 @@ export const PlayerWaitingPage: React.FC = () => {
     </div>
   );
 };
-

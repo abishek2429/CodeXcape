@@ -1,50 +1,64 @@
 :root {
-  /* Colors */
+  /* Core Colors */
   --bg-void: #05070D;
   --bg-dark: #080B12;
   --bg-panel: #0D111C;
+  --bg-panel-light: rgba(13, 17, 28, 0.7);
   
+  /* Accents */
   --accent-cyan: #00D9FF;
-  --accent-cyan-glow: rgba(0, 217, 255, 0.4);
-  --accent-cyan-glow-dim: rgba(0, 217, 255, 0.15);
+  --accent-cyan-dim: rgba(0, 217, 255, 0.4);
+  --accent-cyan-faded: rgba(0, 217, 255, 0.15);
+  --accent-cyan-glow: 0 0 10px rgba(0, 217, 255, 0.5), 0 0 20px rgba(0, 217, 255, 0.3);
   
   --accent-purple: #8B5CF6;
-  --accent-purple-glow: rgba(139, 92, 246, 0.3);
+  --accent-purple-dim: rgba(139, 92, 246, 0.4);
+  --accent-purple-faded: rgba(139, 92, 246, 0.15);
   
+  /* Status Colors */
   --status-success: #10B981;
   --status-success-dim: rgba(16, 185, 129, 0.2);
   --status-warning: #F59E0B;
+  --status-warning-dim: rgba(245, 158, 11, 0.2);
   --status-error: #EF4444;
   --status-error-dim: rgba(239, 68, 68, 0.2);
+  --status-neutral: #6B7280;
   
-  --border-color: #1F2937;
+  /* UI Borders */
+  --border-dim: rgba(255, 255, 255, 0.1);
+  --border-cyan: rgba(0, 217, 255, 0.3);
   
-  --text-primary: #E5E7EB;
-  --text-secondary: rgba(156, 163, 175, 0.6); /* #9CA3AF with 60% opacity */
-  --text-tertiary: #6B7280;
-
+  /* Text */
+  --text-primary: #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  
   /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 
   /* Spacing */
-  --space-xs: 4px;
-  --space-s: 8px;
-  --space-m: 16px;
-  --space-l: 24px;
-  --space-xl: 32px;
+  --space-xs: 0.25rem;
+  --space-s: 0.5rem;
+  --space-m: 1rem;
+  --space-l: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
   
   /* Radii */
-  --radius-sm: 4px;
-  --radius-md: 8px;
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
   
-  /* Animation */
-  --transition-fast: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  --transition-medium: 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  --transition-slow: 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* Shadows & FX */
+  --shadow-elevation: 0px 8px 24px rgba(0, 0, 0, 0.6);
+  --glow-cyan-text: 0 0 8px rgba(0, 217, 255, 0.6);
+  --glow-red-text: 0 0 8px rgba(239, 68, 68, 0.6);
   
-  /* Shadows */
-  --shadow-elevation: 0px 4px 12px rgba(0,0,0,0.5);
-  --shadow-cyan: 0 0 8px rgba(0, 217, 255, 0.4);
-  --shadow-purple: 0 0 10px rgba(139, 92, 246, 0.3);
+  /* Animation Speeds */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }

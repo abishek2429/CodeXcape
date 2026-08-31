@@ -1,15 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Code2, Cpu, ArrowRight, KeyRound } from 'lucide-react';
+import { Users, Code2, Cpu, KeyRound, Terminal } from 'lucide-react';
 import './LandingPage.css';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { StatusDot } from '../components/ui/StatusDot';
 
 export const LandingPage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Background Interactive Particle Canvas
+  // Background Interactive Particle Canvas (Network Node Effect)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -29,16 +26,16 @@ export const LandingPage: React.FC = () => {
     window.addEventListener('resize', handleResize);
 
     const particles: { x: number; y: number; vx: number; vy: number; radius: number; color: string }[] = [];
-    const particleCount = Math.min(Math.floor(window.innerWidth / 30), 40);
-    const colors = ['rgba(0, 217, 255, 0.4)', 'rgba(139, 92, 246, 0.3)'];
+    const particleCount = Math.min(Math.floor(window.innerWidth / 40), 50);
+    const colors = ['rgba(0, 217, 255, 0.4)', 'rgba(0, 217, 255, 0.1)', 'rgba(139, 92, 246, 0.3)'];
 
     for (let i = 0; i < particleCount; i++) {
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        radius: Math.random() * 1.5 + 1,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        radius: Math.random() * 2 + 0.5,
         color: colors[Math.floor(Math.random() * colors.length)],
       });
     }
@@ -71,8 +68,8 @@ export const LandingPage: React.FC = () => {
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `rgba(0, 217, 255, ${0.1 * (1 - dist / 150)})`;
-            ctx.lineWidth = 0.8;
+            ctx.strokeStyle = `rgba(0, 217, 255, ${0.15 * (1 - dist / 150)})`;
+            ctx.lineWidth = 0.5;
             ctx.stroke();
           }
         }
@@ -91,34 +88,34 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="landing-page">
+      <div className="digital-noise-overlay"></div>
       <canvas ref={canvasRef} className="bg-canvas" />
 
       {/* SECTION 1: HERO */}
       <section className="hero-section">
-        <div className="security-pill">
-          <StatusDot status="connected" />
-          <span>HIGH-SECURITY DIGITAL ESCAPE ROOM</span>
-          <span className="pill-version">v2.0</span>
+        <div className="security-pill animate-fade-in">
+          <span className="indicator-dot indicator-connected"></span>
+          <span>SYSTEM ONLINE // PORTAL ACTIVE</span>
         </div>
 
-        <h1 className="hero-title font-heading">
-          CODE<span className="title-accent">X</span>CAPE
+        <h1 className="hero-title animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          CODE<span className="title-accent animate-glitch">X</span>CAPE
         </h1>
 
-        <p className="hero-tagline font-heading">
+        <p className="hero-tagline animate-slide-up terminal-text" style={{ animationDelay: '0.4s' }}>
           THINK. CONNECT. ESCAPE.
         </p>
 
-        <p className="hero-desc">
+        <p className="hero-desc animate-slide-up" style={{ animationDelay: '0.5s' }}>
           An immersive two-player collaborative technical escape protocol. Two minds, asymmetric cryptographic clues, six security layers, and one final passkey override.
         </p>
 
-        <div className="hero-ctas">
+        <div className="hero-ctas animate-slide-up" style={{ animationDelay: '0.6s' }}>
           <Link to="/player/login" style={{ textDecoration: 'none' }}>
-            <Button variant="primary" className="btn-large flex items-center gap-2 animate-pulse-glow">
-              <span>ENTER CODEXCAPE</span>
-              <ArrowRight size={18} />
-            </Button>
+            <button className="btn btn-primary animate-pulse-glow" style={{ padding: '16px 32px', fontSize: '16px' }}>
+              <span>INITIATE PROTOCOL</span>
+              <Terminal size={18} />
+            </button>
           </Link>
         </div>
       </section>
@@ -126,45 +123,45 @@ export const LandingPage: React.FC = () => {
       {/* SECTION 2: 4 PILLARS */}
       <section className="section">
         <div className="section-header">
-          <div className="section-label">
-            <StatusDot status="active" />
-            THE FOUR PILLARS
+          <div className="badge badge-cyan" style={{ marginBottom: '16px' }}>
+            <span className="indicator-dot indicator-active" style={{ marginRight: '8px' }}></span>
+            MISSION DIRECTIVES
           </div>
-          <h2>MISSION DIRECTIVES</h2>
+          <h2>THE FOUR PILLARS</h2>
         </div>
 
         <div className="grid-4">
-          <Card className="feature-card">
-            <div className="feature-icon-wrapper">
+          <div className="cyber-panel feature-card">
+            <div className="feature-icon-wrapper text-cyan">
               <Cpu size={20} />
             </div>
             <h3 className="card-title">THINK</h3>
             <p className="card-desc">Analyze complex technical riddles, logic matrices, cipher algorithms, and reverse-engineering challenges.</p>
-          </Card>
+          </div>
 
-          <Card className="feature-card">
-            <div className="feature-icon-wrapper text-accent-purple" style={{ borderColor: 'var(--accent-purple-glow)', backgroundColor: 'rgba(139, 92, 246, 0.1)'}}>
-              <Users size={20} color="var(--accent-purple)" />
+          <div className="cyber-panel feature-card">
+            <div className="feature-icon-wrapper text-purple">
+              <Users size={20} />
             </div>
             <h3 className="card-title">COMMUNICATE</h3>
             <p className="card-desc">Neither player possesses the full puzzle. Share insights, variables, and cross-references over verbal link.</p>
-          </Card>
+          </div>
 
-          <Card className="feature-card">
-            <div className="feature-icon-wrapper text-success" style={{ borderColor: 'var(--status-success-dim)', backgroundColor: 'rgba(16, 185, 129, 0.1)'}}>
-              <Code2 size={20} color="var(--status-success)" />
+          <div className="cyber-panel feature-card">
+            <div className="feature-icon-wrapper text-success">
+              <Code2 size={20} />
             </div>
             <h3 className="card-title">SOLVE</h3>
             <p className="card-desc">Validate each terminal layer simultaneously. Every verified answer unlocks a cryptographic passkey shard.</p>
-          </Card>
+          </div>
 
-          <Card className="feature-card">
-            <div className="feature-icon-wrapper text-warning" style={{ borderColor: 'rgba(245, 158, 11, 0.3)', backgroundColor: 'rgba(245, 158, 11, 0.1)'}}>
-              <KeyRound size={20} color="var(--status-warning)" />
+          <div className="cyber-panel feature-card">
+            <div className="feature-icon-wrapper text-warning">
+              <KeyRound size={20} />
             </div>
             <h3 className="card-title">ESCAPE</h3>
             <p className="card-desc">Assemble all 6 clue shards, enter the 6-digit master override passkey into the final terminal, and claim victory.</p>
-          </Card>
+          </div>
         </div>
       </section>
     </div>

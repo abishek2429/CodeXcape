@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './AdminDashboardPage.css';
 import {
   Shield,
   Play,
@@ -268,7 +269,7 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="flex relative">
+    <div className="admin-layout relative">
       {/* Admin Command Center Header */}
       <header className="admin-panel flex items-center justify-between gap-4">
         <div className="flex items-center">

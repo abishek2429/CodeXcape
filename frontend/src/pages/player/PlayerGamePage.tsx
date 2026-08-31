@@ -20,7 +20,6 @@ import { GameSessionState, ChallengeData } from '../../types/game';
 import { fetchPlayerHints } from '../../services/hintService';
 import { HintData } from '../../types/game';
 import './PlayerGamePage.css';
-import { Card } from '../../components/ui/Card';
 
 export const PlayerGamePage: React.FC = () => {
   const { player, logout, authStatus } = usePlayerAuth();
@@ -64,11 +63,11 @@ export const PlayerGamePage: React.FC = () => {
   }, [authStatus, player]);
 
   if (authStatus === 'INITIALIZING' || !player || isLoadingData) {
-    return <GameLoadingState message="INITIALIZING CONSOLE TELEMETRY & CHALLENGE..." />;
+    return <GameLoadingState message="INITIALIZING CONSOLE TELEMETRY..." />;
   }
 
   if (authStatus !== 'AUTHENTICATED') {
-    return <GameErrorState message="Player session expired or unauthenticated. Please re-enter credentials." />;
+    return <GameErrorState message="SESSION EXPIRED OR UNAUTHENTICATED. PLEASE RE-ENTER CREDENTIALS." />;
   }
 
   const mockBase = getMockGameState(player.playerNumber);
@@ -76,11 +75,11 @@ export const PlayerGamePage: React.FC = () => {
   const activeChallenge: ChallengeData = liveQuestion
     ? {
         levelNumber: liveQuestion.levelNumber,
-        title: liveQuestion.puzzleContext ? liveQuestion.puzzleContext : `Level ${liveQuestion.levelNumber} - Player ${player.playerNumber} Challenge`,
+        title: liveQuestion.puzzleContext ? liveQuestion.puzzleContext : `TIER 0${liveQuestion.levelNumber} CHALLENGE`,
         puzzleContext: liveQuestion.puzzleContext,
         description: liveQuestion.questionContent,
         answerType: liveQuestion.answerType,
-        placeholderText: liveQuestion.answerType === 'NUMERIC' ? 'Enter numeric solution...' : 'ENTER SOLUTION_',
+        placeholderText: liveQuestion.answerType === 'NUMERIC' ? '> INPUT NUMERIC SOLUTION_' : '> ENTER SOLUTION_',
       }
     : mockBase.challenge;
 
@@ -99,15 +98,15 @@ export const PlayerGamePage: React.FC = () => {
     hints: hints.length > 0 ? hints : mockBase.hints,
     isFinalTerminalUnlocked: serverState?.gameStatus === 'FINAL_PASSKEY' || serverState?.gameStatus === 'COMPLETED',
     gameStatusMessage: isChallengeCompleted
-      ? '✓ NODE VERIFIED: Challenge completed. Synchronizing with partner node...'
+      ? 'NODE VERIFIED: WAITING FOR PARTNER NODE SYNCHRONIZATION...'
       : serverState
       ? serverState.gameStatus === 'NOT_STARTED'
-        ? 'Event has not started yet. Waiting for organizer to launch gameplay...'
+        ? 'EVENT NOT STARTED. STANDBY.'
         : serverState.gameStatus === 'FINAL_PASSKEY'
-        ? 'All six levels completed! Master emergency terminal override is now active.'
+        ? 'ALL TIERS COMPLETED. MASTER TERMINAL OVERRIDE ACTIVE.'
         : serverState.gameStatus === 'COMPLETED'
-        ? 'CodeXcape Protocol neutralised! Escape successful.'
-        : `Tier 0${serverState.currentLevel} challenge in progress.`
+        ? 'SYSTEM BREACHED. CODEXCAPE PROTOCOL SUCCESSFUL.'
+        : `TIER 0${serverState.currentLevel} ACTIVE.`
       : mockBase.gameStatusMessage,
     currentRank: serverState?.currentRank,
   };
@@ -121,15 +120,15 @@ export const PlayerGamePage: React.FC = () => {
       const res = await submitAnswer(answer);
       if (res.correct) {
         setFeedbackIsError(false);
-        setFeedbackMsg(res.message || '✓ SOLUTION ACCEPTED: Node verified successfully.');
+        setFeedbackMsg(res.message || 'SOLUTION ACCEPTED: NODE VERIFIED.');
         await loadData();
       } else {
         setFeedbackIsError(true);
-        setFeedbackMsg(res.message || '× ACCESS DENIED: Incorrect solution. Try again.');
+        setFeedbackMsg(res.message || 'ACCESS DENIED: INCORRECT SOLUTION.');
       }
     } catch (err: any) {
       setFeedbackIsError(true);
-      setFeedbackMsg(err.message || 'Transmission error. Please re-submit.');
+      setFeedbackMsg(err.message || 'TRANSMISSION ERROR. RE-SUBMIT REQUIRED.');
     } finally {
       setIsLoadingData(false);
       setIsSubmitting(false);
@@ -140,17 +139,17 @@ export const PlayerGamePage: React.FC = () => {
     return (
       <div className="game-page">
         <GameHeader player={player} currentLevel={1} totalLevels={6} connectionStatus={gameState.connectionStatus} onLogout={logout} />
-        <main className="game-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Card style={{ textAlign: 'center', padding: '40px' }}>
-            <Clock size={48} color="var(--accent-cyan)" style={{ margin: '0 auto 20px auto' }} className="animate-pulse" />
-            <h1 style={{ fontSize: '24px', marginBottom: '16px' }}>WAITING FOR EVENT INITIALIZATION</h1>
-            <p className="text-secondary font-mono" style={{ marginBottom: '24px' }}>
-              Your team identity is verified. The console will automatically activate when the organizer releases the level locks.
+        <main className="game-main centered-main">
+          <div className="cyber-panel status-panel">
+            <Clock size={48} className="status-icon animate-pulse text-cyan" />
+            <h1 className="status-title">WAITING FOR LAUNCH</h1>
+            <p className="terminal-text text-muted">
+              &gt; IDENTITY VERIFIED. WAITING FOR ORGANIZER TO RELEASE LOCKS_
             </p>
-            <div className="team-pill-code" style={{ display: 'inline-block' }}>
-              TEAM: {player.teamCode} | PLAYER 0{player.playerNumber}
+            <div className="badge badge-cyan mt-l">
+              TEAM: {player.teamCode} | NODE 0{player.playerNumber}
             </div>
-          </Card>
+          </div>
         </main>
       </div>
     );
@@ -160,14 +159,15 @@ export const PlayerGamePage: React.FC = () => {
     return (
       <div className="game-page">
         <GameHeader player={player} currentLevel={6} totalLevels={6} connectionStatus={gameState.connectionStatus} onLogout={logout} />
-        <main className="game-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Card style={{ textAlign: 'center', padding: '40px', borderColor: 'var(--status-success)', boxShadow: '0 0 50px rgba(16, 185, 129, 0.2)' }}>
-            <CheckCircle2 size={64} color="var(--status-success)" style={{ margin: '0 auto 24px auto' }} />
-            <h1 style={{ fontSize: '32px', marginBottom: '16px' }}>CODEXCAPE COMPLETED</h1>
-            <p className="font-mono text-success" style={{ marginBottom: '24px' }}>
-              Congratulations! Your team successfully completed all six technical challenges and cracked the final override terminal.
+        <main className="game-main centered-main">
+          <div className="cyber-panel status-panel success-panel animate-slide-up">
+            <CheckCircle2 size={64} className="status-icon text-success animate-pulse-glow" />
+            <h1 className="status-title text-success">CODEXCAPE COMPLETED</h1>
+            <p className="terminal-text text-success" style={{ opacity: 0.8 }}>
+              &gt; PROTOCOL SUCCESSFUL. SYSTEM BREACHED.<br/>
+              &gt; FINAL RANK: #{gameState.currentRank || '??'}
             </p>
-          </Card>
+          </div>
         </main>
       </div>
     );
@@ -175,45 +175,43 @@ export const PlayerGamePage: React.FC = () => {
 
   return (
     <div className="game-page">
+      <div className="digital-noise-overlay"></div>
       <GameHeader player={player} currentLevel={gameState.currentLevel} totalLevels={gameState.totalLevels} connectionStatus={gameState.connectionStatus} onLogout={logout} />
 
       <main className="game-main">
         <LevelProgress levels={gameState.levels} currentLevel={gameState.currentLevel} />
 
-        <div className="game-grid">
+        <div className="game-grid animate-slide-up">
+          {/* Main Content Column */}
           <div className="panel-container">
             <GameStatus message={gameState.gameStatusMessage} />
 
             {latestNotification && (
-              <div className="notification-banner animate-pulse">
+              <div className="cyber-panel notification-banner animate-pulse">
                 <Radio size={16} />
                 <span>{latestNotification}</span>
               </div>
             )}
 
             {feedbackMsg && (
-              <div className="notification-banner animate-fade-in" style={{ 
-                backgroundColor: feedbackIsError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                borderColor: feedbackIsError ? 'var(--status-error)' : 'var(--status-success)',
-                color: feedbackIsError ? '#fecdd3' : '#a7f3d0'
-              }}>
-                {feedbackIsError ? <AlertOctagon size={20} /> : <CheckCircle2 size={20} />}
-                <span style={{ fontWeight: 'bold' }}>{feedbackMsg}</span>
+              <div className={`cyber-panel notification-banner animate-fade-in ${feedbackIsError ? 'banner-error' : 'banner-success'}`}>
+                {feedbackIsError ? <AlertOctagon size={16} /> : <CheckCircle2 size={16} />}
+                <span className="terminal-text">{feedbackMsg}</span>
               </div>
             )}
 
             <ChallengePanel challenge={gameState.challenge} playerNumber={player.playerNumber} />
 
             {isChallengeCompleted ? (
-              <Card className="verified-panel">
-                <div className="verified-badge">
-                  <CheckCircle2 size={16} />
-                  YOUR NODE VERIFIED
+              <div className="cyber-panel verified-panel">
+                <div className="badge badge-success mb-m">
+                  <CheckCircle2 size={14} style={{ marginRight: '6px' }} />
+                  NODE VERIFIED
                 </div>
-                <p className="font-mono text-secondary">
-                  You have solved your question for Tier 0{gameState.currentLevel}. Waiting for your partner node to complete their challenge.
+                <p className="terminal-text text-muted">
+                  &gt; AWAITING PARTNER NODE SYNCHRONIZATION FOR TIER 0{gameState.currentLevel}_
                 </p>
-              </Card>
+              </div>
             ) : (
               <AnswerInput
                 answerType={gameState.challenge.answerType}
@@ -231,46 +229,48 @@ export const PlayerGamePage: React.FC = () => {
             />
           </div>
 
-          <div className="panel-container">
+          {/* Sidebar Column */}
+          <div className="panel-container sidebar-container">
             <PartnerStatus partner={gameState.partner} />
-            <HintPanel hints={gameState.hints} />
-
-            <Card className="team-matrix-panel">
-              <div className="team-matrix-header">
-                <Shield size={14} color="var(--accent-cyan)" />
-                TEAM MATRIX IDENTITY
+            
+            <div className="cyber-panel team-matrix-panel">
+              <div className="panel-header terminal-text">
+                <Shield size={14} />
+                TEAM IDENTITY MATRIX
               </div>
 
               <div className="matrix-row">
-                <span className="text-secondary">TEAM CODE:</span>
-                <span style={{ color: 'var(--accent-cyan)', fontWeight: 'bold' }}>{player.teamCode}</span>
+                <span className="terminal-text text-muted">TEAM CODE:</span>
+                <span className="terminal-text font-bold text-cyan">{player.teamCode}</span>
               </div>
 
               {gameState.currentRank !== undefined && (
-                <div className="matrix-row" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'var(--status-warning)' }}>
-                  <span style={{ color: 'var(--status-warning)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="matrix-row row-warning">
+                  <span className="terminal-text text-warning flex items-center gap-2 font-bold">
                     <Trophy size={14} /> CURRENT RANK
                   </span>
-                  <span style={{ color: 'var(--status-warning)', fontWeight: '900', fontSize: '16px' }}>#{gameState.currentRank}</span>
+                  <span className="terminal-text text-warning text-lg font-bold">#{gameState.currentRank}</span>
                 </div>
               )}
 
-              <div className={`matrix-row ${player.playerNumber === 1 ? 'matrix-row-p1' : ''}`}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className={`matrix-row ${player.playerNumber === 1 ? 'row-cyan' : ''}`}>
+                <div className="flex items-center gap-2 terminal-text">
                   <Terminal size={14} />
-                  <strong>PLAYER 01 {player.playerNumber === 1 ? '(YOU)' : ''}</strong>
+                  <span>NODE 01 {player.playerNumber === 1 ? '(YOU)' : ''}</span>
                 </div>
-                <span className="text-secondary">{player.playerNumber === 1 ? player.playerName : 'PARTNER'}</span>
+                <span className="text-muted" style={{ fontSize: '11px' }}>{player.playerNumber === 1 ? player.playerName : 'PARTNER'}</span>
               </div>
 
-              <div className={`matrix-row ${player.playerNumber === 2 ? 'matrix-row-p2' : ''}`}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className={`matrix-row ${player.playerNumber === 2 ? 'row-purple' : ''}`}>
+                <div className="flex items-center gap-2 terminal-text">
                   <Cpu size={14} />
-                  <strong>PLAYER 02 {player.playerNumber === 2 ? '(YOU)' : ''}</strong>
+                  <span>NODE 02 {player.playerNumber === 2 ? '(YOU)' : ''}</span>
                 </div>
-                <span className="text-secondary">{player.playerNumber === 2 ? player.playerName : 'PARTNER'}</span>
+                <span className="text-muted" style={{ fontSize: '11px' }}>{player.playerNumber === 2 ? player.playerName : 'PARTNER'}</span>
               </div>
-            </Card>
+            </div>
+
+            <HintPanel hints={gameState.hints} />
           </div>
         </div>
       </main>
