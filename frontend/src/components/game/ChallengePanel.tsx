@@ -43,20 +43,38 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
         )}
       </div>
 
-      {/* Question Content */}
-      <div style={{ 
-        flex: 1,
-        padding: '24px', 
-        borderRadius: 'var(--radius-sm)', 
-        backgroundColor: 'rgba(0, 0, 0, 0.6)', 
-        border: '1px solid var(--border-dim)', 
-        color: 'var(--text-primary)', 
-        fontFamily: 'var(--font-mono)', 
-        fontSize: '14px', 
-        lineHeight: 1.8, 
-        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)' 
-      }}>
-        <p style={{ whiteSpace: 'pre-line' }}>{challenge.description}</p>
+      {/* Evidence & Instructions Content */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ 
+          padding: '24px', 
+          borderRadius: 'var(--radius-sm)', 
+          backgroundColor: 'rgba(0, 0, 0, 0.6)', 
+          border: '1px solid var(--border-dim)', 
+          color: 'var(--text-primary)', 
+          fontFamily: 'var(--font-mono)', 
+          fontSize: '14px', 
+          lineHeight: 1.8, 
+          boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)' 
+        }}>
+          <div className="text-sm text-gray-400 mb-2 font-bold tracking-wider">EVIDENCE / ARTIFACT:</div>
+          <p style={{ whiteSpace: 'pre-line' }}>{challenge.evidence}</p>
+        </div>
+
+        {challenge.instructions && (
+          <div style={{ 
+            padding: '16px', 
+            borderRadius: 'var(--radius-sm)', 
+            backgroundColor: 'rgba(10, 25, 20, 0.8)', 
+            border: '1px solid var(--border-cyan)', 
+            color: 'var(--accent-cyan)', 
+            fontFamily: 'var(--font-mono)', 
+            fontSize: '13px', 
+            lineHeight: 1.6, 
+          }}>
+            <div className="text-xs mb-2 font-bold tracking-wider opacity-75">INSTRUCTIONS:</div>
+            <p style={{ whiteSpace: 'pre-line' }}>{challenge.instructions}</p>
+          </div>
+        )}
       </div>
 
       {/* Footer Meta */}

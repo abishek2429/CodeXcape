@@ -77,7 +77,8 @@ export const PlayerGamePage: React.FC = () => {
         levelNumber: liveQuestion.levelNumber,
         title: liveQuestion.puzzleContext ? liveQuestion.puzzleContext : `TIER 0${liveQuestion.levelNumber} CHALLENGE`,
         puzzleContext: liveQuestion.puzzleContext,
-        description: liveQuestion.questionContent,
+        evidence: liveQuestion.evidence,
+        instructions: liveQuestion.instructions,
         answerType: liveQuestion.answerType,
         placeholderText: liveQuestion.answerType === 'NUMERIC' ? '> INPUT NUMERIC SOLUTION_' : '> ENTER SOLUTION_',
       }

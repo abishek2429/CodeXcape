@@ -50,8 +50,13 @@ public class AdminContentService {
                         .isActive(true)
                         .build());
 
-        question.setQuestionContent(dto.getQuestionContent().trim());
+        question.setEvidence(dto.getEvidence().trim());
+        question.setInstructions(dto.getInstructions() != null ? dto.getInstructions().trim() : null);
         question.setPuzzleContext(dto.getPuzzleContext() != null ? dto.getPuzzleContext().trim() : null);
+        question.setTechnicalCategory(dto.getTechnicalCategory() != null ? dto.getTechnicalCategory().trim() : null);
+        question.setDifficulty(dto.getDifficulty() != null ? dto.getDifficulty().trim() : null);
+        question.setValidationRules(dto.getValidationRules() != null ? dto.getValidationRules().trim() : null);
+        question.setPuzzleMetadata(dto.getPuzzleMetadata() != null ? dto.getPuzzleMetadata().trim() : null);
         question.setExpectedAnswerHash(dto.getExpectedAnswer().trim());
         if (dto.getAnswerType() != null) {
             question.setAnswerType(dto.getAnswerType());
@@ -72,7 +77,12 @@ public class AdminContentService {
                 .id(saved.getId())
                 .levelNumber(levelNumber)
                 .playerNumber(saved.getPlayerNumber())
-                .questionContent(saved.getQuestionContent())
+                .evidence(saved.getEvidence())
+                .instructions(saved.getInstructions())
+                .technicalCategory(saved.getTechnicalCategory())
+                .difficulty(saved.getDifficulty())
+                .validationRules(saved.getValidationRules())
+                .puzzleMetadata(saved.getPuzzleMetadata())
                 .puzzleContext(saved.getPuzzleContext())
                 .expectedAnswer(saved.getExpectedAnswerHash())
                 .answerType(saved.getAnswerType())
@@ -158,7 +168,8 @@ public class AdminContentService {
                 .levelNumber(levelNumber)
                 .levelName(level.getName())
                 .playerNumber(playerNumber)
-                .questionContent(question != null ? question.getQuestionContent() : "No question configured for Player " + playerNumber)
+                .evidence(question != null ? question.getEvidence() : "No evidence configured for Player " + playerNumber)
+                .instructions(question != null ? question.getInstructions() : "No instructions configured.")
                 .puzzleContext(question != null ? question.getPuzzleContext() : null)
                 .hintContent(hintContent)
                 .build();
@@ -182,19 +193,23 @@ public class AdminContentService {
                 Optional<Question> q2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_2);
                 List<Hint> hints = hintRepository.findByLevelIdOrderByDisplayOrderAsc(level.getId());
 
-                lvlMap.put("player1Question", q1.map(Question::getQuestionContent).orElse(""));
+                lvlMap.put("player1Evidence", q1.map(Question::getEvidence).orElse(""));
+                lvlMap.put("player1Instructions", q1.map(Question::getInstructions).orElse(""));
                 lvlMap.put("player1Answer", q1.map(Question::getExpectedAnswerHash).orElse(""));
                 lvlMap.put("player1PuzzleContext", q1.map(Question::getPuzzleContext).orElse(""));
 
-                lvlMap.put("player2Question", q2.map(Question::getQuestionContent).orElse(""));
+                lvlMap.put("player2Evidence", q2.map(Question::getEvidence).orElse(""));
+                lvlMap.put("player2Instructions", q2.map(Question::getInstructions).orElse(""));
                 lvlMap.put("player2Answer", q2.map(Question::getExpectedAnswerHash).orElse(""));
                 lvlMap.put("player2PuzzleContext", q2.map(Question::getPuzzleContext).orElse(""));
 
                 lvlMap.put("hint", hints.isEmpty() ? "" : hints.get(0).getHintContent());
             } else {
-                lvlMap.put("player1Question", "");
+                lvlMap.put("player1Evidence", "");
+                lvlMap.put("player1Instructions", "");
                 lvlMap.put("player1Answer", "");
-                lvlMap.put("player2Question", "");
+                lvlMap.put("player2Evidence", "");
+                lvlMap.put("player2Instructions", "");
                 lvlMap.put("player2Answer", "");
                 lvlMap.put("hint", "");
             }
@@ -212,7 +227,7 @@ public class AdminContentService {
     public Question updateQuestion(AdminPrincipal principal, Long questionId, String content, String expectedAnswer, com.technicalescaperoom.backend.enums.AnswerType answerType, boolean isActive) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Question not found for ID " + questionId));
-        question.setQuestionContent(content);
+        question.setEvidence(content);
         question.setExpectedAnswerHash(expectedAnswer);
         if (answerType != null) question.setAnswerType(answerType);
         question.setIsActive(isActive);

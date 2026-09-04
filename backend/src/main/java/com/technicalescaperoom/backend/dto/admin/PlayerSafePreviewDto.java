@@ -13,7 +13,8 @@ public class PlayerSafePreviewDto {
     private Integer levelNumber;
     private String levelName;
     private Integer playerNumber;
-    private String questionContent;
+    private String evidence;
+    private String instructions;
     private String puzzleContext;
     private String hintContent;
 }

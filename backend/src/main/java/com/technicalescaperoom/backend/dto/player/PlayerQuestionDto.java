@@ -14,7 +14,8 @@ public class PlayerQuestionDto {
     private Integer levelNumber;
     private Long questionId;
     private String puzzleContext;
-    private String questionContent;
+    private String evidence;
+    private String instructions;
     private AnswerType answerType;
     private Boolean isCompleted;
     private Integer attemptCount;

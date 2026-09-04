@@ -197,8 +197,13 @@ export async function fetchEventValidation(eventId: number): Promise<any> {
 
 export async function saveQuestion(eventId: number, levelNumber: number, data: {
   playerNumber: 'PLAYER_1' | 'PLAYER_2';
-  questionContent: string;
+  evidence: string;
+  instructions?: string;
   puzzleContext?: string;
+  technicalCategory?: string;
+  difficulty?: string;
+  validationRules?: string;
+  puzzleMetadata?: string;
   expectedAnswer: string;
   answerType?: string;
 }): Promise<any> {

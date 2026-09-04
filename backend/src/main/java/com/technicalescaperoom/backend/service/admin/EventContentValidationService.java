@@ -71,8 +71,8 @@ public class EventContentValidationService {
             Optional<Question> q2Opt = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_2);
             List<Hint> hints = hintRepository.findByLevelIdOrderByDisplayOrderAsc(level.getId());
 
-            boolean p1Q = q1Opt.isPresent() && q1Opt.get().getQuestionContent() != null && !q1Opt.get().getQuestionContent().isBlank();
-            boolean p2Q = q2Opt.isPresent() && q2Opt.get().getQuestionContent() != null && !q2Opt.get().getQuestionContent().isBlank();
+            boolean p1Q = q1Opt.isPresent() && q1Opt.get().getEvidence() != null && !q1Opt.get().getEvidence().isBlank();
+            boolean p2Q = q2Opt.isPresent() && q2Opt.get().getEvidence() != null && !q2Opt.get().getEvidence().isBlank();
 
             boolean p1A = q1Opt.isPresent() && q1Opt.get().getExpectedAnswerHash() != null && !q1Opt.get().getExpectedAnswerHash().isBlank();
             boolean p2A = q2Opt.isPresent() && q2Opt.get().getExpectedAnswerHash() != null && !q2Opt.get().getExpectedAnswerHash().isBlank();

@@ -37,8 +37,8 @@ public class LevelContentValidationService {
 
         // Validate individual question integrity
         for (Question q : questions) {
-            if (q.getQuestionContent() == null || q.getQuestionContent().isBlank()) {
-                throw new IncompleteLevelContentException("Question ID " + q.getId() + " content cannot be blank.");
+            if (q.getEvidence() == null || q.getEvidence().isBlank()) {
+                throw new IncompleteLevelContentException("Question ID " + q.getId() + " evidence cannot be blank.");
             }
             if (q.getExpectedAnswerHash() == null || q.getExpectedAnswerHash().isBlank()) {
                 throw new IncompleteLevelContentException("Question ID " + q.getId() + " expected answer hash cannot be blank.");

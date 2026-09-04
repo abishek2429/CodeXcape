@@ -16,7 +16,8 @@ export interface ChallengeData {
   levelNumber: number;
   title: string;
   puzzleContext?: string;
-  description: string;
+  evidence: string;
+  instructions: string;
   answerType: AnswerType;
   options?: string[];
   placeholderText?: string;

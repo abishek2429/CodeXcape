@@ -17,9 +17,12 @@ export function getMockGameState(playerNumber: number = 1): GameSessionState {
     challenge: {
       levelNumber: 1,
       title: 'System Breaker - Core Authentication Override',
-      description: isP1
-        ? 'Inspect node 192.168.1.10 telemetry logs to locate the open SSH port integer. Submit the numeric port value to crack the initial authentication module.'
-        : 'Convert the hexadecimal signal stream "0x4142" extracted from the node buffer into its corresponding ASCII character string.',
+      evidence: isP1
+        ? 'NODE 192.168.1.10 TELEMETRY LOGS\nSSH port integer detected.'
+        : 'NODE BUFFER SIGNAL STREAM\n0x4142',
+      instructions: isP1
+        ? 'Locate the open SSH port integer. Submit the numeric port value.'
+        : 'Convert the hexadecimal signal stream into ASCII.',
       answerType: isP1 ? 'NUMERIC' : 'TEXT',
       placeholderText: isP1 ? 'e.g. 22' : 'e.g. AB',
     },

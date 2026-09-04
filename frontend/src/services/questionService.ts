@@ -4,7 +4,8 @@ export interface PlayerQuestionResponse {
   levelNumber: number;
   questionId: number;
   puzzleContext?: string;
-  questionContent: string;
+  evidence: string;
+  instructions: string;
   answerType: AnswerType;
   isCompleted: boolean;
   attemptCount: number;

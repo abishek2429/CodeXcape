@@ -21,7 +21,13 @@ public class QuestionConfigDto {
     private QuestionPlayer playerNumber;
     
     @NotBlank
-    private String questionContent;
+    private String evidence;
+    
+    private String instructions;
+    private String technicalCategory;
+    private String difficulty;
+    private String validationRules;
+    private String puzzleMetadata;
     
     private String puzzleContext;
     

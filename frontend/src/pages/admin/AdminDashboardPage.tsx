@@ -68,9 +68,11 @@ export const AdminDashboardPage: React.FC = () => {
   const [contentData, setContentData] = useState<any>(null);
   const [readinessData, setReadinessData] = useState<any>(null);
   const [selectedLevel, setSelectedLevel] = useState<number>(1);
-  const [editingP1Q, setEditingP1Q] = useState('');
+  const [editingP1Ev, setEditingP1Ev] = useState('');
+  const [editingP1Inst, setEditingP1Inst] = useState('');
   const [editingP1A, setEditingP1A] = useState('');
-  const [editingP2Q, setEditingP2Q] = useState('');
+  const [editingP2Ev, setEditingP2Ev] = useState('');
+  const [editingP2Inst, setEditingP2Inst] = useState('');
   const [editingP2A, setEditingP2A] = useState('');
   const [editingHint, setEditingHint] = useState('');
   const [testCandidateAnswer, setTestCandidateAnswer] = useState('');
@@ -115,9 +117,11 @@ export const AdminDashboardPage: React.FC = () => {
     if (contentData && contentData.levels) {
       const lvl = contentData.levels.find((l: any) => l.levelNumber === selectedLevel);
       if (lvl) {
-        setEditingP1Q(lvl.player1Question || '');
+        setEditingP1Ev(lvl.player1Evidence || '');
+        setEditingP1Inst(lvl.player1Instructions || '');
         setEditingP1A(lvl.player1Answer || '');
-        setEditingP2Q(lvl.player2Question || '');
+        setEditingP2Ev(lvl.player2Evidence || '');
+        setEditingP2Inst(lvl.player2Instructions || '');
         setEditingP2A(lvl.player2Answer || '');
         setEditingHint(lvl.hint || '');
       }
@@ -176,12 +180,14 @@ export const AdminDashboardPage: React.FC = () => {
     try {
       await saveQuestion(eventId, selectedLevel, {
         playerNumber: 'PLAYER_1',
-        questionContent: editingP1Q,
+        evidence: editingP1Ev,
+        instructions: editingP1Inst,
         expectedAnswer: editingP1A,
       });
       await saveQuestion(eventId, selectedLevel, {
         playerNumber: 'PLAYER_2',
-        questionContent: editingP2Q,
+        evidence: editingP2Ev,
+        instructions: editingP2Inst,
         expectedAnswer: editingP2A,
       });
       await saveHint(eventId, selectedLevel, editingHint);
@@ -380,9 +386,13 @@ export const AdminDashboardPage: React.FC = () => {
             <div className="">
               <div>
                 <p className="text-secondary">Question Display Content (Player {previewPlayerNum}):</p>
-                <div className="">
-                  {safePreview.questionContent}
-                </div>
+                <pre className="bg-gray-800 p-2 rounded text-sm text-gray-300 whitespace-pre-wrap font-mono mb-4">
+                  {safePreview.evidence}
+                </pre>
+                <div className="text-sm text-gray-400 mb-1 font-mono">INSTRUCTIONS:</div>
+                <pre className="bg-gray-800 p-2 rounded text-sm text-green-400 whitespace-pre-wrap font-mono mb-4">
+                  {safePreview.instructions}
+                </pre>
               </div>
               <div>
                 <p className="text-secondary">Progressive Clue Shard:</p>
@@ -692,10 +702,18 @@ export const AdminDashboardPage: React.FC = () => {
                     <label className="text-secondary block">Question Statement:</label>
                     <textarea
                       rows={4}
-                      value={editingP1Q}
-                      onChange={(e) => setEditingP1Q(e.target.value)}
-                      placeholder="Enter Player 1 challenge question..."
+                      value={editingP1Ev}
+                      onChange={(e) => setEditingP1Ev(e.target.value)}
                       className="admin-panel text-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Player 1 Instructions</label>
+                    <textarea 
+                      className="w-full bg-gray-900 border border-gray-700 rounded p-2 h-16 font-mono text-sm"
+                      value={editingP1Inst}
+                      onChange={(e) => setEditingP1Inst(e.target.value)}
+                      placeholder="Enter Player 1 challenge question..."
                     />
                   </div>
                   <div>
@@ -717,10 +735,18 @@ export const AdminDashboardPage: React.FC = () => {
                     <label className="text-secondary block">Question Statement:</label>
                     <textarea
                       rows={4}
-                      value={editingP2Q}
-                      onChange={(e) => setEditingP2Q(e.target.value)}
-                      placeholder="Enter Player 2 challenge question..."
+                      value={editingP2Ev}
+                      onChange={(e) => setEditingP2Ev(e.target.value)}
                       className="admin-panel text-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Player 2 Instructions</label>
+                    <textarea 
+                      className="w-full bg-gray-900 border border-gray-700 rounded p-2 h-16 font-mono text-sm"
+                      value={editingP2Inst}
+                      onChange={(e) => setEditingP2Inst(e.target.value)}
+                      placeholder="Enter Player 2 challenge question..."
                     />
                   </div>
                   <div>

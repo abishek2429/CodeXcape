@@ -30,11 +30,26 @@ public class Question {
     @Column(name = "player_number", nullable = false, length = 20)
     private QuestionPlayer playerNumber;
 
-    @Column(name = "question_content", nullable = false, columnDefinition = "TEXT")
-    private String questionContent;
+    @Column(name = "evidence", nullable = false, columnDefinition = "TEXT")
+    private String evidence;
+
+    @Column(name = "instructions", columnDefinition = "TEXT")
+    private String instructions;
 
     @Column(name = "puzzle_context", length = 255)
     private String puzzleContext;
+
+    @Column(name = "technical_category", length = 100)
+    private String technicalCategory;
+
+    @Column(name = "difficulty", length = 50)
+    private String difficulty;
+
+    @Column(name = "validation_rules", columnDefinition = "TEXT")
+    private String validationRules;
+
+    @Column(name = "puzzle_metadata", columnDefinition = "TEXT")
+    private String puzzleMetadata;
 
     @Column(name = "expected_answer_hash", nullable = false)
     private String expectedAnswerHash;
