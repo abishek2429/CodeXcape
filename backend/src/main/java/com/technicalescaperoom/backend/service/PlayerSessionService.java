@@ -296,6 +296,8 @@ public class PlayerSessionService {
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge((int) (sessionTimeoutMinutes * 60));
+        cookie.setSecure(true);
+        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
     }
 
@@ -304,6 +306,8 @@ public class PlayerSessionService {
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
+        cookie.setSecure(true);
+        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
     }
 
