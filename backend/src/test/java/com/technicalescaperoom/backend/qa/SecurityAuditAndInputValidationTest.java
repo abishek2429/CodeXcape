@@ -135,7 +135,7 @@ public class SecurityAuditAndInputValidationTest {
                 .build();
 
         PlayerQuestionDto qDto = questionAnswerService.getCurrentQuestionForPlayer(p1Princ);
-        assertThat(qDto.getQuestionContent()).isNotEmpty();
+        assertThat(qDto.getEvidence()).isNotEmpty();
         // Verify PlayerQuestionDto fields contain NO expected answer fields or passkey fields
         assertThat(qDto.toString()).doesNotContain("expectedAnswer");
         assertThat(qDto.toString()).doesNotContain("passkey");

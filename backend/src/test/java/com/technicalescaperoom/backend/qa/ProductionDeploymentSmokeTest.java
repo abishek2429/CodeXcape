@@ -104,7 +104,7 @@ public class ProductionDeploymentSmokeTest {
         // 2. Question Retrieval Smoke Check
         PlayerQuestionDto qDto = questionAnswerService.getCurrentQuestionForPlayer(p1Princ);
         assertThat(qDto.getLevelNumber()).isEqualTo(1);
-        assertThat(qDto.getQuestionContent()).isNotEmpty();
+        assertThat(qDto.getEvidence()).isNotEmpty();
         assertThat(qDto.toString()).doesNotContain("expectedAnswer");
 
         // 3. Answer Submission Smoke Check

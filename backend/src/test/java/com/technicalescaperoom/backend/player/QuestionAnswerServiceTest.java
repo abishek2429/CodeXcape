@@ -93,7 +93,7 @@ public class QuestionAnswerServiceTest {
                 .orElseGet(() -> questionRepository.save(Question.builder()
                         .level(level1)
                         .playerNumber(QuestionPlayer.PLAYER_1)
-                        .questionContent("Find the open SSH port integer on node 192.168.1.10.")
+                        .evidence("Find the open SSH port integer on node 192.168.1.10.")
                         .expectedAnswerHash("22")
                         .answerType(AnswerType.NUMERIC)
                         .isActive(true)
@@ -103,7 +103,7 @@ public class QuestionAnswerServiceTest {
                 .orElseGet(() -> questionRepository.save(Question.builder()
                         .level(level1)
                         .playerNumber(QuestionPlayer.PLAYER_2)
-                        .questionContent("Convert hexadecimal string 0x4142 to ASCII characters.")
+                        .evidence("Convert hexadecimal string 0x4142 to ASCII characters.")
                         .expectedAnswerHash("AB")
                         .answerType(AnswerType.TEXT)
                         .isActive(true)
@@ -158,20 +158,20 @@ public class QuestionAnswerServiceTest {
         PlayerQuestionDto qDtoP1 = questionAnswerService.getCurrentQuestionForPlayer(createPrincipal(playerA1, teamA));
         assertNotNull(qDtoP1);
         assertEquals(1, qDtoP1.getLevelNumber());
-        assertTrue(qDtoP1.getQuestionContent().contains("SSH port"));
+        assertTrue(qDtoP1.getEvidence().contains("SSH port"));
 
         PlayerQuestionDto qDtoP2 = questionAnswerService.getCurrentQuestionForPlayer(createPrincipal(playerA2, teamA));
         assertNotNull(qDtoP2);
         assertEquals(1, qDtoP2.getLevelNumber());
-        assertTrue(qDtoP2.getQuestionContent().contains("hexadecimal"));
+        assertTrue(qDtoP2.getEvidence().contains("hexadecimal"));
     }
 
     @Test
     @DisplayName("2. Security: Question response never exposes expected answer or security details")
     void testQuestionResponseNoSensitiveData() {
         PlayerQuestionDto qDto = questionAnswerService.getCurrentQuestionForPlayer(createPrincipal(playerA1, teamA));
-        assertNotNull(qDto.getQuestionContent());
-        assertFalse(qDto.getQuestionContent().contains("22"));
+        assertNotNull(qDto.getEvidence());
+        assertFalse(qDto.getEvidence().contains("22"));
     }
 
     @Test

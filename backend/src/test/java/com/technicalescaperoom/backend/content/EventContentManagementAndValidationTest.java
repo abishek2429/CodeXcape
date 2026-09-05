@@ -87,7 +87,7 @@ public class EventContentManagementAndValidationTest {
             // Save Question P1
             adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), lvlNum, QuestionConfigDto.builder()
                     .playerNumber(QuestionPlayer.PLAYER_1)
-                    .questionContent("Question for Level " + lvlNum + " P1")
+                    .evidence("Question for Level " + lvlNum + " P1")
                     .expectedAnswer("ans_l" + lvlNum + "_p1")
                     .answerType(AnswerType.TEXT)
                     .build());
@@ -95,7 +95,7 @@ public class EventContentManagementAndValidationTest {
             // Save Question P2
             adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), lvlNum, QuestionConfigDto.builder()
                     .playerNumber(QuestionPlayer.PLAYER_2)
-                    .questionContent("Question for Level " + lvlNum + " P2")
+                    .evidence("Question for Level " + lvlNum + " P2")
                     .expectedAnswer("ans_l" + lvlNum + "_p2")
                     .answerType(AnswerType.TEXT)
                     .build());
@@ -120,7 +120,7 @@ public class EventContentManagementAndValidationTest {
         // Create question
         adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), 1, QuestionConfigDto.builder()
                 .playerNumber(QuestionPlayer.PLAYER_1)
-                .questionContent("What is 2 + 2?")
+                .evidence("What is 2 + 2?")
                 .expectedAnswer("4")
                 .answerType(AnswerType.TEXT)
                 .build());
@@ -147,14 +147,14 @@ public class EventContentManagementAndValidationTest {
     void testSafePlayerPreview() {
         adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), 1, QuestionConfigDto.builder()
                 .playerNumber(QuestionPlayer.PLAYER_1)
-                .questionContent("Secret Question")
+                .evidence("Secret Question")
                 .expectedAnswer("TopSecretAnswer")
                 .answerType(AnswerType.TEXT)
                 .build());
 
         PlayerSafePreviewDto preview = adminContentService.getPlayerSafePreview(testEvent.getId(), 1, 1);
 
-        assertThat(preview.getQuestionContent()).isEqualTo("Secret Question");
+        assertThat(preview.getEvidence()).isEqualTo("Secret Question");
         // Verify response contains NO answer leak
         assertThat(preview.toString()).doesNotContain("TopSecretAnswer");
     }
@@ -167,9 +167,9 @@ public class EventContentManagementAndValidationTest {
 
         for (int i = 1; i <= 6; i++) {
             adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), i, QuestionConfigDto.builder()
-                    .playerNumber(QuestionPlayer.PLAYER_1).questionContent("Q1").expectedAnswer("A1").build());
+                    .playerNumber(QuestionPlayer.PLAYER_1).evidence("Q1").expectedAnswer("A1").build());
             adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), i, QuestionConfigDto.builder()
-                    .playerNumber(QuestionPlayer.PLAYER_2).questionContent("Q2").expectedAnswer("A2").build());
+                    .playerNumber(QuestionPlayer.PLAYER_2).evidence("Q2").expectedAnswer("A2").build());
             adminContentService.saveHintConfig(adminPrincipal, testEvent.getId(), i, HintConfigDto.builder()
                     .hintContent("H").displayOrder(1).build());
         }
@@ -180,7 +180,7 @@ public class EventContentManagementAndValidationTest {
         // Attempting to modify question while running throws IllegalStateException
         assertThatThrownBy(() -> adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), 1, QuestionConfigDto.builder()
                 .playerNumber(QuestionPlayer.PLAYER_1)
-                .questionContent("New Content")
+                .evidence("New Content")
                 .expectedAnswer("New Answer")
                 .build()))
                 .isInstanceOf(IllegalStateException.class)

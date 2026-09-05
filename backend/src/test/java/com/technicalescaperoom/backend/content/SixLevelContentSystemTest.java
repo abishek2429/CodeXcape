@@ -148,7 +148,7 @@ class SixLevelContentSystemTest {
         assertEquals(1, p1Question.getLevelNumber());
         assertEquals(1, p2Question.getLevelNumber());
         assertNotEquals(p1Question.getQuestionId(), p2Question.getQuestionId(), "P1 and P2 must receive distinct questions.");
-        assertNotEquals(p1Question.getQuestionContent(), p2Question.getQuestionContent(), "P1 and P2 question contents must be distinct.");
+        assertNotEquals(p1Question.getEvidence(), p2Question.getEvidence(), "P1 and P2 question contents must be distinct.");
 
         assertNotNull(p1Question.getPuzzleContext());
         assertEquals(p1Question.getPuzzleContext(), p2Question.getPuzzleContext(), "P1 and P2 in Level 1 share the same puzzle context.");
@@ -233,7 +233,7 @@ class SixLevelContentSystemTest {
 
         // Content IDs and content strings are identical (reused question rows)
         assertEquals(qA1.getQuestionId(), qB1.getQuestionId());
-        assertEquals(qA1.getQuestionContent(), qB1.getQuestionContent());
+        assertEquals(qA1.getEvidence(), qB1.getEvidence());
 
         // Team A completes Level 1
         Level level1 = levelRepository.findByLevelNumber(1).orElseThrow();

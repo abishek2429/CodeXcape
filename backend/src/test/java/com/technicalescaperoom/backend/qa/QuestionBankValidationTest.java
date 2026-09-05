@@ -49,11 +49,11 @@ class QuestionBankValidationTest {
             List<Hint> hints = hintRepository.findByLevelIdOrderByDisplayOrderAsc(level.getId());
 
             assertThat(q1).isPresent();
-            assertThat(q1.get().getQuestionContent()).isNotBlank();
+            assertThat(q1.get().getEvidence()).isNotBlank();
             assertThat(q1.get().getExpectedAnswerHash()).isNotBlank();
             
             assertThat(q2).isPresent();
-            assertThat(q2.get().getQuestionContent()).isNotBlank();
+            assertThat(q2.get().getEvidence()).isNotBlank();
             assertThat(q2.get().getExpectedAnswerHash()).isNotBlank();
             
             assertThat(hints).isNotEmpty();

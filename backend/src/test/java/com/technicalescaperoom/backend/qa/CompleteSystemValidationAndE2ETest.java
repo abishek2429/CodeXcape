@@ -99,14 +99,14 @@ public class CompleteSystemValidationAndE2ETest {
         for (int i = 1; i <= 6; i++) {
             adminContentService.saveQuestionConfig(adminPrincipal, event.getId(), i, QuestionConfigDto.builder()
                     .playerNumber(QuestionPlayer.PLAYER_1)
-                    .questionContent("E2E L" + i + " P1 Question")
+                    .evidence("E2E L" + i + " P1 Question")
                     .expectedAnswer("e2e_p1_ans_" + i)
                     .answerType(AnswerType.TEXT)
                     .build());
 
             adminContentService.saveQuestionConfig(adminPrincipal, event.getId(), i, QuestionConfigDto.builder()
                     .playerNumber(QuestionPlayer.PLAYER_2)
-                    .questionContent("E2E L" + i + " P2 Question")
+                    .evidence("E2E L" + i + " P2 Question")
                     .expectedAnswer("e2e_p2_ans_" + i)
                     .answerType(AnswerType.TEXT)
                     .build());

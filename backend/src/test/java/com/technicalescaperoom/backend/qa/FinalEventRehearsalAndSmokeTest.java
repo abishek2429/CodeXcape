@@ -96,14 +96,14 @@ public class FinalEventRehearsalAndSmokeTest {
         for (int i = 1; i <= 6; i++) {
             adminContentService.saveQuestionConfig(adminPrincipal, rehearsalEvent.getId(), i, QuestionConfigDto.builder()
                     .playerNumber(QuestionPlayer.PLAYER_1)
-                    .questionContent("Rehearsal Q L" + i + " P1")
+                    .evidence("Rehearsal Q L" + i + " P1")
                     .expectedAnswer("ans_l" + i + "_p1")
                     .answerType(AnswerType.TEXT)
                     .build());
 
             adminContentService.saveQuestionConfig(adminPrincipal, rehearsalEvent.getId(), i, QuestionConfigDto.builder()
                     .playerNumber(QuestionPlayer.PLAYER_2)
-                    .questionContent("Rehearsal Q L" + i + " P2")
+                    .evidence("Rehearsal Q L" + i + " P2")
                     .expectedAnswer("ans_l" + i + "_p2")
                     .answerType(AnswerType.TEXT)
                     .build());

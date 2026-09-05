@@ -168,7 +168,7 @@ public class FailureRecoveryAndResilienceTest {
         // Attempting to edit content when event status is RUNNING
         assertThatThrownBy(() -> adminContentService.saveQuestionConfig(adminPrincipal, testEvent.getId(), 1, QuestionConfigDto.builder()
                 .playerNumber(QuestionPlayer.PLAYER_1)
-                .questionContent("Modified while running")
+                .evidence("Modified while running")
                 .expectedAnswer("new_ans")
                 .build()))
                 .isInstanceOf(IllegalStateException.class)

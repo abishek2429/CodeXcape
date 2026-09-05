@@ -212,7 +212,7 @@ class AdminControlPanelTest {
 
         // Update Question
         Question updatedQuestion = adminContentService.updateQuestion(organizerPrincipal, question.getId(), "Updated SSH port question for testing?", "2222", AnswerType.NUMERIC, true);
-        assertEquals("Updated SSH port question for testing?", updatedQuestion.getQuestionContent());
+        assertEquals("Updated SSH port question for testing?", updatedQuestion.getEvidence());
         assertEquals("2222", updatedQuestion.getExpectedAnswerHash());
 
         // Update Hint

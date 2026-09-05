@@ -101,14 +101,14 @@ public class SystemLoadAndConcurrencyTest {
         for (int i = 1; i <= 6; i++) {
             adminContentService.saveQuestionConfig(adminPrincipal, loadEvent.getId(), i, QuestionConfigDto.builder()
                     .playerNumber(QuestionPlayer.PLAYER_1)
-                    .questionContent("Load Q Level " + i + " Player 1")
+                    .evidence("Load Q Level " + i + " Player 1")
                     .expectedAnswer("ans_l" + i + "_p1")
                     .answerType(AnswerType.TEXT)
                     .build());
 
             adminContentService.saveQuestionConfig(adminPrincipal, loadEvent.getId(), i, QuestionConfigDto.builder()
                     .playerNumber(QuestionPlayer.PLAYER_2)
-                    .questionContent("Load Q Level " + i + " Player 2")
+                    .evidence("Load Q Level " + i + " Player 2")
                     .expectedAnswer("ans_l" + i + "_p2")
                     .answerType(AnswerType.TEXT)
                     .build());
@@ -215,7 +215,7 @@ public class SystemLoadAndConcurrencyTest {
         for (PlayerPrincipal principal : playerPrincipals) {
             PlayerQuestionDto qDto = questionAnswerService.getCurrentQuestionForPlayer(principal);
             assertThat(qDto.getLevelNumber()).isEqualTo(1);
-            assertThat(qDto.getQuestionContent()).contains("Load Q Level 1");
+            assertThat(qDto.getEvidence()).contains("Load Q Level 1");
             // Verify expected answer is NEVER present in DTO
             assertThat(qDto.toString()).doesNotContain("ans_l1");
         }
