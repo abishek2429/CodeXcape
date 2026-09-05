@@ -125,13 +125,13 @@ export const PlayerGamePage: React.FC = () => {
     currentRank: serverState?.currentRank,
   };
 
-  const handleAnswerSubmit = async (answer: string) => {
+  const handleAnswerSubmit = async (answer: string, interactionPayload?: string) => {
     if (isSubmitting || isChallengeCompleted) return;
     setIsSubmitting(true);
     setFeedbackMsg(null);
 
     try {
-      const res = await submitAnswer(answer);
+      const res = await submitAnswer(answer, interactionPayload);
       if (res.correct) {
         setFeedbackIsError(false);
         setFeedbackMsg(res.message || 'SOLUTION ACCEPTED: NODE VERIFIED.');
@@ -240,6 +240,7 @@ export const PlayerGamePage: React.FC = () => {
               <AnswerInput
                 answerType={gameState.challenge.answerType}
                 placeholderText={gameState.challenge.placeholderText}
+                puzzleMetadata={gameState.challenge.puzzleMetadata}
                 options={gameState.challenge.options}
                 onSubmit={handleAnswerSubmit}
                 isSubmitting={isSubmitting}

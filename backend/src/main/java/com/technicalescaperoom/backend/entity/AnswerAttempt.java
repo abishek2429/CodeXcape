@@ -38,6 +38,9 @@ public class AnswerAttempt {
     @Column(name = "submitted_answer", columnDefinition = "TEXT")
     private String submittedAnswer;
 
+    @Column(name = "interaction_payload", columnDefinition = "TEXT")
+    private String interactionPayload;
+
     @Column(name = "is_correct", nullable = false)
     @Builder.Default
     private Boolean isCorrect = false;

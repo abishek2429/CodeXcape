@@ -46,7 +46,7 @@ export async function fetchCurrentQuestion(): Promise<PlayerQuestionResponse | n
   }
 }
 
-export async function submitAnswer(answer: string): Promise<AnswerSubmissionResponse> {
+export async function submitAnswer(answer: string, interactionPayload?: string): Promise<AnswerSubmissionResponse> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE}/answer`, {
@@ -56,7 +56,7 @@ export async function submitAnswer(answer: string): Promise<AnswerSubmissionResp
         'Accept': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify({ answer }),
+      body: JSON.stringify({ answer, interactionPayload }),
     });
   } catch (err) {
     throw new Error('Unable to connect to the game server. Please try again.');

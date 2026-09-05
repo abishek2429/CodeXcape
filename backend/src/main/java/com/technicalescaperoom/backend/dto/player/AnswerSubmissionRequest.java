@@ -16,4 +16,6 @@ public class AnswerSubmissionRequest {
     private String answer;
 
     private Integer levelNumber;
+
+    private String interactionPayload;
 }

@@ -168,7 +168,8 @@ public class QuestionAnswerService {
         int attemptNumber = (int) previousAttempts + 1;
 
         // Validation & Normalization
-        boolean isCorrect = normalizeAndValidate(submittedRaw, question.getExpectedAnswerHash(), question.getAnswerType());
+        boolean isCorrect = validateInteractionPayload(question, request.getInteractionPayload())
+            && normalizeAndValidate(submittedRaw, question.getExpectedAnswerHash(), question.getAnswerType());
 
         // Record Answer Attempt
         AnswerAttempt attempt = AnswerAttempt.builder()
@@ -177,6 +178,7 @@ public class QuestionAnswerService {
                 .level(currentLevel)
                 .question(question)
                 .submittedAnswer(submittedRaw)
+                .interactionPayload(request.getInteractionPayload())
                 .isCorrect(isCorrect)
                 .attemptNumber(attemptNumber)
                 .build();
@@ -374,5 +376,34 @@ public class QuestionAnswerService {
 
         // Standard Text, Code, SQL, Decode normalization
         return normSubmitted.equalsIgnoreCase(normExpected);
+    }
+
+    private boolean validateInteractionPayload(Question question, String interactionPayload) {
+        if (question.getValidationRules() == null || question.getValidationRules().isBlank()) {
+            return true;
+        }
+        if (interactionPayload == null || interactionPayload.isBlank()) return false;
+        java.util.regex.Matcher mode = java.util.regex.Pattern.compile("(?:MODE|OPERATION)=([^;]+)")
+            .matcher(question.getValidationRules());
+        if (mode.find()) {
+            String required = mode.group(1);
+            String field = question.getValidationRules().contains("OPERATION=") ? "operation" : "interaction";
+            java.util.regex.Matcher submitted = java.util.regex.Pattern
+                .compile("\\\"" + field + "\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"")
+                .matcher(interactionPayload);
+            if (!submitted.find() || !required.equals(submitted.group(1))) return false;
+        }
+
+        java.util.regex.Matcher order = java.util.regex.Pattern.compile("ORDER=([^;]+)")
+            .matcher(question.getValidationRules());
+        if (order.find()) {
+            java.util.regex.Matcher submittedOrder = java.util.regex.Pattern
+                .compile("\\\"order\\\"\\s*:\\s*\\[([^]]*)\\]")
+                .matcher(interactionPayload);
+            if (!submittedOrder.find()) return false;
+            String normalized = submittedOrder.group(1).replaceAll("\\\"", "").replaceAll("\\s", "");
+            return order.group(1).equals(normalized.replace(',', '|'));
+        }
+        return true;
     }
 }
