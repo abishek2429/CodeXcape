@@ -17,7 +17,7 @@ import { GameErrorState } from '../../components/game/GameErrorState';
 import { Shield, Clock, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy } from 'lucide-react';
 import { GameSessionState, ChallengeData } from '../../types/game';
 
-import { fetchPlayerHints } from '../../services/hintService';
+import { fetchPlayerHints, usePlayerHint } from '../../services/hintService';
 import { HintData } from '../../types/game';
 import './PlayerGamePage.css';
 
@@ -27,12 +27,14 @@ export const PlayerGamePage: React.FC = () => {
   const [liveQuestion, setLiveQuestion] = useState<PlayerQuestionResponse | null>(null);
   const [hints, setHints] = useState<HintData[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [feedbackIsError, setFeedbackIsError] = useState(false);
 
   const loadData = async () => {
     try {
+      setLoadError(null);
       const [stateData, questionData, hintsData] = await Promise.all([
         fetchPlayerGameState(),
         fetchCurrentQuestion(),
@@ -44,7 +46,7 @@ export const PlayerGamePage: React.FC = () => {
         setHints(hintsData);
       }
     } catch (err) {
-      // Gracefully handle network errors
+      setLoadError('AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
     } finally {
       setIsLoadingData(false);
     }
@@ -70,21 +72,32 @@ export const PlayerGamePage: React.FC = () => {
     return <GameErrorState message="SESSION EXPIRED OR UNAUTHENTICATED. PLEASE RE-ENTER CREDENTIALS." />;
   }
 
+  if (loadError || !serverState) {
+    return <GameErrorState message={loadError || 'AUTHORITATIVE GAME STATE UNAVAILABLE.'} />;
+  }
+
   const mockBase = getMockGameState(player.playerNumber);
 
   const activeChallenge: ChallengeData = liveQuestion
     ? {
         levelNumber: liveQuestion.levelNumber,
+        stageNumber: liveQuestion.stageNumber,
+        totalStages: liveQuestion.totalStages,
         title: liveQuestion.puzzleContext ? liveQuestion.puzzleContext : `TIER 0${liveQuestion.levelNumber} CHALLENGE`,
         puzzleContext: liveQuestion.puzzleContext,
         evidence: liveQuestion.evidence,
         instructions: liveQuestion.instructions,
+        puzzleMetadata: liveQuestion.puzzleMetadata,
         answerType: liveQuestion.answerType,
         placeholderText: liveQuestion.answerType === 'NUMERIC' ? '> INPUT NUMERIC SOLUTION_' : '> ENTER SOLUTION_',
       }
     : mockBase.challenge;
 
   const isChallengeCompleted = liveQuestion?.isCompleted ?? false;
+
+  if (!liveQuestion && serverState.gameStatus !== 'NOT_STARTED' && serverState.gameStatus !== 'FINAL_PASSKEY' && serverState.gameStatus !== 'COMPLETED') {
+    return <GameErrorState message="CURRENT COOPERATIVE STAGE DATA IS UNAVAILABLE. RECONNECT AND TRY AGAIN." />;
+  }
 
   const gameState: GameSessionState = {
     ...mockBase,
@@ -99,7 +112,7 @@ export const PlayerGamePage: React.FC = () => {
     hints: hints.length > 0 ? hints : mockBase.hints,
     isFinalTerminalUnlocked: serverState?.gameStatus === 'FINAL_PASSKEY' || serverState?.gameStatus === 'COMPLETED',
     gameStatusMessage: isChallengeCompleted
-      ? 'NODE VERIFIED: WAITING FOR PARTNER NODE SYNCHRONIZATION...'
+      ? `STAGE ${liveQuestion?.stageNumber || 1} VERIFIED: WAITING FOR PARTNER NODE SYNCHRONIZATION...`
       : serverState
       ? serverState.gameStatus === 'NOT_STARTED'
         ? 'EVENT NOT STARTED. STANDBY.'
@@ -133,6 +146,16 @@ export const PlayerGamePage: React.FC = () => {
     } finally {
       setIsLoadingData(false);
       setIsSubmitting(false);
+    }
+  };
+
+  const handleUseHint = async (hintNumber: number) => {
+    try {
+      await usePlayerHint(gameState.currentLevel, liveQuestion?.stageNumber || 1, hintNumber);
+      await loadData();
+    } catch (err: any) {
+      setFeedbackIsError(true);
+      setFeedbackMsg(err.message || 'HINT REQUEST REJECTED.');
     }
   };
 
@@ -271,7 +294,7 @@ export const PlayerGamePage: React.FC = () => {
               </div>
             </div>
 
-            <HintPanel hints={gameState.hints} />
+            <HintPanel hints={gameState.hints} currentLevel={gameState.currentLevel} currentStage={liveQuestion?.stageNumber} onUseHint={handleUseHint} />
           </div>
         </div>
       </main>

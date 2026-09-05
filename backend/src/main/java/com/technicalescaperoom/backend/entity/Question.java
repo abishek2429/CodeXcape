@@ -26,6 +26,10 @@ public class Question {
     @JoinColumn(name = "level_id", nullable = false)
     private Level level;
 
+    @Column(name = "stage_number", nullable = false)
+    @Builder.Default
+    private Integer stageNumber = 1;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "player_number", nullable = false, length = 20)
     private QuestionPlayer playerNumber;

@@ -13,4 +13,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findByLevelId(Long levelId);
     List<Question> findByLevelIdAndIsActiveTrue(Long levelId);
     Optional<Question> findByLevelIdAndPlayerNumberAndIsActiveTrue(Long levelId, QuestionPlayer playerNumber);
+    Optional<Question> findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+            Long levelId, Integer stageNumber, QuestionPlayer playerNumber);
+    List<Question> findByLevelIdAndStageNumberAndIsActiveTrue(Long levelId, Integer stageNumber);
 }

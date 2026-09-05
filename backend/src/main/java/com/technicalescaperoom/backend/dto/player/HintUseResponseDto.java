@@ -9,11 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AnswerSubmissionResponseDto {
-    private Boolean correct;
-    private Boolean isCompleted;
-    private Boolean stageCompleted;
+public class HintUseResponseDto {
+    private Integer levelNumber;
     private Integer stageNumber;
-    private Integer nextStageNumber;
-    private String message;
+    private Integer hintNumber;
+    private String hintContent;
+    private boolean alreadyUsed;
 }

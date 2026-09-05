@@ -20,7 +20,7 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
             <Terminal size={18} />
           </div>
           <h2 className="terminal-text" style={{ fontSize: '14px', letterSpacing: '0.1em', fontWeight: 700 }}>
-            MISSION 0{challenge.levelNumber} // SPECIFICATION
+            LEVEL 0{challenge.levelNumber} // STAGE {challenge.stageNumber || 1}/{challenge.totalStages || 1}
           </h2>
         </div>
 
@@ -83,7 +83,7 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
           <Code2 size={14} color="var(--accent-cyan)" />
           <span>EXPECTED FORMAT: <strong style={{ color: 'var(--accent-cyan)', backgroundColor: 'var(--bg-void)', padding: '2px 8px', borderRadius: '2px', border: '1px solid var(--border-dim)' }}>{challenge.answerType}</strong></span>
         </div>
-        <span>TIER {challenge.levelNumber} OF 6</span>
+        <span>LEVEL {challenge.levelNumber} OF 6 // STAGE {challenge.stageNumber || 1} OF {challenge.totalStages || 1}</span>
       </div>
     </div>
   );

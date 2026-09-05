@@ -16,6 +16,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -33,6 +37,8 @@ public class QuestionAnswerService {
     private final GameWebSocketPublisher webSocketPublisher;
     private final GameStateService gameStateService;
     private final LevelContentValidationService levelContentValidationService;
+    private final DiscoverySubmissionRepository discoverySubmissionRepository;
+    private final TeamStageProgressRepository teamStageProgressRepository;
     private final jakarta.persistence.EntityManager entityManager;
 
     @Transactional(readOnly = true)
@@ -53,6 +59,7 @@ public class QuestionAnswerService {
         }
 
         Event event = team.getEvent();
+        enforceDeadline(event);
         if (event.getStatus() != EventStatus.RUNNING && event.getStatus() != EventStatus.READY) {
             throw new EventUnavailableException("The event is not currently active.");
         }
@@ -67,23 +74,29 @@ public class QuestionAnswerService {
         Level currentLevel = activeProgress.getLevel();
         levelContentValidationService.validateLevelContent(currentLevel);
 
+        int currentStage = findCurrentStage(currentLevel, team.getId());
         QuestionPlayer qPlayerRole = (player.getPlayerNumber() == 1) ? QuestionPlayer.PLAYER_1 : QuestionPlayer.PLAYER_2;
 
         // Player Question Isolation: Retrieve strictly the assigned QuestionPlayer role
-        Question question = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(currentLevel.getId(), qPlayerRole)
-                .orElseThrow(() -> new ResourceNotFoundException("Question not found for Level " + currentLevel.getLevelNumber() + " and Player " + player.getPlayerNumber()));
+        Question question = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(currentLevel.getId(), currentStage, qPlayerRole)
+            .orElseThrow(() -> new ResourceNotFoundException("Question not found for Level " + currentLevel.getLevelNumber() + ", Stage " + currentStage + " and Player " + player.getPlayerNumber()));
 
-        boolean isCompleted = (player.getPlayerNumber() == 1) ? activeProgress.getPlayer1Completed() : activeProgress.getPlayer2Completed();
+        boolean isCompleted = answerAttemptRepository
+            .existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
+                team.getId(), player.getId(), currentLevel.getId(), question.getId());
         long attemptCount = answerAttemptRepository.countByTeamIdAndPlayerIdAndLevelIdAndQuestionId(
                 team.getId(), player.getId(), currentLevel.getId(), question.getId()
         );
 
         return PlayerQuestionDto.builder()
                 .levelNumber(currentLevel.getLevelNumber())
+            .stageNumber(currentStage)
+            .totalStages(getTotalStages(currentLevel))
                 .questionId(question.getId())
                 .puzzleContext(question.getPuzzleContext())
                 .evidence(question.getEvidence())
                 .instructions(question.getInstructions())
+                .puzzleMetadata(question.getPuzzleMetadata())
                 .answerType(question.getAnswerType())
                 .isCompleted(isCompleted)
                 .attemptCount((int) attemptCount)
@@ -112,11 +125,12 @@ public class QuestionAnswerService {
         }
 
         Event event = team.getEvent();
+        enforceDeadline(event);
         if (event.getStatus() != EventStatus.RUNNING && event.getStatus() != EventStatus.READY) {
             throw new EventUnavailableException("The event is not currently active.");
         }
 
-        // Server-Authoritative Active Level Derivation
+        // Server-Authoritative Active Level and major-stage derivation
         List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
         TeamLevelProgress activeProgress = progressList.stream()
                 .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
@@ -128,16 +142,21 @@ public class QuestionAnswerService {
         }
 
         Level currentLevel = activeProgress.getLevel();
+        int currentStage = findCurrentStage(currentLevel, team.getId());
         QuestionPlayer qPlayerRole = (player.getPlayerNumber() == 1) ? QuestionPlayer.PLAYER_1 : QuestionPlayer.PLAYER_2;
 
-        Question question = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(currentLevel.getId(), qPlayerRole)
-                .orElseThrow(() -> new ResourceNotFoundException("Question not found for Level " + currentLevel.getLevelNumber()));
+        Question question = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(currentLevel.getId(), currentStage, qPlayerRole)
+            .orElseThrow(() -> new ResourceNotFoundException("Question not found for Level " + currentLevel.getLevelNumber() + ", Stage " + currentStage));
 
-        boolean alreadyCompleted = (player.getPlayerNumber() == 1) ? Boolean.TRUE.equals(activeProgress.getPlayer1Completed()) : Boolean.TRUE.equals(activeProgress.getPlayer2Completed());
+        boolean alreadyCompleted = answerAttemptRepository
+            .existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
+                team.getId(), player.getId(), currentLevel.getId(), question.getId());
         if (alreadyCompleted || activeProgress.getLevelStatus() == LevelStatus.COMPLETED) {
             return AnswerSubmissionResponseDto.builder()
                     .correct(true)
                     .isCompleted(true)
+                    .stageCompleted(true)
+                    .stageNumber(currentStage)
                     .message("Your challenge for this level is already completed.")
                     .build();
         }
@@ -170,20 +189,33 @@ public class QuestionAnswerService {
 
             entityManager.refresh(progressToUpdate);
 
-            if (player.getPlayerNumber() == 1) {
-                progressToUpdate.setPlayer1Completed(true);
-            } else {
-                progressToUpdate.setPlayer2Completed(true);
-            }
-
             if (progressToUpdate.getLevelStatus() == LevelStatus.AVAILABLE) {
                 progressToUpdate.setLevelStatus(LevelStatus.IN_PROGRESS);
             }
 
-            TeamLevelProgress savedProgress = teamLevelProgressRepository.saveAndFlush(progressToUpdate);
+            teamLevelProgressRepository.saveAndFlush(progressToUpdate);
 
-            boolean bothCompleted = Boolean.TRUE.equals(savedProgress.getPlayer1Completed())
-                    && Boolean.TRUE.equals(savedProgress.getPlayer2Completed());
+                String discoveryHash = hashDiscovery(submittedRaw);
+                DiscoverySubmission discoverySubmission = discoverySubmissionRepository
+                    .findByTeamIdAndLevelIdAndStageNumberAndPlayerId(team.getId(), currentLevel.getId(), currentStage, player.getId())
+                    .orElseGet(() -> DiscoverySubmission.builder()
+                        .team(team)
+                        .level(currentLevel)
+                        .player(player)
+                        .stageNumber(currentStage)
+                        .build());
+                discoverySubmission.setDiscoveryValueHash(discoveryHash);
+                discoverySubmission.setIsCorrect(true);
+                discoverySubmissionRepository.saveAndFlush(discoverySubmission);
+
+                    TeamStageProgress stageProgress = teamStageProgressRepository
+                        .findByTeamIdAndLevelIdAndStageNumber(team.getId(), currentLevel.getId(), currentStage)
+                        .orElseThrow(() -> new InvalidLevelTransitionException("Stage state is not initialized."));
+                    if (player.getPlayerNumber() == 1) stageProgress.setPlayer1Completed(true);
+                    else stageProgress.setPlayer2Completed(true);
+                    teamStageProgressRepository.saveAndFlush(stageProgress);
+
+            boolean bothCompleted = stageCompletedForBoth(team, currentLevel, currentStage);
 
             auditService.logEvent(
                     GameEventType.ANSWER_CORRECT,
@@ -197,9 +229,26 @@ public class QuestionAnswerService {
             log.info("Player {} (P{}) correctly solved Level {} challenge on attempt #{}", player.getId(), player.getPlayerNumber(), currentLevel.getLevelNumber(), attemptNumber);
 
             // Real-Time STOMP Notifications & Game State Progression
-            webSocketPublisher.notifyPartnerChallengeCompleted(team.getId(), currentLevel.getLevelNumber(), player.getPlayerNumber());
+            webSocketPublisher.notifyPartnerChallengeCompleted(team.getId(), currentLevel.getLevelNumber(), currentStage, player.getPlayerNumber());
 
+            boolean finalStage = currentStage >= getTotalStages(currentLevel);
             if (bothCompleted) {
+                stageProgress.setCompletedAt(Instant.now());
+                stageProgress.setDiscoveryKey("DISCOVERY-L" + currentLevel.getLevelNumber() + "-S" + currentStage);
+                teamStageProgressRepository.saveAndFlush(stageProgress);
+            }
+            if (getTotalStages(currentLevel) == 1) {
+                if (player.getPlayerNumber() == 1) {
+                    progressToUpdate.setPlayer1Completed(true);
+                } else {
+                    progressToUpdate.setPlayer2Completed(true);
+                }
+                teamLevelProgressRepository.saveAndFlush(progressToUpdate);
+            }
+            if (bothCompleted && finalStage) {
+                progressToUpdate.setPlayer1Completed(true);
+                progressToUpdate.setPlayer2Completed(true);
+                teamLevelProgressRepository.saveAndFlush(progressToUpdate);
                 log.info("Both players completed Level {} for Team {}. Executing level progression...", currentLevel.getLevelNumber(), team.getTeamCode());
                 gameStateService.completeLevel(team.getId(), currentLevel.getLevelNumber());
                 webSocketPublisher.notifyLevelCompleted(team.getId(), currentLevel.getLevelNumber());
@@ -211,8 +260,15 @@ public class QuestionAnswerService {
 
             return AnswerSubmissionResponseDto.builder()
                     .correct(true)
-                    .isCompleted(true)
-                    .message(bothCompleted ? "Level Completed! Both players solved their challenges." : "Correct! Your challenge is complete.")
+                    .isCompleted(finalStage && bothCompleted)
+                    .stageCompleted(bothCompleted)
+                    .stageNumber(currentStage)
+                    .nextStageNumber(bothCompleted && !finalStage ? currentStage + 1 : null)
+                    .message(finalStage && bothCompleted
+                        ? "Level completed. Both players solved the final stage."
+                        : bothCompleted
+                        ? "Stage completed. The next cooperative stage is now available."
+                        : "Correct. Your evidence is verified; compare findings with your teammate.")
                     .build();
         } else {
             auditService.logEvent(
@@ -227,9 +283,81 @@ public class QuestionAnswerService {
             return AnswerSubmissionResponseDto.builder()
                     .correct(false)
                     .isCompleted(false)
+                    .stageCompleted(false)
+                    .stageNumber(currentStage)
                     .message("Incorrect answer. Try again.")
                     .build();
         }
+    }
+
+    private int findCurrentStage(Level level, Long teamId) {
+        List<Question> stages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                .filter(question -> !stageCompletedForBoth(teamId, level, question.getStageNumber()))
+                .toList();
+        return stages.stream()
+                .map(Question::getStageNumber)
+                .min(Integer::compareTo)
+                .orElse(1);
+    }
+
+    private boolean stageCompletedForBoth(Team team, Level level, int stageNumber) {
+        return stageCompletedForBoth(team.getId(), level, stageNumber);
+    }
+
+    private boolean stageCompletedForBoth(Long teamId, Level level, int stageNumber) {
+        List<Question> questions = questionRepository.findByLevelIdAndStageNumberAndIsActiveTrue(level.getId(), stageNumber);
+        if (questions.size() < 2) return false;
+
+        boolean playersCorrect = questions.stream().allMatch(question -> {
+            Long playerId = question.getPlayerNumber() == QuestionPlayer.PLAYER_1
+                    ? findPlayerId(teamId, 1)
+                    : findPlayerId(teamId, 2);
+            return playerId != null && answerAttemptRepository
+                    .existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
+                            teamId, playerId, level.getId(), question.getId());
+        });
+                if (!playersCorrect) return false;
+
+                List<DiscoverySubmission> submissions = questions.stream()
+                    .map(question -> findPlayerId(teamId, question.getPlayerNumber() == QuestionPlayer.PLAYER_1 ? 1 : 2))
+                    .map(playerId -> playerId == null ? null : discoverySubmissionRepository
+                        .findByTeamIdAndLevelIdAndStageNumberAndPlayerId(teamId, level.getId(), stageNumber, playerId)
+                        .orElse(null))
+                    .toList();
+                return submissions.size() == 2
+                    && submissions.stream().allMatch(java.util.Objects::nonNull)
+                    && submissions.get(0).getDiscoveryValueHash().equals(submissions.get(1).getDiscoveryValueHash());
+    }
+
+                private String hashDiscovery(String value) {
+                try {
+                    byte[] digest = MessageDigest.getInstance("SHA-256")
+                        .digest(value.trim().toUpperCase().getBytes(StandardCharsets.UTF_8));
+                    StringBuilder result = new StringBuilder();
+                    for (byte item : digest) result.append(String.format("%02x", item));
+                    return result.toString();
+                } catch (NoSuchAlgorithmException exception) {
+                    throw new IllegalStateException("Discovery hashing is unavailable.", exception);
+                }
+                }
+
+    private Long findPlayerId(Long teamId, int playerNumber) {
+        return playerRepository.findByTeamIdAndPlayerNumber(teamId, playerNumber)
+                .map(Player::getId)
+                .orElse(null);
+    }
+
+    private void enforceDeadline(Event event) {
+        if (event.getStartTime() != null && Instant.now().isAfter(event.getStartTime().plusSeconds(90 * 60L))) {
+            throw new EventUnavailableException("The 90-minute game window has ended.");
+        }
+    }
+
+    private int getTotalStages(Level level) {
+        return questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                .map(Question::getStageNumber)
+                .max(Integer::compareTo)
+                .orElse(1);
     }
 
     private boolean normalizeAndValidate(String submitted, String expected, AnswerType answerType) {

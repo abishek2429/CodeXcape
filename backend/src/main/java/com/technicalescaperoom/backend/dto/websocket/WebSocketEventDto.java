@@ -19,8 +19,12 @@ public class WebSocketEventDto {
     private Integer playerNumber;
     private String displayName;
     private Integer levelNumber;
+    private Integer stageNumber;
+    private Integer nextStageNumber;
     private Integer nextLevelNumber;
     private Integer newRank;
+    private String discoveryKey;
+    private Instant serverTime;
     private String message;
     
     @Builder.Default

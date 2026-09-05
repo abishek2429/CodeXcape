@@ -8,6 +8,7 @@ import com.technicalescaperoom.backend.entity.Event;
 import com.technicalescaperoom.backend.entity.Level;
 import com.technicalescaperoom.backend.entity.Team;
 import com.technicalescaperoom.backend.entity.TeamLevelProgress;
+import com.technicalescaperoom.backend.entity.TeamStageProgress;
 import com.technicalescaperoom.backend.enums.EventStatus;
 import com.technicalescaperoom.backend.enums.LevelStatus;
 import com.technicalescaperoom.backend.enums.TeamGameState;
@@ -18,6 +19,8 @@ import com.technicalescaperoom.backend.repository.EventRepository;
 import com.technicalescaperoom.backend.repository.LevelRepository;
 import com.technicalescaperoom.backend.repository.TeamLevelProgressRepository;
 import com.technicalescaperoom.backend.repository.TeamRepository;
+import com.technicalescaperoom.backend.repository.QuestionRepository;
+import com.technicalescaperoom.backend.repository.TeamStageProgressRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,8 @@ public class GameStateService {
     private final TeamRepository teamRepository;
     private final LevelRepository levelRepository;
     private final TeamLevelProgressRepository teamLevelProgressRepository;
+    private final TeamStageProgressRepository teamStageProgressRepository;
+    private final QuestionRepository questionRepository;
     private final EventRepository eventRepository;
     private final com.technicalescaperoom.backend.service.admin.LeaderboardService leaderboardService;
     private final GameWebSocketPublisher webSocketPublisher;
@@ -47,7 +52,9 @@ public class GameStateService {
             return existing;
         }
 
-        List<Level> activeLevels = levelRepository.findByIsActiveTrueOrderByLevelNumberAsc();
+        List<Level> activeLevels = levelRepository.findByIsActiveTrueOrderByLevelNumberAsc().stream()
+                .filter(level -> level.getLevelNumber() >= 1 && level.getLevelNumber() <= 6)
+                .toList();
         if (activeLevels.isEmpty()) {
             throw new ResourceNotFoundException("No active game levels configured in the system.");
         }
@@ -67,6 +74,17 @@ public class GameStateService {
                     .build();
 
             newProgressList.add(teamLevelProgressRepository.save(progress));
+
+                questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                    .map(question -> question.getStageNumber())
+                    .distinct()
+                    .sorted()
+                    .forEach(stageNumber -> teamStageProgressRepository.save(TeamStageProgress.builder()
+                        .team(team)
+                        .level(level)
+                        .stageNumber(stageNumber)
+                        .discoveryKey("L" + level.getLevelNumber() + "-S" + stageNumber)
+                        .build()));
         }
 
         team.setGameState(TeamGameState.IN_PROGRESS);
@@ -87,6 +105,8 @@ public class GameStateService {
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
 
         Event event = team.getEvent();
+        Instant serverTime = Instant.now();
+        Instant deadline = event.getStartTime() == null ? null : event.getStartTime().plusSeconds(90 * 60L);
 
         List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
         if (progressList.isEmpty() && (event.getStatus() == EventStatus.READY || event.getStatus() == EventStatus.RUNNING)) {
@@ -139,6 +159,8 @@ public class GameStateService {
                 .currentRank(currentRank)
                 .eventStatus(event.getStatus())
                 .levels(levelDtos)
+                .serverTime(serverTime)
+                .deadline(deadline)
                 .build();
     }
 
@@ -227,6 +249,13 @@ public class GameStateService {
     public void startEventGameplay(Long eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found."));
+
+        long configuredLevels = levelRepository.findByIsActiveTrueOrderByLevelNumberAsc().stream()
+            .filter(level -> level.getLevelNumber() >= 1 && level.getLevelNumber() <= 6)
+            .count();
+        if (configuredLevels != 6) {
+            throw new InvalidLevelTransitionException("Exactly 6 active game levels must be configured before gameplay can start.");
+        }
 
         event.setStatus(EventStatus.RUNNING);
         event.setStartTime(Instant.now());

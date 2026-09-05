@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -32,7 +33,7 @@ public class EventContentValidationService {
         Map<Integer, LevelReadinessSummaryDto> levelSummaries = new HashMap<>();
 
         List<Level> levels = levelRepository.findAll();
-        boolean levelsCountValid = (levels.size() >= 6);
+        boolean levelsCountValid = levels.stream().filter(level -> level.getLevelNumber() >= 1 && level.getLevelNumber() <= 6).count() == 6;
 
         if (!levelsCountValid) {
             errors.add("Event configuration requires exactly 6 levels (found: " + levels.size() + ").");
@@ -67,15 +68,26 @@ public class EventContentValidationService {
                 continue;
             }
 
-            Optional<Question> q1Opt = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_1);
-            Optional<Question> q2Opt = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_2);
+                List<Question> questions = questionRepository.findByLevelIdAndIsActiveTrue(level.getId());
+                Set<Integer> stages = questions.stream().map(Question::getStageNumber).collect(Collectors.toSet());
             List<Hint> hints = hintRepository.findByLevelIdOrderByDisplayOrderAsc(level.getId());
 
-            boolean p1Q = q1Opt.isPresent() && q1Opt.get().getEvidence() != null && !q1Opt.get().getEvidence().isBlank();
-            boolean p2Q = q2Opt.isPresent() && q2Opt.get().getEvidence() != null && !q2Opt.get().getEvidence().isBlank();
-
-            boolean p1A = q1Opt.isPresent() && q1Opt.get().getExpectedAnswerHash() != null && !q1Opt.get().getExpectedAnswerHash().isBlank();
-            boolean p2A = q2Opt.isPresent() && q2Opt.get().getExpectedAnswerHash() != null && !q2Opt.get().getExpectedAnswerHash().isBlank();
+                boolean stageGraphValid = stages.size() >= 2 && stages.size() <= 3
+                    && stages.stream().sorted().toList().equals(java.util.stream.IntStream.rangeClosed(1, stages.size()).boxed().toList());
+                    boolean stageCoverageValid = stageGraphValid && stages.stream().allMatch(stage -> {
+                    List<Question> stageQuestions = questions.stream().filter(q -> q.getStageNumber().equals(stage)).toList();
+                    return stageQuestions.size() == 2
+                        && stageQuestions.stream().filter(q -> q.getPlayerNumber() == QuestionPlayer.PLAYER_1).count() == 1
+                        && stageQuestions.stream().filter(q -> q.getPlayerNumber() == QuestionPlayer.PLAYER_2).count() == 1;
+                    });
+                    boolean p1Q = stageCoverageValid && questions.stream().filter(q -> q.getPlayerNumber() == QuestionPlayer.PLAYER_1)
+                        .allMatch(q -> q.getEvidence() != null && !q.getEvidence().isBlank());
+                    boolean p2Q = stageCoverageValid && questions.stream().filter(q -> q.getPlayerNumber() == QuestionPlayer.PLAYER_2)
+                        .allMatch(q -> q.getEvidence() != null && !q.getEvidence().isBlank());
+                    boolean p1A = stageCoverageValid && questions.stream().filter(q -> q.getPlayerNumber() == QuestionPlayer.PLAYER_1)
+                        .allMatch(q -> q.getExpectedAnswerHash() != null && !q.getExpectedAnswerHash().isBlank());
+                    boolean p2A = stageCoverageValid && questions.stream().filter(q -> q.getPlayerNumber() == QuestionPlayer.PLAYER_2)
+                        .allMatch(q -> q.getExpectedAnswerHash() != null && !q.getExpectedAnswerHash().isBlank());
 
             boolean hintOk = hints.stream().anyMatch(h -> Boolean.TRUE.equals(h.getIsActive()) && h.getHintContent() != null && !h.getHintContent().isBlank());
 

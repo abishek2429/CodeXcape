@@ -16,6 +16,10 @@ import lombok.NoArgsConstructor;
 public class QuestionConfigDto {
     private Long id;
     private Integer levelNumber;
+
+    @NotNull
+    @Builder.Default
+    private Integer stageNumber = 1;
     
     @NotNull
     private QuestionPlayer playerNumber;

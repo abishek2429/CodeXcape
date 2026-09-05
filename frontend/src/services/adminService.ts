@@ -196,6 +196,7 @@ export async function fetchEventValidation(eventId: number): Promise<any> {
 }
 
 export async function saveQuestion(eventId: number, levelNumber: number, data: {
+  stageNumber?: number;
   playerNumber: 'PLAYER_1' | 'PLAYER_2';
   evidence: string;
   instructions?: string;

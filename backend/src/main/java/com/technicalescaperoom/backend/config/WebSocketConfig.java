@@ -8,6 +8,7 @@ import com.technicalescaperoom.backend.enums.SessionStatus;
 import com.technicalescaperoom.backend.repository.GameSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -22,6 +23,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -32,6 +34,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final GameSessionRepository gameSessionRepository;
 
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}")
+    private String allowedOrigins;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         registry.enableSimpleBroker("/topic");
@@ -41,11 +46,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(",")).map(String::trim).toArray(String[]::new))
                 .withSockJS();
 
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(",")).map(String::trim).toArray(String[]::new));
     }
 
     @Override

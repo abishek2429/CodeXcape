@@ -14,10 +14,13 @@ export interface LevelProgressItem {
 
 export interface ChallengeData {
   levelNumber: number;
+  stageNumber?: number;
+  totalStages?: number;
   title: string;
   puzzleContext?: string;
   evidence: string;
   instructions: string;
+  puzzleMetadata?: string;
   answerType: AnswerType;
   options?: string[];
   placeholderText?: string;
@@ -33,6 +36,7 @@ export interface PartnerStatusData {
 
 export interface HintData {
   levelNumber: number;
+  hintNumber?: number;
   hintContent: string | null;
   isUnlocked: boolean;
 }

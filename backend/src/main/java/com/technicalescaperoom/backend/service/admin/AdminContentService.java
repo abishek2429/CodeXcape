@@ -43,9 +43,10 @@ public class AdminContentService {
                         .build()));
 
         QuestionPlayer playerRole = dto.getPlayerNumber();
-        Question question = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), playerRole)
+        Question question = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level.getId(), dto.getStageNumber(), playerRole)
                 .orElseGet(() -> Question.builder()
                         .level(level)
+                        .stageNumber(dto.getStageNumber())
                         .playerNumber(playerRole)
                         .isActive(true)
                         .build());
@@ -76,6 +77,7 @@ public class AdminContentService {
         return QuestionConfigDto.builder()
                 .id(saved.getId())
                 .levelNumber(levelNumber)
+                .stageNumber(saved.getStageNumber())
                 .playerNumber(saved.getPlayerNumber())
                 .evidence(saved.getEvidence())
                 .instructions(saved.getInstructions())

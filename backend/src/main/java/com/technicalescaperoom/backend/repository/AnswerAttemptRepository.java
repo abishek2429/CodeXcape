@@ -11,5 +11,7 @@ public interface AnswerAttemptRepository extends JpaRepository<AnswerAttempt, Lo
     List<AnswerAttempt> findByTeamId(Long teamId);
     List<AnswerAttempt> findByTeamIdAndPlayerIdAndLevelId(Long teamId, Long playerId, Long levelId);
     long countByTeamIdAndPlayerIdAndLevelIdAndQuestionId(Long teamId, Long playerId, Long levelId, Long questionId);
+    boolean existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
+            Long teamId, Long playerId, Long levelId, Long questionId);
     void deleteByTeamId(Long teamId);
 }

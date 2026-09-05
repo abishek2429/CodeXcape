@@ -115,8 +115,8 @@ public class AdminEventControlService {
     @Transactional
     public EventResponse updateEventPasskey(AdminPrincipal principal, Long eventId, String newPasskey) {
         validateAdminRole(principal);
-        if (newPasskey == null || newPasskey.isBlank()) {
-            throw new IllegalArgumentException("Passkey cannot be blank.");
+        if (newPasskey == null || !newPasskey.trim().matches("\\d{6}")) {
+            throw new IllegalArgumentException("Passkey must contain exactly 6 digits.");
         }
 
         Event event = eventRepository.findById(eventId)

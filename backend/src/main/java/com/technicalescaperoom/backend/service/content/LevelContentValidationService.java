@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.TreeSet;
 
 @Slf4j
 @Service
@@ -51,19 +52,24 @@ public class LevelContentValidationService {
             }
         }
 
-        // Group by player number
-        Map<QuestionPlayer, List<Question>> questionsByPlayer = questions.stream()
-                .collect(Collectors.groupingBy(Question::getPlayerNumber));
+        TreeSet<Integer> stageNumbers = questions.stream()
+                .map(Question::getStageNumber)
+                .collect(Collectors.toCollection(TreeSet::new));
 
-        List<Question> p1Questions = questionsByPlayer.getOrDefault(QuestionPlayer.PLAYER_1, List.of());
-        List<Question> p2Questions = questionsByPlayer.getOrDefault(QuestionPlayer.PLAYER_2, List.of());
-
-        if (p1Questions.size() != 1) {
-            throw new IncompleteLevelContentException("Level " + level.getLevelNumber() + " must have exactly 1 active Player 1 question, but found " + p1Questions.size());
+        if (stageNumbers.isEmpty() || stageNumbers.size() > 3
+                || !stageNumbers.equals(new TreeSet<>(java.util.stream.IntStream.rangeClosed(1, stageNumbers.size()).boxed().toList()))) {
+            throw new IncompleteLevelContentException("Level " + level.getLevelNumber() + " must contain sequential active stages.");
         }
 
-        if (p2Questions.size() != 1) {
-            throw new IncompleteLevelContentException("Level " + level.getLevelNumber() + " must have exactly 1 active Player 2 question, but found " + p2Questions.size());
+        for (Integer stageNumber : stageNumbers) {
+            Map<QuestionPlayer, Long> countByPlayer = questions.stream()
+                    .filter(question -> question.getStageNumber().equals(stageNumber))
+                    .collect(Collectors.groupingBy(Question::getPlayerNumber, Collectors.counting()));
+
+            if (!Long.valueOf(1).equals(countByPlayer.get(QuestionPlayer.PLAYER_1))
+                    || !Long.valueOf(1).equals(countByPlayer.get(QuestionPlayer.PLAYER_2))) {
+                throw new IncompleteLevelContentException("Level " + level.getLevelNumber() + ", Stage " + stageNumber + " must have exactly one artifact for each player.");
+            }
         }
     }
 

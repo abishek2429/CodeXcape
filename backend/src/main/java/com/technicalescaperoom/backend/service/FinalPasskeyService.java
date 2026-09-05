@@ -51,6 +51,9 @@ public class FinalPasskeyService {
         entityManager.refresh(team);
 
         Event event = team.getEvent();
+        if (event.getStartTime() != null && Instant.now().isAfter(event.getStartTime().plusSeconds(90 * 60L))) {
+            throw new EventUnavailableException("The 90-minute game window has ended.");
+        }
         if (event.getStatus() == EventStatus.PAUSED) {
             throw new EventUnavailableException("The event is currently paused by the organizer.");
         }

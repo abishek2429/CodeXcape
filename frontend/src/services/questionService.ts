@@ -2,10 +2,13 @@ import { AnswerType } from '../types/game';
 
 export interface PlayerQuestionResponse {
   levelNumber: number;
+  stageNumber: number;
+  totalStages: number;
   questionId: number;
   puzzleContext?: string;
   evidence: string;
   instructions: string;
+  puzzleMetadata?: string;
   answerType: AnswerType;
   isCompleted: boolean;
   attemptCount: number;
@@ -14,6 +17,9 @@ export interface PlayerQuestionResponse {
 export interface AnswerSubmissionResponse {
   correct: boolean;
   isCompleted: boolean;
+  stageCompleted?: boolean;
+  stageNumber?: number;
+  nextStageNumber?: number;
   message: string;
 }
 

@@ -43,13 +43,19 @@ public class GameWebSocketPublisher {
     }
 
     public void notifyPartnerChallengeCompleted(Long teamId, Integer levelNumber, Integer completedPlayerNumber) {
+        notifyPartnerChallengeCompleted(teamId, levelNumber, null, completedPlayerNumber);
+    }
+
+    public void notifyPartnerChallengeCompleted(Long teamId, Integer levelNumber, Integer stageNumber, Integer completedPlayerNumber) {
         WebSocketEventDto event = WebSocketEventDto.builder()
                 .type(WebSocketEventType.PARTNER_CHALLENGE_COMPLETED)
                 .teamId(teamId)
                 .levelNumber(levelNumber)
+                .stageNumber(stageNumber)
                 .playerNumber(completedPlayerNumber)
                 .message("Your teammate (Player " + completedPlayerNumber + ") completed their challenge ✓")
                 .timestamp(Instant.now())
+                .serverTime(Instant.now())
                 .build();
         broadcastToTeam(teamId, event);
     }

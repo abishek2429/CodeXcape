@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.time.Instant;
 
 @Data
 @Builder
@@ -21,4 +22,6 @@ public class PlayerGameStateDto {
     private Integer currentRank;
     private EventStatus eventStatus;
     private List<LevelProgressDto> levels;
+    private Instant serverTime;
+    private Instant deadline;
 }

@@ -4,9 +4,12 @@ import { HintData } from '../../types/game';
 
 interface HintPanelProps {
   hints: HintData[];
+  currentLevel?: number;
+  currentStage?: number;
+  onUseHint?: (hintNumber: number) => void;
 }
 
-export const HintPanel: React.FC<HintPanelProps> = ({ hints }) => {
+export const HintPanel: React.FC<HintPanelProps> = ({ hints, currentLevel, currentStage, onUseHint }) => {
   return (
     <div className="cyber-panel" style={{ padding: '24px', fontFamily: 'var(--font-mono)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-dim)', paddingBottom: '16px', marginBottom: '20px' }}>
@@ -27,7 +30,7 @@ export const HintPanel: React.FC<HintPanelProps> = ({ hints }) => {
 
           return (
             <div
-              key={hint.levelNumber}
+              key={`${hint.levelNumber}-${hint.hintNumber || 1}`}
               style={{
                 padding: '16px', 
                 borderRadius: 'var(--radius-sm)', 
@@ -55,7 +58,7 @@ export const HintPanel: React.FC<HintPanelProps> = ({ hints }) => {
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span className="terminal-text" style={{ fontWeight: 'bold', letterSpacing: '0.05em', color: isUnlocked ? 'var(--status-warning)' : 'var(--text-muted)' }}>
-                    SHARD 0{hint.levelNumber}
+                    LEVEL {hint.levelNumber} // HINT {hint.hintNumber || 1}
                   </span>
                   {isUnlocked && (
                     <span className="badge badge-warning" style={{ fontSize: '9px' }}>
@@ -68,9 +71,16 @@ export const HintPanel: React.FC<HintPanelProps> = ({ hints }) => {
                     {hint.hintContent}
                   </p>
                 ) : (
-                  <p style={{ color: 'var(--text-muted)', fontSize: '11px', fontStyle: 'italic' }}>
-                    &gt; DECRYPT TIER 0{hint.levelNumber} TO REVEAL THIS SHARD_
-                  </p>
+                  <div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', fontStyle: 'italic' }}>
+                      &gt; REQUEST THIS HINT WHEN THE CURRENT STAGE NEEDS DIRECTION_
+                    </p>
+                    {currentLevel === hint.levelNumber && currentStage && onUseHint && (
+                      <button type="button" className="btn btn-secondary" style={{ marginTop: '10px', fontSize: '10px' }} onClick={() => onUseHint(hint.hintNumber || 1)}>
+                        REQUEST HINT {hint.hintNumber || 1}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

@@ -18,7 +18,11 @@ export interface WebSocketEventPayload {
   playerNumber?: number;
   displayName?: string;
   levelNumber?: number;
+  stageNumber?: number;
+  nextStageNumber?: number;
   nextLevelNumber?: number;
+  discoveryKey?: string;
+  serverTime?: string;
   newRank?: number;
   message?: string;
   timestamp?: string;

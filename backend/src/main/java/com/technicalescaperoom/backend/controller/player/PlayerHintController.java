@@ -6,9 +6,7 @@ import com.technicalescaperoom.backend.service.HintService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/player/game")
@@ -21,5 +19,14 @@ public class PlayerHintController {
     public ResponseEntity<PlayerHintsResponseDto> getPlayerHints(@AuthenticationPrincipal PlayerPrincipal principal) {
         PlayerHintsResponseDto response = hintService.getHintsForPlayer(principal);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/hints/{levelNumber}/{stageNumber}/{hintNumber}")
+    public ResponseEntity<com.technicalescaperoom.backend.dto.player.HintUseResponseDto> useHint(
+            @AuthenticationPrincipal PlayerPrincipal principal,
+            @PathVariable Integer levelNumber,
+            @PathVariable Integer stageNumber,
+            @PathVariable Integer hintNumber) {
+        return ResponseEntity.ok(hintService.useHint(principal, levelNumber, stageNumber, hintNumber));
     }
 }
