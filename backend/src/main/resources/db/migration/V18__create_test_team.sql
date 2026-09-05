@@ -1,6 +1,6 @@
 -- Insert a test event
 INSERT INTO events (id, name, description, status, passkey_hash, created_at, updated_at)
-VALUES (999, 'Test Event', 'Development Test Event', 'ACTIVE', '$2a$10$wE/.76o.xO4d3V1Fq5Q1nO.1nFk1v5q2e4R/2hW2/8kU1G2A0B7mK', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+VALUES (999, 'Test Event', 'Development Test Event', 'READY', '$2a$10$wE/.76o.xO4d3V1Fq5Q1nO.1nFk1v5q2e4R/2hW2/8kU1G2A0B7mK', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert a test team
