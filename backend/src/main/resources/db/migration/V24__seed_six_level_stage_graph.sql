@@ -21,6 +21,9 @@ UPDATE questions SET evidence = 'LEVEL 6 / STAGE 1 / PRIVATE ARTIFACT B: constra
 UPDATE hints SET hint_content = 'Compare the two private artifacts. Look for the relationship both artifacts can confirm without copying a raw value.' WHERE level_id IN (SELECT id FROM levels WHERE level_number BETWEEN 1 AND 6);
 
 -- Stage 2 for every level. Both players receive different evidence and must submit the same derived discovery.
+ALTER TABLE questions DROP CONSTRAINT IF EXISTS uq_questions_level_player_active;
+ALTER TABLE questions ADD CONSTRAINT uq_questions_level_stage_player UNIQUE (level_id, stage_number, player_number);
+
 INSERT INTO questions (level_id, stage_number, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
 SELECT l.id, 2, 'PLAYER_1', 'STAGE 2 / PRIVATE ARTIFACT A: observe the marked transitions and retain only entries referenced by the stage-1 discovery.', 'Correlate this artifact with the teammate artifact. Submit the shared discovery, not a value copied from this screen.', 'STAGE 2', CASE l.level_number WHEN 1 THEN 'ROUTE-4' WHEN 2 THEN 'PAIR-27' WHEN 3 THEN 'PATH-C' WHEN 4 THEN 'ORDER-2' WHEN 5 THEN 'LINK-B' ELSE 'CORE-3' END, 'TEXT', true, 'COOPERATIVE', 'MEDIUM'
 FROM levels l WHERE l.level_number BETWEEN 1 AND 6;
