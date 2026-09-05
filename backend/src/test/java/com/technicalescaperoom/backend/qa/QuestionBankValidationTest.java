@@ -44,8 +44,8 @@ class QuestionBankValidationTest {
             final int levelNum = i;
             Level level = levels.stream().filter(l -> l.getLevelNumber() == levelNum).findFirst().orElseThrow();
             
-            Optional<Question> q1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_1);
-            Optional<Question> q2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_2);
+            Optional<Question> q1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level.getId(), 1, QuestionPlayer.PLAYER_1);
+            Optional<Question> q2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level.getId(), 1, QuestionPlayer.PLAYER_2);
             List<Hint> hints = hintRepository.findByLevelIdOrderByDisplayOrderAsc(level.getId());
 
             assertThat(q1).isPresent();
@@ -63,20 +63,20 @@ class QuestionBankValidationTest {
 
     @Test
     void testAnswersAreDeterministicAndNormalized() {
-        // Just verify some answers from the migration
-        Optional<Question> level1P1 = questionRepository.findById(1L);
+        // Just verify some answers from the migration (Stage 1)
+        Optional<Question> level1P1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(1L, 1, QuestionPlayer.PLAYER_1);
         assertThat(level1P1).isPresent();
-        assertThat(level1P1.get().getExpectedAnswerHash()).isEqualTo("22");
+        assertThat(level1P1.get().getExpectedAnswerHash()).isEqualTo("SYSTEM TRACE: K-17");
 
-        Optional<Question> level1P2 = questionRepository.findById(2L);
+        Optional<Question> level1P2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(1L, 1, QuestionPlayer.PLAYER_2);
         assertThat(level1P2).isPresent();
-        assertThat(level1P2.get().getExpectedAnswerHash()).isEqualTo("AB");
+        assertThat(level1P2.get().getExpectedAnswerHash()).isEqualTo("SYSTEM TRACE: K-17");
     }
 
     @Test
     void testEventReadinessValidation() {
-        // Assuming event ID 1 is the test event
-        EventReadinessDto readiness = validationService.validateEventReadiness(1L);
+        // Assuming event ID 999 is the test event (from V18)
+        EventReadinessDto readiness = validationService.validateEventReadiness(999L);
         
         assertThat(readiness.isLevelsReady()).isTrue();
         assertThat(readiness.isQuestionsReady()).isTrue();

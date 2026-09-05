@@ -18,9 +18,9 @@ DELETE FROM questions;
 -- LEVEL 1: Observation + Logic
 -- P1 has system logs. P2 has node mappings.
 -- ============================================================
-INSERT INTO questions (id, level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
+INSERT INTO questions (level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
 VALUES 
-(1, 1, 'PLAYER_1', 
+(1, 'PLAYER_1', 
 'SYSTEM LOG:
 [03:17:42] NODE-ALPHA initialized. Status: STABLE.
 [03:19:18] NODE-DELTA crashed. Attempting reboot...
@@ -30,7 +30,7 @@ VALUES
 'Analyze the system logs. Identify the exact chronological order of node interactions. Share the sequence of nodes with your teammate to determine the corresponding hardware sequence.', 
 'Log Analysis', '94271', 'NUMERIC', true, 'System Analysis', 'HARD'),
 
-(2, 1, 'PLAYER_2',
+(1, 'PLAYER_2',
 'HARDWARE MAPPING:
 NODE-ALPHA  -> PORT 9
 NODE-BRAVO  -> PORT 2
@@ -43,15 +43,15 @@ NODE-ECHO   -> PORT 1',
 -- ============================================================
 -- LEVEL 2: Encoding + Data Analysis
 -- ============================================================
-INSERT INTO questions (id, level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
+INSERT INTO questions (level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
 VALUES 
-(3, 2, 'PLAYER_1',
+(2, 'PLAYER_1',
 'ENCODED TRANSMISSION (BASE64):
 NEQzMDUx',
 'Decode the transmission. The result is a hex string. Share it with your teammate. They possess the decryption sequence required to uncover the final passcode.',
 'Data Decoding', 'SYSTEM_UP', 'TEXT', true, 'Encoding', 'VERY_HARD'),
 
-(4, 2, 'PLAYER_2',
+(2, 'PLAYER_2',
 'DECRYPTION SEQUENCE (XOR):
 Hex Key: 17 0A 20 14 1C 0A
 Character mapping: ASCII',
@@ -61,9 +61,9 @@ Character mapping: ASCII',
 -- ============================================================
 -- LEVEL 3: Network / System Forensics
 -- ============================================================
-INSERT INTO questions (id, level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
+INSERT INTO questions (level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
 VALUES 
-(5, 3, 'PLAYER_1',
+(3, 'PLAYER_1',
 'ROUTING TABLE FRAGMENT:
 Subnet 192.168.10.0/24 -> Gateway A (AS 65001)
 Subnet 192.168.20.0/24 -> Gateway B (AS 65002)
@@ -71,7 +71,7 @@ Subnet 10.10.0.0/16    -> Gateway C (AS 65003)',
 'Your teammate is tracking an anomalous packet. Ask them for the packet''s destination IP. Determine which Gateway it will route through, and share the AS (Autonomous System) number with them.',
 'Network Forensics', '410', 'NUMERIC', true, 'Networking', 'VERY_HARD+'),
 
-(6, 3, 'PLAYER_2',
+(3, 'PLAYER_2',
 'PACKET TRACE LOG:
 Source: 172.16.5.5
 Destination: 192.168.20.155
@@ -84,15 +84,15 @@ If the AS number is even, the answer is the Payload size. If the AS number is od
 -- ============================================================
 -- LEVEL 4: Cryptographic Reasoning
 -- ============================================================
-INSERT INTO questions (id, level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
+INSERT INTO questions (level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
 VALUES 
-(7, 4, 'PLAYER_1',
+(4, 'PLAYER_1',
 'CIPHERTEXT: 
 Z Y X W V',
 'You have intercepted a secure ciphertext. Your teammate has the substitution matrix required to decode it. Share the ciphertext with them to determine the decrypted word.',
 'Cryptography', 'APPLE', 'TEXT', true, 'Crypto', 'EXTREME'),
 
-(8, 4, 'PLAYER_2',
+(4, 'PLAYER_2',
 'SUBSTITUTION MATRIX:
 A=Z, B=Y, C=X, D=W, E=V, F=U, G=T, H=S, I=R, J=Q,
 K=P, L=O, M=N, N=M, O=L, P=K, Q=J, R=I, S=H, T=G,
@@ -103,9 +103,9 @@ U=F, V=E, W=D, X=C, Y=B, Z=A',
 -- ============================================================
 -- LEVEL 5: Multi-Stage System Forensics
 -- ============================================================
-INSERT INTO questions (id, level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
+INSERT INTO questions (level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
 VALUES 
-(9, 5, 'PLAYER_1',
+(5, 'PLAYER_1',
 'FILE METADATA DUMP:
 File: config.sys
 Size: 1024 bytes
@@ -114,7 +114,7 @@ Permissions: 0755',
 'You have the metadata for a critical file. Your teammate has a log showing file access. Compare the Last Modified timestamp with their access logs. Find the ID of the user who accessed it immediately AFTER it was modified.',
 'System Forensics', 'U881', 'TEXT', true, 'Forensics', 'EXTREME+'),
 
-(10, 5, 'PLAYER_2',
+(5, 'PLAYER_2',
 'ACCESS LOGS (Unix Epoch):
 1698745000 - User U442 read config.sys
 1698748000 - User U109 read config.sys
@@ -126,9 +126,9 @@ Permissions: 0755',
 -- ============================================================
 -- LEVEL 6: Final System
 -- ============================================================
-INSERT INTO questions (id, level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
+INSERT INTO questions (level_id, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)
 VALUES 
-(11, 6, 'PLAYER_1',
+(6, 'PLAYER_1',
 'SECURITY PROTOCOL FRAGMENT ALPHA:
 Node A must authorize before Node C.
 Node B requires Port 80 to be open.
@@ -136,7 +136,7 @@ Final checksum is calculated by multiplying the active port of Node B by the seq
 'Combine your protocol fragment with your teammate''s fragment to determine the correct sequence of nodes and the required open port. Calculate and submit the final checksum.',
 'Final Architecture', '240', 'NUMERIC', true, 'Architecture', 'FINAL'),
 
-(12, 6, 'PLAYER_2',
+(6, 'PLAYER_2',
 'SECURITY PROTOCOL FRAGMENT BETA:
 Node B is the very first node to authorize.
 The active port for Node B is determined by the total number of nodes (3) multiplied by 26 plus 2.
