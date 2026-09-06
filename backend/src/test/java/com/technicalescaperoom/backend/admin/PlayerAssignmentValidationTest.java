@@ -27,10 +27,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.springframework.security.test.context.support.WithMockUser;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 @Transactional
+@WithMockUser(authorities = {"ROLE_ADMIN", "ROLE_ORGANIZER"})
 public class PlayerAssignmentValidationTest {
 
     @Autowired
@@ -97,7 +100,7 @@ public class PlayerAssignmentValidationTest {
     @Test
     @DisplayName("Database rejects attempt to add duplicate player number")
     void testDatabaseRejectsDuplicatePlayerNumber() {
-        Team devTeam = teamRepository.findByTeamCode("TEAM-001").orElseThrow();
+        Team devTeam = teamRepository.findByTeamCode("TEAM-ALPHA").orElseThrow();
 
         assertThatThrownBy(() -> {
             playerRepository.saveAndFlush(Player.builder()
@@ -112,7 +115,7 @@ public class PlayerAssignmentValidationTest {
     @Test
     @DisplayName("Database rejects attempt to add player number 3")
     void testDatabaseRejectsPlayerNumberThree() {
-        Team devTeam = teamRepository.findByTeamCode("TEAM-001").orElseThrow();
+        Team devTeam = teamRepository.findByTeamCode("TEAM-ALPHA").orElseThrow();
 
         assertThatThrownBy(() -> {
             playerRepository.saveAndFlush(Player.builder()

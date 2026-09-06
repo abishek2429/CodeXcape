@@ -31,7 +31,7 @@ export const FinalTerminal: React.FC<FinalTerminalProps> = ({ isUnlocked, isComp
       if (res.status === 'COMPLETED' || res.status === 'ALREADY_COMPLETED') {
         if (onSuccess) onSuccess();
       } else if (res.status === 'INCORRECT') {
-        setErrorMsg('ACCESS DENIED: INVALID OVERRIDE SEQUENCE. RE-VERIFY 6 CLUES.');
+        setErrorMsg(res.message || 'ACCESS DENIED: INVALID SEQUENCE. ATTEMPT RECORDED.');
       } else if (res.status === 'FINAL_NOT_AVAILABLE') {
         setErrorMsg('TERMINAL UNAVAILABLE. COMPLETE ALL 6 TIERS FIRST.');
       } else {

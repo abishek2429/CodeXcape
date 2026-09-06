@@ -113,7 +113,7 @@ public class FinalPasskeyService {
 
             return FinalPasskeyResponseDto.builder()
                     .status("INCORRECT")
-                    .message("Incorrect passkey.")
+                    .message("ACCESS DENIED: INVALID SEQUENCE. ATTEMPT RECORDED.")
                     .build();
         }
 
@@ -139,7 +139,7 @@ public class FinalPasskeyService {
 
         return FinalPasskeyResponseDto.builder()
                 .status("COMPLETED")
-                .message("Congratulations! CodeXcape completed!")
+                .message("ACCESS GRANTED. CODEXCAPE COMPLETE.")
                 .completedAt(now)
                 .build();
     }

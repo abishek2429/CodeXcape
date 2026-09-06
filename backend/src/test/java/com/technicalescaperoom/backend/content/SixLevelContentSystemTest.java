@@ -119,20 +119,27 @@ class SixLevelContentSystemTest {
     }
 
     @Test
-    @DisplayName("2. Verify each active level has exactly 1 active Player 1 and 1 active Player 2 question")
+        @DisplayName("2. Verify each level has the production number of two-player stage questions")
     void testLevelQuestionStructure() {
         List<Level> levels = levelRepository.findByIsActiveTrueOrderByLevelNumberAsc();
         assertEquals(6, levels.size());
+        int[] expectedStageCounts = {2, 2, 3, 2, 3, 3};
 
         for (Level level : levels) {
             List<Question> questions = questionRepository.findByLevelIdAndIsActiveTrue(level.getId());
-            assertEquals(2, questions.size(), "Level " + level.getLevelNumber() + " must have exactly 2 questions.");
+            assertEquals(expectedStageCounts[level.getLevelNumber() - 1] * 2, questions.size(),
+                "Level " + level.getLevelNumber() + " must have two questions per major stage.");
 
             long p1Count = questions.stream().filter(q -> q.getPlayerNumber() == QuestionPlayer.PLAYER_1).count();
             long p2Count = questions.stream().filter(q -> q.getPlayerNumber() == QuestionPlayer.PLAYER_2).count();
 
-            assertEquals(1, p1Count, "Level " + level.getLevelNumber() + " must have 1 active P1 question.");
-            assertEquals(1, p2Count, "Level " + level.getLevelNumber() + " must have 1 active P2 question.");
+            assertEquals(expectedStageCounts[level.getLevelNumber() - 1], p1Count,
+                "Level " + level.getLevelNumber() + " must have one active P1 question per stage.");
+            assertEquals(expectedStageCounts[level.getLevelNumber() - 1], p2Count,
+                "Level " + level.getLevelNumber() + " must have one active P2 question per stage.");
+            assertEquals(expectedStageCounts[level.getLevelNumber() - 1], questions.stream()
+                .map(Question::getStageNumber).distinct().count(),
+                "Level " + level.getLevelNumber() + " must expose the production stage count.");
         }
     }
 
@@ -167,19 +174,40 @@ class SixLevelContentSystemTest {
             assertEquals(levelNum, p1Dto.getLevelNumber());
             assertEquals(levelNum, p2Dto.getLevelNumber());
 
-            // Fetch actual expected answers for testing level progression
-            Level currentLevel = levelRepository.findByLevelNumber(levelNum).orElseThrow();
-            Question q1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(currentLevel.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-            Question q2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(currentLevel.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
-
-            // Submit correct answers for both players
-            questionAnswerService.submitAnswer(p1Principal, AnswerSubmissionRequest.builder().levelNumber(levelNum).answer(q1.getExpectedAnswerHash()).build());
-            questionAnswerService.submitAnswer(p2Principal, AnswerSubmissionRequest.builder().levelNumber(levelNum).answer(q2.getExpectedAnswerHash()).build());
+            completeCurrentLevel(levelNum, p1Principal, p2Principal);
         }
 
         // Verify team transitioned to FINAL_PASSKEY after Level 6 completion
         Team updatedTeam = teamRepository.findById(teamA.getId()).orElseThrow();
         assertEquals(TeamGameState.FINAL_PASSKEY, updatedTeam.getGameState());
+    }
+
+    private void completeCurrentLevel(int levelNumber, PlayerPrincipal p1, PlayerPrincipal p2) {
+        Level level = levelRepository.findByLevelNumber(levelNumber).orElseThrow();
+        int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                .map(Question::getStageNumber)
+                .max(Integer::compareTo)
+                .orElse(1);
+        for (int stage = 1; stage <= totalStages; stage++) {
+            Question q1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                    level.getId(), stage, QuestionPlayer.PLAYER_1).orElseThrow();
+            Question q2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                    level.getId(), stage, QuestionPlayer.PLAYER_2).orElseThrow();
+            questionAnswerService.submitAnswer(p1, answer(levelNumber, q1));
+            questionAnswerService.submitAnswer(p2, answer(levelNumber, q2));
+        }
+    }
+
+    private AnswerSubmissionRequest answer(int levelNumber, Question question) {
+        String rules = question.getValidationRules();
+        String payload = null;
+        if (rules != null && rules.contains("OPERATION=")) {
+            payload = "{\"operation\":\"" + rules.substring(rules.indexOf('=') + 1) + "\"}";
+        } else if (rules != null && rules.contains("MODE=")) {
+            payload = "{\"interaction\":\"" + rules.substring(rules.indexOf('=') + 1) + "\"}";
+        }
+        return AnswerSubmissionRequest.builder().levelNumber(levelNumber)
+                .answer(question.getExpectedAnswerHash()).interactionPayload(payload).build();
     }
 
     @Test
@@ -235,13 +263,8 @@ class SixLevelContentSystemTest {
         assertEquals(qA1.getQuestionId(), qB1.getQuestionId());
         assertEquals(qA1.getEvidence(), qB1.getEvidence());
 
-        // Team A completes Level 1
-        Level level1 = levelRepository.findByLevelNumber(1).orElseThrow();
-        Question q1_P1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level1.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-        Question q1_P2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level1.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
-
-        questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), AnswerSubmissionRequest.builder().levelNumber(1).answer(q1_P1.getExpectedAnswerHash()).build());
-        questionAnswerService.submitAnswer(createPrincipal(playerA2, teamA), AnswerSubmissionRequest.builder().levelNumber(1).answer(q1_P2.getExpectedAnswerHash()).build());
+        // Team A completes Level 1 (all stages)
+        completeCurrentLevel(1, createPrincipal(playerA1, teamA), createPrincipal(playerA2, teamA));
 
         // Team A is now on Level 2, while Team B remains on Level 1
         PlayerQuestionDto qA2_L2 = questionAnswerService.getCurrentQuestionForPlayer(createPrincipal(playerA1, teamA));

@@ -144,13 +144,23 @@ public class NetworkAndResilienceTest {
             PlayerPrincipal p2Princ = PlayerPrincipal.builder().playerId(p2.getId()).teamId(activeTeam.getId()).eventId(resilienceEvent.getId()).playerNumber(2).sessionToken("act_token_p2_" + i).build();
 
             Level level1 = levelRepository.findByLevelNumber(1).orElseThrow();
-            Question q1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level1.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-            Question q2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level1.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
+            int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(level1.getId()).stream()
+                    .map(Question::getStageNumber)
+                    .max(Integer::compareTo)
+                    .orElse(1);
+            for (int st = 1; st <= totalStages; st++) {
+                Question q1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), st, QuestionPlayer.PLAYER_1).orElseThrow();
+                Question q2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), st, QuestionPlayer.PLAYER_2).orElseThrow();
 
-            questionAnswerService.submitAnswer(p1Princ, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1.getExpectedAnswerHash()).build());
-            AnswerSubmissionResponseDto p2Res = questionAnswerService.submitAnswer(p2Princ, AnswerSubmissionRequest.builder().levelNumber(1).answer(q2.getExpectedAnswerHash()).build());
+                questionAnswerService.submitAnswer(p1Princ, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1.getExpectedAnswerHash()).build());
+                AnswerSubmissionResponseDto p2Res = questionAnswerService.submitAnswer(p2Princ, AnswerSubmissionRequest.builder().levelNumber(1).answer(q2.getExpectedAnswerHash()).build());
 
-            assertThat(p2Res.getIsCompleted()).isTrue();
+                if (st == totalStages) {
+                    assertThat(p2Res.getIsCompleted()).isTrue();
+                } else {
+                    assertThat(p2Res.getStageCompleted()).isTrue();
+                }
+            }
         }
 
         // Verify offline teams (1-10) remain unaffected at Level 1 uncompleted
@@ -221,7 +231,7 @@ public class NetworkAndResilienceTest {
     @Test
     @DisplayName("Server-Authoritative Timestamps Immune to Client Clock Manipulation")
     void testServerAuthoritativeTimestampImmunity() {
-        Instant before = Instant.now();
+        Instant before = Instant.now().minusSeconds(2);
 
         TeamDetailResponse regRes = teamService.createTeam(resilienceEvent.getId(), CreateTeamRequest.builder()
                 .teamName("Authoritative Time Team")
@@ -229,7 +239,7 @@ public class NetworkAndResilienceTest {
                 .player2DisplayName("P2")
                 .build());
 
-        Instant after = Instant.now();
+        Instant after = Instant.now().plusSeconds(2);
 
         Team team = teamRepository.findById(regRes.getId()).orElseThrow();
         assertThat(team.getCreatedAt()).isAfterOrEqualTo(before);

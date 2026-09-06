@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PlayerHintDto {
     private Integer levelNumber;
+    private Integer stageNumber;
     private Integer hintNumber;
     private String hintContent;
     private Boolean isUnlocked;

@@ -191,14 +191,24 @@ public class FailureRecoveryAndResilienceTest {
         PlayerPrincipal p2Princ = PlayerPrincipal.builder().playerId(p2.getId()).teamId(regRes.getId()).eventId(testEvent.getId()).playerNumber(2).sessionToken("race2").build();
 
         Level level1 = levelRepository.findByLevelNumber(1).orElseThrow();
-        Question q1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level1.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-        Question q2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level1.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
+        Question q1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), 1, QuestionPlayer.PLAYER_1).orElseThrow();
+        Question q2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), 1, QuestionPlayer.PLAYER_2).orElseThrow();
 
         AnswerSubmissionResponseDto r1 = questionAnswerService.submitAnswer(p1Princ, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1.getExpectedAnswerHash()).build());
         AnswerSubmissionResponseDto r2 = questionAnswerService.submitAnswer(p2Princ, AnswerSubmissionRequest.builder().levelNumber(1).answer(q2.getExpectedAnswerHash()).build());
 
         assertThat(r1.getCorrect()).isTrue();
         assertThat(r2.getCorrect()).isTrue();
-        assertThat(r2.getIsCompleted()).isTrue();
+        assertThat(r2.getStageCompleted()).isTrue();
+
+        Question q1s2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), 2, QuestionPlayer.PLAYER_1).orElseThrow();
+        Question q2s2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), 2, QuestionPlayer.PLAYER_2).orElseThrow();
+
+        AnswerSubmissionResponseDto r3 = questionAnswerService.submitAnswer(p1Princ, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1s2.getExpectedAnswerHash()).build());
+        AnswerSubmissionResponseDto r4 = questionAnswerService.submitAnswer(p2Princ, AnswerSubmissionRequest.builder().levelNumber(1).answer(q2s2.getExpectedAnswerHash()).build());
+
+        assertThat(r3.getCorrect()).isTrue();
+        assertThat(r4.getCorrect()).isTrue();
+        assertThat(r4.getIsCompleted()).isTrue();
     }
 }

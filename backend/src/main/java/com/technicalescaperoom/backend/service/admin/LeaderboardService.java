@@ -261,7 +261,7 @@ public class LeaderboardService {
         }
 
         return LeaderboardEntryDto.builder()
-                .rank(rank)
+                .rank(team.getGameState() == TeamGameState.COMPLETED ? rank : null)
                 .teamId(team.getId())
                 .teamCode(team.getTeamCode())
                 .teamName(team.getTeamName())

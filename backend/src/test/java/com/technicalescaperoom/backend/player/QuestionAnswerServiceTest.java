@@ -52,6 +52,9 @@ public class QuestionAnswerServiceTest {
     private TeamLevelProgressRepository teamLevelProgressRepository;
 
     @Autowired
+    private TeamStageProgressRepository teamStageProgressRepository;
+
+    @Autowired
     private AnswerAttemptRepository answerAttemptRepository;
 
     @Autowired
@@ -158,12 +161,12 @@ public class QuestionAnswerServiceTest {
         PlayerQuestionDto qDtoP1 = questionAnswerService.getCurrentQuestionForPlayer(createPrincipal(playerA1, teamA));
         assertNotNull(qDtoP1);
         assertEquals(1, qDtoP1.getLevelNumber());
-        assertTrue(qDtoP1.getEvidence().contains("SSH port"));
+        assertEquals(qA1.getEvidence(), qDtoP1.getEvidence());
 
         PlayerQuestionDto qDtoP2 = questionAnswerService.getCurrentQuestionForPlayer(createPrincipal(playerA2, teamA));
         assertNotNull(qDtoP2);
         assertEquals(1, qDtoP2.getLevelNumber());
-        assertTrue(qDtoP2.getEvidence().contains("hexadecimal"));
+        assertEquals(qA2.getEvidence(), qDtoP2.getEvidence());
     }
 
     @Test
@@ -171,14 +174,14 @@ public class QuestionAnswerServiceTest {
     void testQuestionResponseNoSensitiveData() {
         PlayerQuestionDto qDto = questionAnswerService.getCurrentQuestionForPlayer(createPrincipal(playerA1, teamA));
         assertNotNull(qDto.getEvidence());
-        assertFalse(qDto.getEvidence().contains("22"));
+        assertFalse(qDto.getEvidence().contains(qA1.getExpectedAnswerHash()));
     }
 
     @Test
     @DisplayName("3. Cross-Team Isolation: Team A completing question does not affect Team B status")
     void testCrossTeamQuestionIsolation() {
         // Team A submits correct answer
-        AnswerSubmissionRequest correctReq = AnswerSubmissionRequest.builder().answer("22").build();
+        AnswerSubmissionRequest correctReq = AnswerSubmissionRequest.builder().answer(qA1.getExpectedAnswerHash()).build();
         questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), correctReq);
 
         // Verify Team A is completed
@@ -194,7 +197,7 @@ public class QuestionAnswerServiceTest {
     @Test
     @DisplayName("4. Incorrect answer submission records attempt #1 as incorrect and leaves challenge incomplete")
     void testIncorrectAnswerSubmission() {
-        AnswerSubmissionRequest request = AnswerSubmissionRequest.builder().answer("9999").build();
+        AnswerSubmissionRequest request = AnswerSubmissionRequest.builder().answer("9999_invalid_attempt").build();
 
         AnswerSubmissionResponseDto response = questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), request);
 
@@ -211,30 +214,30 @@ public class QuestionAnswerServiceTest {
     @DisplayName("5. Correct answer submission updates player challenge completion and records attempt counter")
     void testCorrectAnswerSubmission() {
         // Attempt 1: Wrong answer
-        AnswerSubmissionRequest wrongReq = AnswerSubmissionRequest.builder().answer("123").build();
+        AnswerSubmissionRequest wrongReq = AnswerSubmissionRequest.builder().answer("123_invalid_attempt").build();
         questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), wrongReq);
 
-        // Attempt 2: Correct answer ("22")
-        AnswerSubmissionRequest correctReq = AnswerSubmissionRequest.builder().answer(" 22 ").build();
+        // Attempt 2: Correct answer
+        AnswerSubmissionRequest correctReq = AnswerSubmissionRequest.builder().answer(" " + qA1.getExpectedAnswerHash() + " ").build();
         AnswerSubmissionResponseDto response = questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), correctReq);
 
         assertTrue(response.getCorrect());
-        assertTrue(response.getIsCompleted());
+        assertFalse(response.getIsCompleted());
 
         List<AnswerAttempt> attempts = answerAttemptRepository.findByTeamIdAndPlayerIdAndLevelId(teamA.getId(), playerA1.getId(), level1.getId());
         assertEquals(2, attempts.size());
         assertEquals(2, attempts.get(1).getAttemptNumber());
         assertTrue(attempts.get(1).getIsCorrect());
 
-        TeamLevelProgress progress = teamLevelProgressRepository.findByTeamIdAndLevelId(teamA.getId(), level1.getId()).orElseThrow();
-        assertTrue(progress.getPlayer1Completed());
-        assertFalse(progress.getPlayer2Completed());
+        TeamStageProgress stageProgress = teamStageProgressRepository.findByTeamIdAndLevelIdAndStageNumber(teamA.getId(), level1.getId(), 1).orElseThrow();
+        assertTrue(stageProgress.getPlayer1Completed());
+        assertFalse(stageProgress.getPlayer2Completed());
     }
 
     @Test
     @DisplayName("6. Repeated correct submission is idempotent and does not create duplicate attempts")
     void testRepeatedSubmissionIdempotency() {
-        AnswerSubmissionRequest correctReq = AnswerSubmissionRequest.builder().answer("22").build();
+        AnswerSubmissionRequest correctReq = AnswerSubmissionRequest.builder().answer(qA1.getExpectedAnswerHash()).build();
         questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), correctReq);
 
         // Submit correct answer again

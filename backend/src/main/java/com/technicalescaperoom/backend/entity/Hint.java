@@ -24,6 +24,10 @@ public class Hint {
     @JoinColumn(name = "level_id", nullable = false)
     private Level level;
 
+    @Column(name = "stage_number", nullable = false)
+    @Builder.Default
+    private Integer stageNumber = 1;
+
     @Column(name = "hint_content", nullable = false, columnDefinition = "TEXT")
     private String hintContent;
 

@@ -12,7 +12,12 @@ import java.util.Optional;
 public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findByLevelId(Long levelId);
     List<Question> findByLevelIdAndIsActiveTrue(Long levelId);
-    Optional<Question> findByLevelIdAndPlayerNumberAndIsActiveTrue(Long levelId, QuestionPlayer playerNumber);
+        Optional<Question> findFirstByLevelIdAndPlayerNumberAndIsActiveTrueOrderByStageNumberAsc(
+            Long levelId, QuestionPlayer playerNumber);
+
+        default Optional<Question> findByLevelIdAndPlayerNumberAndIsActiveTrue(Long levelId, QuestionPlayer playerNumber) {
+            return findFirstByLevelIdAndPlayerNumberAndIsActiveTrueOrderByStageNumberAsc(levelId, playerNumber);
+        }
     Optional<Question> findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
             Long levelId, Integer stageNumber, QuestionPlayer playerNumber);
     List<Question> findByLevelIdAndStageNumberAndIsActiveTrue(Long levelId, Integer stageNumber);

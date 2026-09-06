@@ -1,3 +1,5 @@
+DROP INDEX IF EXISTS uq_hints_level_active;
+
 INSERT INTO hints (level_id, hint_content, display_order, is_active, created_at, updated_at)
 SELECT l.id, 'Hint 2: compare the ordering or relationship, then remove the unconfirmed option.', 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM levels l

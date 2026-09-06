@@ -42,11 +42,12 @@ public class AdminContentService {
                         .isActive(true)
                         .build()));
 
+        Integer stageNumber = dto.getStageNumber() != null ? dto.getStageNumber() : 1;
         QuestionPlayer playerRole = dto.getPlayerNumber();
-        Question question = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level.getId(), dto.getStageNumber(), playerRole)
+        Question question = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level.getId(), stageNumber, playerRole)
                 .orElseGet(() -> Question.builder()
                         .level(level)
-                        .stageNumber(dto.getStageNumber())
+                        .stageNumber(stageNumber)
                         .playerNumber(playerRole)
                         .isActive(true)
                         .build());
@@ -132,7 +133,7 @@ public class AdminContentService {
         Level level = levelRepository.findByLevelNumber(request.getLevelNumber())
                 .orElseThrow(() -> new ResourceNotFoundException("Level " + request.getLevelNumber() + " not found."));
 
-        Question question = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), request.getPlayerNumber())
+        Question question = questionRepository.findFirstByLevelIdAndPlayerNumberAndIsActiveTrueOrderByStageNumberAsc(level.getId(), request.getPlayerNumber())
                 .orElseThrow(() -> new ResourceNotFoundException("Question not found for Level " + request.getLevelNumber() + " Player " + request.getPlayerNumber()));
 
         String submitted = request.getCandidateAnswer() != null ? request.getCandidateAnswer().trim() : "";
@@ -160,7 +161,7 @@ public class AdminContentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Level " + levelNumber + " not found."));
 
         QuestionPlayer playerRole = (playerNumber == 1) ? QuestionPlayer.PLAYER_1 : QuestionPlayer.PLAYER_2;
-        Question question = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), playerRole)
+        Question question = questionRepository.findFirstByLevelIdAndPlayerNumberAndIsActiveTrueOrderByStageNumberAsc(level.getId(), playerRole)
                 .orElse(null);
 
         List<Hint> hints = hintRepository.findByLevelIdOrderByDisplayOrderAsc(level.getId());
@@ -191,8 +192,8 @@ public class AdminContentService {
             lvlMap.put("levelName", level != null ? level.getName() : "Level " + lvlNum);
 
             if (level != null) {
-                Optional<Question> q1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_1);
-                Optional<Question> q2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_2);
+                Optional<Question> q1 = questionRepository.findFirstByLevelIdAndPlayerNumberAndIsActiveTrueOrderByStageNumberAsc(level.getId(), QuestionPlayer.PLAYER_1);
+                Optional<Question> q2 = questionRepository.findFirstByLevelIdAndPlayerNumberAndIsActiveTrueOrderByStageNumberAsc(level.getId(), QuestionPlayer.PLAYER_2);
                 List<Hint> hints = hintRepository.findByLevelIdOrderByDisplayOrderAsc(level.getId());
 
                 lvlMap.put("player1Evidence", q1.map(Question::getEvidence).orElse(""));

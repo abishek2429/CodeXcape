@@ -30,7 +30,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/health/**", "/api/health").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/api/player/login").permitAll()
+                .requestMatchers("/api/player/login", "/api/player/reset-test-team").permitAll()
                 .requestMatchers("/api/admin/login").permitAll() 
                 .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_ORGANIZER")
                 .requestMatchers("/api/player/**").authenticated()

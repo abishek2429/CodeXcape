@@ -153,25 +153,7 @@ public class CompleteSystemValidationAndE2ETest {
 
         // 7. Execute Gameplay Level 1 to 6
         for (int lvl = 1; lvl <= 6; lvl++) {
-            // P1 gets assigned question and submits answer
-            PlayerQuestionDto p1Q = questionAnswerService.getCurrentQuestionForPlayer(p1Princ);
-            assertThat(p1Q.getLevelNumber()).isEqualTo(lvl);
-
-            AnswerSubmissionResponseDto p1Ans = questionAnswerService.submitAnswer(p1Princ, AnswerSubmissionRequest.builder()
-                    .levelNumber(lvl)
-                    .answer("e2e_p1_ans_" + lvl)
-                    .build());
-            assertThat(p1Ans.getCorrect()).isTrue();
-
-            // P2 gets assigned question and submits answer
-            PlayerQuestionDto p2Q = questionAnswerService.getCurrentQuestionForPlayer(p2Princ);
-            assertThat(p2Q.getLevelNumber()).isEqualTo(lvl);
-
-            AnswerSubmissionResponseDto p2Ans = questionAnswerService.submitAnswer(p2Princ, AnswerSubmissionRequest.builder()
-                    .levelNumber(lvl)
-                    .answer("e2e_p2_ans_" + lvl)
-                    .build());
-            assertThat(p2Ans.getCorrect()).isTrue();
+            completeLevelE2E(lvl, p1Princ, p2Princ);
         }
 
         // 8. Submit Incorrect Passkey
@@ -238,11 +220,11 @@ public class CompleteSystemValidationAndE2ETest {
                 .levelNumber(1).answer("wrong_ans").build());
         assertThat(p2Wrong.getCorrect()).isFalse();
 
-        // P2 correct (completes Level 1)
+        // P2 correct (completes Stage 1)
         AnswerSubmissionResponseDto p2Right = questionAnswerService.submitAnswer(p2Princ, AnswerSubmissionRequest.builder()
                 .levelNumber(1).answer(q2.getExpectedAnswerHash()).build());
         assertThat(p2Right.getCorrect()).isTrue();
-        assertThat(p2Right.getIsCompleted()).isTrue();
+        assertThat(p2Right.getStageCompleted()).isTrue();
     }
 
     @Test
@@ -269,12 +251,7 @@ public class CompleteSystemValidationAndE2ETest {
 
         // Complete all 6 levels directly in test setup
         for (int i = 1; i <= 6; i++) {
-            Level lvl = levelRepository.findByLevelNumber(i).orElseThrow();
-            Question q1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(lvl.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-            Question q2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(lvl.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
-
-            questionAnswerService.submitAnswer(p1Princ, AnswerSubmissionRequest.builder().levelNumber(i).answer(q1.getExpectedAnswerHash()).build());
-            questionAnswerService.submitAnswer(p2Princ, AnswerSubmissionRequest.builder().levelNumber(i).answer(q2.getExpectedAnswerHash()).build());
+            completeLevelE2E(i, p1Princ, p2Princ);
         }
 
         // First Passkey Submission
@@ -284,5 +261,31 @@ public class CompleteSystemValidationAndE2ETest {
         // Second Passkey Submission (Idempotent call)
         FinalPasskeyResponseDto res2 = finalPasskeyService.submitFinalPasskey(p1Princ, FinalPasskeySubmissionRequest.builder().passkey("123456").build());
         assertThat(res2.getStatus()).isIn("COMPLETED", "ALREADY_COMPLETED");
+    }
+
+    private void completeLevelE2E(int levelNum, PlayerPrincipal p1, PlayerPrincipal p2) {
+        Level level = levelRepository.findByLevelNumber(levelNum).orElseThrow();
+        int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                .map(Question::getStageNumber)
+                .max(Integer::compareTo)
+                .orElse(1);
+        for (int stage = 1; stage <= totalStages; stage++) {
+            Question q1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                    level.getId(), stage, QuestionPlayer.PLAYER_1).orElseThrow();
+            Question q2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                    level.getId(), stage, QuestionPlayer.PLAYER_2).orElseThrow();
+
+            AnswerSubmissionResponseDto p1Ans = questionAnswerService.submitAnswer(p1, AnswerSubmissionRequest.builder()
+                    .levelNumber(levelNum)
+                    .answer(q1.getExpectedAnswerHash())
+                    .build());
+            assertThat(p1Ans.getCorrect()).isTrue();
+
+            AnswerSubmissionResponseDto p2Ans = questionAnswerService.submitAnswer(p2, AnswerSubmissionRequest.builder()
+                    .levelNumber(levelNum)
+                    .answer(q2.getExpectedAnswerHash())
+                    .build());
+            assertThat(p2Ans.getCorrect()).isTrue();
+        }
     }
 }

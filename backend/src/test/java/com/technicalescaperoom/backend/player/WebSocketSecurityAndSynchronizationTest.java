@@ -59,6 +59,9 @@ public class WebSocketSecurityAndSynchronizationTest {
     private TeamLevelProgressRepository teamLevelProgressRepository;
 
     @Autowired
+    private TeamStageProgressRepository teamStageProgressRepository;
+
+    @Autowired
     private GameSessionRepository gameSessionRepository;
 
     @Autowired
@@ -139,14 +142,15 @@ public class WebSocketSecurityAndSynchronizationTest {
     @Test
     @DisplayName("1. Player 1 solving challenge notifies partner via WebSocket without advancing level prematurely")
     void testSinglePlayerCompletionWebSocketNotification() {
-        AnswerSubmissionRequest reqP1 = AnswerSubmissionRequest.builder().answer("22").build();
+        Question q1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), 1, QuestionPlayer.PLAYER_1).orElseThrow();
+        AnswerSubmissionRequest reqP1 = AnswerSubmissionRequest.builder().levelNumber(1).answer(q1.getExpectedAnswerHash()).build();
         AnswerSubmissionResponseDto resP1 = questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), reqP1);
 
         assertTrue(resP1.getCorrect());
-        assertTrue(resP1.getIsCompleted());
+        assertFalse(resP1.getIsCompleted());
 
         // Verify STOMP partner notification published
-        verify(webSocketPublisher, atLeastOnce()).notifyPartnerChallengeCompleted(eq(teamA.getId()), eq(1), eq(1));
+        verify(webSocketPublisher, atLeastOnce()).notifyPartnerChallengeCompleted(eq(teamA.getId()), eq(1), any(), eq(1));
 
         // Team should still be on Level 1
         PlayerGameStateDto gameState = gameStateService.getGameStateForPlayer(createPrincipal(playerA1, teamA));
@@ -156,11 +160,19 @@ public class WebSocketSecurityAndSynchronizationTest {
     @Test
     @DisplayName("2. Both players completing Level 1 triggers atomic level progression & level completion STOMP broadcasts")
     void testBothPlayersCompletionTriggersLevelProgression() {
-        // P1 submits correct answer
-        questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), AnswerSubmissionRequest.builder().answer("22").build());
+        int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(level1.getId()).stream()
+                .map(Question::getStageNumber)
+                .max(Integer::compareTo)
+                .orElse(1);
+        for (int stage = 1; stage <= totalStages; stage++) {
+            Question qA = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                    level1.getId(), stage, QuestionPlayer.PLAYER_1).orElseThrow();
+            Question qB = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                    level1.getId(), stage, QuestionPlayer.PLAYER_2).orElseThrow();
 
-        // P2 submits correct answer
-        questionAnswerService.submitAnswer(createPrincipal(playerA2, teamA), AnswerSubmissionRequest.builder().answer("AB").build());
+            questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), AnswerSubmissionRequest.builder().levelNumber(1).answer(qA.getExpectedAnswerHash()).build());
+            questionAnswerService.submitAnswer(createPrincipal(playerA2, teamA), AnswerSubmissionRequest.builder().levelNumber(1).answer(qB.getExpectedAnswerHash()).build());
+        }
 
         // Verify WebSocket events published
         verify(webSocketPublisher, atLeastOnce()).notifyLevelCompleted(eq(teamA.getId()), eq(1));
@@ -174,6 +186,9 @@ public class WebSocketSecurityAndSynchronizationTest {
     @Test
     @DisplayName("3. Race Condition Safety: Simultaneous submissions by P1 and P2 succeed cleanly without corrupting level state")
     void testSimultaneousSubmissionsRaceConditionSafety() throws InterruptedException {
+        Question q1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), 1, QuestionPlayer.PLAYER_1).orElseThrow();
+        Question q2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), 1, QuestionPlayer.PLAYER_2).orElseThrow();
+
         ExecutorService executor = Executors.newFixedThreadPool(2);
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch finishLatch = new CountDownLatch(2);
@@ -182,7 +197,7 @@ public class WebSocketSecurityAndSynchronizationTest {
         executor.submit(() -> {
             try {
                 startLatch.await();
-                questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), AnswerSubmissionRequest.builder().levelNumber(1).answer("22").build());
+                questionAnswerService.submitAnswer(createPrincipal(playerA1, teamA), AnswerSubmissionRequest.builder().levelNumber(1).answer(q1.getExpectedAnswerHash()).build());
                 successCount.incrementAndGet();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -194,7 +209,7 @@ public class WebSocketSecurityAndSynchronizationTest {
         executor.submit(() -> {
             try {
                 startLatch.await();
-                questionAnswerService.submitAnswer(createPrincipal(playerA2, teamA), AnswerSubmissionRequest.builder().levelNumber(1).answer("AB").build());
+                questionAnswerService.submitAnswer(createPrincipal(playerA2, teamA), AnswerSubmissionRequest.builder().levelNumber(1).answer(q2.getExpectedAnswerHash()).build());
                 successCount.incrementAndGet();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -214,9 +229,9 @@ public class WebSocketSecurityAndSynchronizationTest {
         Thread.sleep(200);
 
         entityManager.clear();
-        TeamLevelProgress progress = teamLevelProgressRepository.findByTeamIdAndLevelId(teamA.getId(), level1.getId()).orElseThrow();
-        assertTrue(progress.getPlayer1Completed());
-        assertTrue(progress.getPlayer2Completed());
+        TeamStageProgress stageProgress = teamStageProgressRepository.findByTeamIdAndLevelIdAndStageNumber(teamA.getId(), level1.getId(), 1).orElseThrow();
+        assertTrue(stageProgress.getPlayer1Completed());
+        assertTrue(stageProgress.getPlayer2Completed());
     }
 
     private PlayerPrincipal createPrincipal(Player player, Team team) {

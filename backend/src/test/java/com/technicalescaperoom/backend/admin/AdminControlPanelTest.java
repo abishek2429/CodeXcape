@@ -208,7 +208,7 @@ class AdminControlPanelTest {
     void testQuestionAndHintContentManagement() {
         Level level1 = levelRepository.findByLevelNumber(1).orElseThrow();
         Question question = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level1.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-        Hint hint = hintRepository.findByLevelIdAndIsActiveTrue(level1.getId()).orElseThrow();
+        Hint hint = hintRepository.findFirstByLevelIdAndIsActiveTrueOrderByDisplayOrderAsc(level1.getId()).orElseThrow();
 
         // Update Question
         Question updatedQuestion = adminContentService.updateQuestion(organizerPrincipal, question.getId(), "Updated SSH port question for testing?", "2222", AnswerType.NUMERIC, true);
@@ -236,13 +236,20 @@ class AdminControlPanelTest {
         PlayerPrincipal p1A = createPrincipal(playerA1, teamA);
         PlayerPrincipal p2A = createPrincipal(playerA2, teamA);
 
-        // Team A completes Level 1
+        // Team A completes Level 1 (all stages)
         Level l1 = levelRepository.findByLevelNumber(1).orElseThrow();
-        Question q1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(l1.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-        Question q2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(l1.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
-
-        questionAnswerService.submitAnswer(p1A, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1.getExpectedAnswerHash()).build());
-        questionAnswerService.submitAnswer(p2A, AnswerSubmissionRequest.builder().levelNumber(1).answer(q2.getExpectedAnswerHash()).build());
+        int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(l1.getId()).stream()
+                .map(Question::getStageNumber)
+                .max(Integer::compareTo)
+                .orElse(1);
+        for (int stage = 1; stage <= totalStages; stage++) {
+            Question q1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                    l1.getId(), stage, QuestionPlayer.PLAYER_1).orElseThrow();
+            Question q2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                    l1.getId(), stage, QuestionPlayer.PLAYER_2).orElseThrow();
+            questionAnswerService.submitAnswer(p1A, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1.getExpectedAnswerHash()).build());
+            questionAnswerService.submitAnswer(p2A, AnswerSubmissionRequest.builder().levelNumber(1).answer(q2.getExpectedAnswerHash()).build());
+        }
 
         // Team A is on Level 2
         List<AdminTeamProgressDto> progressBefore = adminDashboardService.getTeamsProgress(event.getId(), teamA.getTeamCode(), null);

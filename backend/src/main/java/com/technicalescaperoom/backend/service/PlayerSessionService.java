@@ -38,6 +38,7 @@ public class PlayerSessionService {
     private final PlayerRepository playerRepository;
     private final GameSessionRepository gameSessionRepository;
     private final AuditService auditService;
+    private final jakarta.persistence.EntityManager entityManager;
 
     @Value("${app.player.session-timeout-minutes:60}")
     private long sessionTimeoutMinutes;
@@ -149,6 +150,13 @@ public class PlayerSessionService {
 
                 setSessionCookie(response, activeSession.getSessionToken());
                 return mapToResponse(team, player);
+            } else if ("CODEXCAPE-TEST".equalsIgnoreCase(team.getTeamCode())) {
+                // Testing convenience: terminate previous active session and establish fresh session
+                log.info("CODEXCAPE-TEST session override: terminating old session {} for player {}", activeSession.getSessionToken(), player.getId());
+                activeSession.setStatus(SessionStatus.TERMINATED);
+                activeSession.setIsConnected(false);
+                activeSession.setDisconnectedAt(Instant.now());
+                gameSessionRepository.save(activeSession);
             } else {
                 // Duplicate login attempt from another computer!
                 auditService.logEvent(
@@ -289,6 +297,40 @@ public class PlayerSessionService {
         );
 
         log.info("Admin {} revoked session ID {} for Player {}", principal != null ? principal.getUsername() : "SYSTEM", sessionId, player != null ? player.getId() : "UNKNOWN");
+    }
+
+    @Transactional
+    public void resetTestTeam() {
+        Optional<Team> testTeamOpt = teamRepository.findByTeamCode("CODEXCAPE-TEST");
+        if (testTeamOpt.isEmpty()) {
+            return;
+        }
+        Team team = testTeamOpt.get();
+        Long teamId = team.getId();
+
+        entityManager.createQuery("DELETE FROM AnswerAttempt a WHERE a.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+        entityManager.createQuery("DELETE FROM DiscoverySubmission d WHERE d.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+        entityManager.createQuery("DELETE FROM TeamStageProgress s WHERE s.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+        entityManager.createQuery("DELETE FROM TeamLevelProgress l WHERE l.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+        entityManager.createQuery("DELETE FROM HintUsage h WHERE h.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+
+        for (GameSession session : gameSessionRepository.findByTeamId(teamId)) {
+            session.setStatus(SessionStatus.TERMINATED);
+            session.setIsConnected(false);
+            session.setDisconnectedAt(Instant.now());
+            gameSessionRepository.save(session);
+        }
+
+        for (Player player : playerRepository.findByTeamId(teamId)) {
+            player.setStatus(PlayerStatus.INACTIVE);
+            playerRepository.save(player);
+        }
+
+        team.setGameState(TeamGameState.NOT_STARTED);
+        team.setCompletedAt(null);
+        teamRepository.saveAndFlush(team);
+
+        log.info("Reset CODEXCAPE-TEST team game state, progress, and sessions to initial state.");
     }
 
     private void setSessionCookie(HttpServletResponse response, String token) {

@@ -103,6 +103,15 @@ This single command automatically:
 2. Launches the Spring Boot backend on `http://localhost:8080`.
 3. Launches the React Vite frontend dev server on `http://localhost:5173`.
 
+### Reusable Test Login
+
+Use this local test account on the player login page:
+
+- **Team code:** `CODEXCAPE-TEST`
+- **Player:** `1` or `2`
+
+The account is created by Flyway migration `V34__create_reusable_test_login.sql`. To log in again after testing, use the same browser session or log out first; the backend intentionally rejects a second active session for the same player.
+
 ---
 
 ### Manual Step-by-Step Execution

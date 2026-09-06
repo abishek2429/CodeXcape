@@ -45,4 +45,10 @@ public class PlayerSessionController {
         playerSessionService.logout(principal, response);
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
+
+    @PostMapping("/reset-test-team")
+    public ResponseEntity<Map<String, String>> resetTestTeam() {
+        playerSessionService.resetTestTeam();
+        return ResponseEntity.ok(Map.of("message", "CODEXCAPE-TEST team reset successfully to initial state."));
+    }
 }

@@ -66,12 +66,8 @@ class CooperativeStageProgressionTest {
                 .build());
         Player p1 = playerRepository.save(Player.builder().team(team).playerNumber(1).displayName("P1").status(PlayerStatus.INACTIVE).build());
         Player p2 = playerRepository.save(Player.builder().team(team).playerNumber(2).displayName("P2").status(PlayerStatus.INACTIVE).build());
-        Level level = levelRepository.save(Level.builder().levelNumber(1).name("LEVEL 1").isActive(true).build());
+        Level level = levelRepository.findByLevelNumber(1).orElseThrow();
 
-        for (int stage = 1; stage <= 2; stage++) {
-            questionRepository.save(question(level, stage, QuestionPlayer.PLAYER_1));
-            questionRepository.save(question(level, stage, QuestionPlayer.PLAYER_2));
-        }
         progressRepository.save(TeamLevelProgress.builder().team(team).level(level).levelStatus(LevelStatus.AVAILABLE).build());
         for (int stage = 1; stage <= 2; stage++) {
             stageProgressRepository.save(TeamStageProgress.builder().team(team).level(level).stageNumber(stage).discoveryKey("L1-S" + stage).build());
@@ -87,15 +83,21 @@ class CooperativeStageProgressionTest {
         assertEquals(1, initial.getStageNumber());
         assertEquals(2, initial.getTotalStages());
 
-        AnswerSubmissionResponseDto p1Result = questionAnswerService.submitAnswer(playerOne, answer("DISCOVERY-1"));
+        String expectedDiscovery = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+            initialLevelId(), 1, QuestionPlayer.PLAYER_1).orElseThrow().getExpectedAnswerHash();
+        AnswerSubmissionResponseDto p1Result = questionAnswerService.submitAnswer(playerOne, answer(expectedDiscovery));
         assertTrue(p1Result.getCorrect());
         assertFalse(p1Result.getStageCompleted());
         assertEquals(1, questionAnswerService.getCurrentQuestionForPlayer(playerOne).getStageNumber());
 
-        AnswerSubmissionResponseDto p2Result = questionAnswerService.submitAnswer(playerTwo, answer("DISCOVERY-1"));
+        AnswerSubmissionResponseDto p2Result = questionAnswerService.submitAnswer(playerTwo, answer(expectedDiscovery));
         assertTrue(p2Result.getCorrect());
         assertTrue(p2Result.getStageCompleted());
         assertEquals(2, questionAnswerService.getCurrentQuestionForPlayer(playerOne).getStageNumber());
+    }
+
+    private Long initialLevelId() {
+        return levelRepository.findByLevelNumber(1).orElseThrow().getId();
     }
 
     private Question question(Level level, int stage, QuestionPlayer player) {
@@ -126,6 +128,7 @@ class CooperativeStageProgressionTest {
     }
 
     private AnswerSubmissionRequest answer(String value) {
-        return AnswerSubmissionRequest.builder().answer(value).levelNumber(1).build();
+        return AnswerSubmissionRequest.builder().answer(value).levelNumber(1)
+                .interactionPayload("{\"interaction\":\"timeline\"}").build();
     }
 }

@@ -99,19 +99,29 @@ public class SystemLoadAndConcurrencyTest {
         adminEventControlService.updateEventPasskey(adminPrincipal, loadEvent.getId(), "987654");
 
         for (int i = 1; i <= 6; i++) {
-            adminContentService.saveQuestionConfig(adminPrincipal, loadEvent.getId(), i, QuestionConfigDto.builder()
-                    .playerNumber(QuestionPlayer.PLAYER_1)
-                    .evidence("Load Q Level " + i + " Player 1")
-                    .expectedAnswer("ans_l" + i + "_p1")
-                    .answerType(AnswerType.TEXT)
-                    .build());
+            Level level = levelRepository.findByLevelNumber(i).orElseThrow();
+            int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                    .map(Question::getStageNumber)
+                    .max(Integer::compareTo)
+                    .orElse(1);
 
-            adminContentService.saveQuestionConfig(adminPrincipal, loadEvent.getId(), i, QuestionConfigDto.builder()
-                    .playerNumber(QuestionPlayer.PLAYER_2)
-                    .evidence("Load Q Level " + i + " Player 2")
-                    .expectedAnswer("ans_l" + i + "_p2")
-                    .answerType(AnswerType.TEXT)
-                    .build());
+            for (int stage = 1; stage <= totalStages; stage++) {
+                adminContentService.saveQuestionConfig(adminPrincipal, loadEvent.getId(), i, QuestionConfigDto.builder()
+                        .stageNumber(stage)
+                        .playerNumber(QuestionPlayer.PLAYER_1)
+                        .evidence("Load Q Level " + i + " S" + stage + " Player 1")
+                        .expectedAnswer("ans_l" + i + "_s" + stage + "_p1")
+                        .answerType(AnswerType.TEXT)
+                        .build());
+
+                adminContentService.saveQuestionConfig(adminPrincipal, loadEvent.getId(), i, QuestionConfigDto.builder()
+                        .stageNumber(stage)
+                        .playerNumber(QuestionPlayer.PLAYER_2)
+                        .evidence("Load Q Level " + i + " S" + stage + " Player 2")
+                        .expectedAnswer("ans_l" + i + "_s" + stage + "_p2")
+                        .answerType(AnswerType.TEXT)
+                        .build());
+            }
 
             adminContentService.saveHintConfig(adminPrincipal, loadEvent.getId(), i, HintConfigDto.builder()
                     .hintContent("Load Hint Level " + i)
@@ -246,13 +256,25 @@ public class SystemLoadAndConcurrencyTest {
 
         // Execute 6-Level Progression for all 40 Teams
         for (int lvl = 1; lvl <= 6; lvl++) {
-            for (TeamPrincipals tp : teamPrincipalsList) {
-                AnswerSubmissionResponseDto r1 = questionAnswerService.submitAnswer(tp.p1, AnswerSubmissionRequest.builder().levelNumber(lvl).answer("ans_l" + lvl + "_p1").build());
-                AnswerSubmissionResponseDto r2 = questionAnswerService.submitAnswer(tp.p2, AnswerSubmissionRequest.builder().levelNumber(lvl).answer("ans_l" + lvl + "_p2").build());
+            Level level = levelRepository.findByLevelNumber(lvl).orElseThrow();
+            int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                    .map(Question::getStageNumber)
+                    .max(Integer::compareTo)
+                    .orElse(1);
 
-                assertThat(r1.getCorrect()).isTrue();
-                assertThat(r2.getCorrect()).isTrue();
-                assertThat(r2.getIsCompleted()).isTrue();
+            for (TeamPrincipals tp : teamPrincipalsList) {
+                for (int st = 1; st <= totalStages; st++) {
+                    AnswerSubmissionResponseDto r1 = questionAnswerService.submitAnswer(tp.p1, AnswerSubmissionRequest.builder().levelNumber(lvl).answer("ans_l" + lvl + "_s" + st + "_p1").build());
+                    AnswerSubmissionResponseDto r2 = questionAnswerService.submitAnswer(tp.p2, AnswerSubmissionRequest.builder().levelNumber(lvl).answer("ans_l" + lvl + "_s" + st + "_p2").build());
+
+                    assertThat(r1.getCorrect()).isTrue();
+                    assertThat(r2.getCorrect()).isTrue();
+                    if (st == totalStages) {
+                        assertThat(r2.getIsCompleted()).isTrue();
+                    } else {
+                        assertThat(r2.getStageCompleted()).isTrue();
+                    }
+                }
 
                 // Hint retrieval validation (count unlocked hints)
                 PlayerHintsResponseDto hintsRes = hintService.getHintsForPlayer(tp.p1);

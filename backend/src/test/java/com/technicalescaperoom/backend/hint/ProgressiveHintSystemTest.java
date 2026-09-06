@@ -122,9 +122,8 @@ class ProgressiveHintSystemTest {
         Question q1_P1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(l1.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
         Question q1_P2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(l1.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
 
-        // Submit correct answers for Level 1
-        questionAnswerService.submitAnswer(p1, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1_P1.getExpectedAnswerHash()).build());
-        questionAnswerService.submitAnswer(p2, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1_P2.getExpectedAnswerHash()).build());
+        // Submit correct answers for Level 1 (all stages)
+        completeLevel(1, p1, p2);
 
         PlayerHintsResponseDto hintsResponse = hintService.getHintsForPlayer(p1);
         assertEquals(1, hintsResponse.getUnlockedCount());
@@ -148,12 +147,7 @@ class ProgressiveHintSystemTest {
         PlayerPrincipal p2 = createPrincipal(playerA2, teamA);
 
         for (int levelNum = 1; levelNum <= 6; levelNum++) {
-            Level level = levelRepository.findByLevelNumber(levelNum).orElseThrow();
-            Question q1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-            Question q2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
-
-            questionAnswerService.submitAnswer(p1, AnswerSubmissionRequest.builder().levelNumber(levelNum).answer(q1.getExpectedAnswerHash()).build());
-            questionAnswerService.submitAnswer(p2, AnswerSubmissionRequest.builder().levelNumber(levelNum).answer(q2.getExpectedAnswerHash()).build());
+            completeLevel(levelNum, p1, p2);
 
             PlayerHintsResponseDto hintsResponse = hintService.getHintsForPlayer(p1);
             assertEquals(levelNum, hintsResponse.getUnlockedCount(), "Expected exactly " + levelNum + " unlocked hints after Level " + levelNum + " completion.");
@@ -178,13 +172,8 @@ class ProgressiveHintSystemTest {
 
         PlayerPrincipal p1B = createPrincipal(playerB1, teamB);
 
-        // Team A completes Level 1
-        Level l1 = levelRepository.findByLevelNumber(1).orElseThrow();
-        Question q1_P1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(l1.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-        Question q1_P2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(l1.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
-
-        questionAnswerService.submitAnswer(p1A, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1_P1.getExpectedAnswerHash()).build());
-        questionAnswerService.submitAnswer(p2A, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1_P2.getExpectedAnswerHash()).build());
+        // Team A completes Level 1 (all stages)
+        completeLevel(1, p1A, p2A);
 
         // Team A has Hint 1 unlocked
         PlayerHintsResponseDto hintsA = hintService.getHintsForPlayer(p1A);
@@ -214,6 +203,23 @@ class ProgressiveHintSystemTest {
             if (!hint.getIsUnlocked()) {
                 assertNull(hint.getHintContent(), "Locked hint content must be strictly null.");
             }
+        }
+    }
+
+    private void completeLevel(int levelNumber, PlayerPrincipal p1, PlayerPrincipal p2) {
+        Level level = levelRepository.findByLevelNumber(levelNumber).orElseThrow();
+        int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                .map(Question::getStageNumber)
+                .max(Integer::compareTo)
+                .orElse(1);
+        for (int stage = 1; stage <= totalStages; stage++) {
+            Question q1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                    level.getId(), stage, QuestionPlayer.PLAYER_1).orElseThrow();
+            Question q2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                    level.getId(), stage, QuestionPlayer.PLAYER_2).orElseThrow();
+
+            questionAnswerService.submitAnswer(p1, AnswerSubmissionRequest.builder().levelNumber(levelNumber).answer(q1.getExpectedAnswerHash()).build());
+            questionAnswerService.submitAnswer(p2, AnswerSubmissionRequest.builder().levelNumber(levelNumber).answer(q2.getExpectedAnswerHash()).build());
         }
     }
 

@@ -49,7 +49,7 @@ public class DatabaseConstraintsTest {
         assertThat(devEvent).isPresent();
         assertThat(devEvent.get().getName()).contains("College Technical Fest");
 
-        Optional<Team> devTeam = teamRepository.findByTeamCode("TEAM-001");
+        Optional<Team> devTeam = teamRepository.findByTeamCode("TEAM-ALPHA");
         assertThat(devTeam).isPresent();
 
         List<Player> players = playerRepository.findByTeamId(devTeam.get().getId());
@@ -59,7 +59,7 @@ public class DatabaseConstraintsTest {
         assertThat(levels).hasSize(6);
 
         List<Question> questions = questionRepository.findByLevelId(1L);
-        assertThat(questions).hasSize(2);
+        assertThat(questions).hasSizeGreaterThanOrEqualTo(2);
 
         Optional<Hint> hintLevel1 = hintRepository.findByLevelIdAndIsActiveTrue(1L);
         assertThat(hintLevel1).isPresent();

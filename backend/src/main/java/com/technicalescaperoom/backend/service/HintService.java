@@ -51,45 +51,39 @@ public class HintService {
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found for ID " + principal.getTeamId()));
 
         List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
-        Map<Long, TeamLevelProgress> progressByLevel = progressList.stream()
-            .collect(Collectors.toMap(p -> p.getLevel().getId(), p -> p));
+        Map<Long, Boolean> levelCompletedMap = progressList.stream()
+                .collect(Collectors.toMap(
+                        p -> p.getLevel().getId(),
+                        p -> p.getLevelStatus() == LevelStatus.COMPLETED
+                ));
 
         List<Level> activeLevels = levelRepository.findByIsActiveTrueOrderByLevelNumberAsc();
         List<PlayerHintDto> hintDtos = new ArrayList<>();
         int unlockedCount = 0;
 
         for (Level level : activeLevels) {
-            TeamLevelProgress progress = progressByLevel.get(level.getId());
-            boolean isCurrentLevel = progress != null
-                    && (progress.getLevelStatus() == LevelStatus.AVAILABLE || progress.getLevelStatus() == LevelStatus.IN_PROGRESS);
-                List<Hint> levelHints = hintRepository.findByLevelIdOrderByDisplayOrderAsc(level.getId());
-                if (levelHints.isEmpty()) {
-                hintDtos.add(PlayerHintDto.builder()
-                    .levelNumber(level.getLevelNumber())
-                    .hintNumber(1)
-                    .isUnlocked(false)
-                    .hintContent(null)
-                    .build());
-                continue;
-                }
+            boolean isUnlocked = Boolean.TRUE.equals(levelCompletedMap.get(level.getId()));
+            Optional<Hint> hintOpt = hintRepository.findFirstByLevelIdAndIsActiveTrueOrderByDisplayOrderAsc(level.getId());
 
-                for (Hint hint : levelHints) {
-                boolean available = isCurrentLevel && Boolean.TRUE.equals(hint.getIsActive())
-                    && hint.getHintContent() != null && !hint.getHintContent().isBlank();
-                if (available) unlockedCount++;
-                hintDtos.add(PlayerHintDto.builder()
+            String content = isUnlocked ? hintOpt.map(Hint::getHintContent).orElse(null) : null;
+            if (isUnlocked) {
+                unlockedCount++;
+            }
+
+            PlayerHintDto dto = PlayerHintDto.builder()
                     .levelNumber(level.getLevelNumber())
-                    .hintNumber(hint.getDisplayOrder())
-                    .isUnlocked(available)
-                    .hintContent(available ? hint.getHintContent() : null)
-                    .build());
-                }
+                    .hintNumber(level.getLevelNumber())
+                    .isUnlocked(isUnlocked)
+                    .hintContent(content)
+                    .build();
+
+            hintDtos.add(dto);
         }
 
         return PlayerHintsResponseDto.builder()
                 .hints(hintDtos)
                 .unlockedCount(unlockedCount)
-                .totalCount(hintDtos.size())
+                .totalCount(activeLevels.size())
                 .build();
     }
 
@@ -109,7 +103,12 @@ public class HintService {
         if (!current) throw new ResourceNotFoundException("Stage is not currently available.");
         if (hintNumber < 1 || hintNumber > 3) throw new IllegalArgumentException("Hint number must be between 1 and 3.");
 
-        Hint hint = hintRepository.findByLevelIdOrderByDisplayOrderAsc(level.getId()).stream()
+        if (hintNumber > 1 && !hintUsageRepository.existsByTeamIdAndLevelIdAndStageNumberAndHintNumber(
+                team.getId(), level.getId(), stageNumber, hintNumber - 1)) {
+            throw new ResourceNotFoundException("Request earlier hints before requesting this hint.");
+        }
+
+        Hint hint = hintRepository.findByLevelIdAndStageNumberOrderByDisplayOrderAsc(level.getId(), stageNumber).stream()
             .filter(item -> item.getDisplayOrder().equals(hintNumber) && Boolean.TRUE.equals(item.getIsActive()))
             .findFirst().orElseThrow(() -> new ResourceNotFoundException("Hint not configured."));
         boolean alreadyUsed = hintUsageRepository.existsByTeamIdAndLevelIdAndStageNumberAndHintNumber(

@@ -21,10 +21,13 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.springframework.security.test.context.support.WithMockUser;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 @Transactional
+@WithMockUser(authorities = {"ROLE_ADMIN", "ROLE_ORGANIZER"})
 public class AdminEventControllerTest {
 
     @Autowired

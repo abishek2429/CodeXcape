@@ -9,17 +9,29 @@ interface AdminAuthContextType {
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('isAdminAuthenticated') === 'true';
-  });
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('isAdminAuthenticated', String(isAdminAuthenticated));
-  }, [isAdminAuthenticated]);
+    let mounted = true;
+    fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events`, {
+      headers: { Accept: 'application/json' },
+      credentials: 'include',
+      cache: 'no-store',
+    })
+      .then((response) => {
+        if (mounted) setIsAdminAuthenticated(response.ok);
+      })
+      .catch(() => {
+        if (mounted) setIsAdminAuthenticated(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const logoutAdmin = () => {
     setIsAdminAuthenticated(false);
-    localStorage.removeItem('isAdminAuthenticated');
   };
 
   return (

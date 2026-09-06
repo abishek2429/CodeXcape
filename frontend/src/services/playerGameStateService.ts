@@ -6,6 +6,8 @@ export interface PlayerGameStateResponse {
   gameStatus: 'NOT_STARTED' | 'IN_PROGRESS' | 'FINAL_PASSKEY' | 'COMPLETED' | 'DISQUALIFIED';
   currentLevel: number;
   eventStatus: string;
+  serverTime?: string;
+  deadline?: string;
   currentRank?: number;
   levels: LevelProgressItem[];
 }

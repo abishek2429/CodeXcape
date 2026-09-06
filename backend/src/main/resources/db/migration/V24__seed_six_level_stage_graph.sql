@@ -22,6 +22,7 @@ UPDATE hints SET hint_content = 'Compare the two private artifacts. Look for the
 
 -- Stage 2 for every level. Both players receive different evidence and must submit the same derived discovery.
 ALTER TABLE questions DROP CONSTRAINT IF EXISTS uq_questions_level_player_active;
+DROP INDEX IF EXISTS uq_questions_level_player_active;
 ALTER TABLE questions ADD CONSTRAINT uq_questions_level_stage_player UNIQUE (level_id, stage_number, player_number);
 
 INSERT INTO questions (level_id, stage_number, player_number, evidence, instructions, puzzle_context, expected_answer_hash, answer_type, is_active, technical_category, difficulty)

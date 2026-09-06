@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { usePlayerAuth } from '../../context/PlayerAuthContext';
-import { getMockGameState } from '../../services/mockGameState';
 import { fetchPlayerGameState, PlayerGameStateResponse } from '../../services/playerGameStateService';
 import { fetchCurrentQuestion, submitAnswer, PlayerQuestionResponse } from '../../services/questionService';
 import { useGameWebSocket } from '../../hooks/useGameWebSocket';
@@ -14,7 +13,7 @@ import { FinalTerminal } from '../../components/game/FinalTerminal';
 import { GameStatus } from '../../components/game/GameStatus';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { GameErrorState } from '../../components/game/GameErrorState';
-import { Shield, Clock, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy } from 'lucide-react';
+import { Shield, Clock, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy, RotateCcw } from 'lucide-react';
 import { GameSessionState, ChallengeData } from '../../types/game';
 
 import { fetchPlayerHints, usePlayerHint } from '../../services/hintService';
@@ -31,22 +30,38 @@ export const PlayerGamePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [feedbackIsError, setFeedbackIsError] = useState(false);
+  const [clockNow, setClockNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const loadData = async () => {
     try {
       setLoadError(null);
-      const [stateData, questionData, hintsData] = await Promise.all([
-        fetchPlayerGameState(),
+      const stateData = await fetchPlayerGameState();
+      if (!stateData) {
+        throw new Error('AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
+      }
+
+      setServerState(stateData);
+
+      // A waiting or finished team has no current question to load yet.
+      if (stateData.gameStatus === 'NOT_STARTED' || stateData.gameStatus === 'FINAL_PASSKEY' || stateData.gameStatus === 'COMPLETED') {
+        setLiveQuestion(null);
+        setHints([]);
+        return;
+      }
+
+      const [questionData, hintsData] = await Promise.all([
         fetchCurrentQuestion(),
         fetchPlayerHints(),
       ]);
-      setServerState(stateData);
       setLiveQuestion(questionData);
-      if (hintsData && hintsData.length > 0) {
-        setHints(hintsData);
-      }
+      setHints(hintsData || []);
     } catch (err) {
-      setLoadError('AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
+      setLoadError(err instanceof Error ? err.message : 'AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
     } finally {
       setIsLoadingData(false);
     }
@@ -76,7 +91,9 @@ export const PlayerGamePage: React.FC = () => {
     return <GameErrorState message={loadError || 'AUTHORITATIVE GAME STATE UNAVAILABLE.'} />;
   }
 
-  const mockBase = getMockGameState(player.playerNumber);
+  if (!liveQuestion && serverState.gameStatus !== 'NOT_STARTED' && serverState.gameStatus !== 'FINAL_PASSKEY' && serverState.gameStatus !== 'COMPLETED') {
+    return <GameErrorState message="CURRENT COOPERATIVE STAGE DATA IS UNAVAILABLE. RECONNECT AND TRY AGAIN." />;
+  }
 
   const activeChallenge: ChallengeData = liveQuestion
     ? {
@@ -91,25 +108,30 @@ export const PlayerGamePage: React.FC = () => {
         answerType: liveQuestion.answerType,
         placeholderText: liveQuestion.answerType === 'NUMERIC' ? '> INPUT NUMERIC SOLUTION_' : '> ENTER SOLUTION_',
       }
-    : mockBase.challenge;
+    : {
+        levelNumber: serverState.currentLevel,
+        title: 'CURRENT STAGE UNAVAILABLE',
+        evidence: '',
+        instructions: '',
+        answerType: 'TEXT',
+      };
 
   const isChallengeCompleted = liveQuestion?.isCompleted ?? false;
 
-  if (!liveQuestion && serverState.gameStatus !== 'NOT_STARTED' && serverState.gameStatus !== 'FINAL_PASSKEY' && serverState.gameStatus !== 'COMPLETED') {
-    return <GameErrorState message="CURRENT COOPERATIVE STAGE DATA IS UNAVAILABLE. RECONNECT AND TRY AGAIN." />;
-  }
-
   const gameState: GameSessionState = {
-    ...mockBase,
-    currentLevel: serverState ? serverState.currentLevel : mockBase.currentLevel,
-    levels: serverState && serverState.levels.length > 0 ? serverState.levels : mockBase.levels,
+    currentLevel: serverState.currentLevel,
+    totalLevels: 6,
+    levels: serverState.levels,
     challenge: activeChallenge,
     partner: {
-      ...mockBase.partner,
+      playerNumber: player.playerNumber === 1 ? 2 : 1,
+      displayName: 'PARTNER',
+      challengeCompleted: false,
+      statusMessage: 'Teammate status is synchronized by the server.',
       status: partnerStatus === 'CONNECTED' ? 'CONNECTED' : 'DISCONNECTED',
     },
     connectionStatus: wsConnectionStatus === 'CONNECTED' ? 'CONNECTED' : wsConnectionStatus === 'RECONNECTING' ? 'RECONNECTING' : 'DISCONNECTED',
-    hints: hints.length > 0 ? hints : mockBase.hints,
+    hints,
     isFinalTerminalUnlocked: serverState?.gameStatus === 'FINAL_PASSKEY' || serverState?.gameStatus === 'COMPLETED',
     gameStatusMessage: isChallengeCompleted
       ? `STAGE ${liveQuestion?.stageNumber || 1} VERIFIED: WAITING FOR PARTNER NODE SYNCHRONIZATION...`
@@ -121,9 +143,16 @@ export const PlayerGamePage: React.FC = () => {
         : serverState.gameStatus === 'COMPLETED'
         ? 'SYSTEM BREACHED. CODEXCAPE PROTOCOL SUCCESSFUL.'
         : `TIER 0${serverState.currentLevel} ACTIVE.`
-      : mockBase.gameStatusMessage,
+      : null,
     currentRank: serverState?.currentRank,
   };
+  const serverOffset = serverState.serverTime ? new Date(serverState.serverTime).getTime() - clockNow : 0;
+  const remainingSeconds = serverState.deadline
+    ? Math.max(0, Math.ceil((new Date(serverState.deadline).getTime() - (clockNow + serverOffset)) / 1000))
+    : null;
+  const formattedRemaining = remainingSeconds === null
+    ? '--:--:--'
+    : `${String(Math.floor(remainingSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`;
 
   const handleAnswerSubmit = async (answer: string, interactionPayload?: string) => {
     if (isSubmitting || isChallengeCompleted) return;
@@ -159,6 +188,23 @@ export const PlayerGamePage: React.FC = () => {
     }
   };
 
+  const handleResetTestTeam = async () => {
+    if (!window.confirm('RESET CODEXCAPE-TEST PROGRESS BACK TO LEVEL 1?')) return;
+    try {
+      setIsLoadingData(true);
+      await fetch(`${import.meta.env.VITE_API_URL || ''}/api/player/reset-test-team`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      await loadData();
+    } catch (err: any) {
+      setFeedbackIsError(true);
+      setFeedbackMsg('FAILED TO RESET TEST SESSION.');
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   if (serverState && serverState.gameStatus === 'NOT_STARTED') {
     return (
       <div className="game-page">
@@ -173,6 +219,17 @@ export const PlayerGamePage: React.FC = () => {
             <div className="badge badge-cyan mt-l">
               TEAM: {player.teamCode} | NODE 0{player.playerNumber}
             </div>
+            {player.teamCode === 'CODEXCAPE-TEST' && (
+              <button
+                type="button"
+                onClick={handleResetTestTeam}
+                className="btn btn-secondary mt-m"
+                style={{ borderColor: 'var(--accent-warning)', color: 'var(--accent-warning)', fontSize: '11px' }}
+              >
+                <RotateCcw size={12} style={{ marginRight: '6px' }} />
+                RE-INITIALIZE TEST TEAM
+              </button>
+            )}
           </div>
         </main>
       </div>
@@ -188,9 +245,20 @@ export const PlayerGamePage: React.FC = () => {
             <CheckCircle2 size={64} className="status-icon text-success animate-pulse-glow" />
             <h1 className="status-title text-success">CODEXCAPE COMPLETED</h1>
             <p className="terminal-text text-success" style={{ opacity: 0.8 }}>
-              &gt; PROTOCOL SUCCESSFUL. SYSTEM BREACHED.<br/>
+              &gt; ACCESS GRANTED. CODEXCAPE COMPLETE.<br/>
               &gt; FINAL RANK: #{gameState.currentRank || '??'}
             </p>
+            {player.teamCode === 'CODEXCAPE-TEST' && (
+              <button
+                type="button"
+                onClick={handleResetTestTeam}
+                className="btn btn-secondary mt-l"
+                style={{ borderColor: 'var(--accent-warning)', color: 'var(--accent-warning)', fontSize: '12px' }}
+              >
+                <RotateCcw size={14} style={{ marginRight: '6px' }} />
+                RESTART TEST ESCAPE ROOM
+              </button>
+            )}
           </div>
         </main>
       </div>
@@ -257,6 +325,14 @@ export const PlayerGamePage: React.FC = () => {
           {/* Sidebar Column */}
           <div className="panel-container sidebar-container">
             <PartnerStatus partner={gameState.partner} />
+
+            <div className="cyber-panel team-matrix-panel">
+              <div className="panel-header terminal-text">
+                <Clock size={14} />
+                OFFICIAL TIME REMAINING
+              </div>
+              <div className="terminal-text text-warning text-lg font-bold">{formattedRemaining}</div>
+            </div>
             
             <div className="cyber-panel team-matrix-panel">
               <div className="panel-header terminal-text">
@@ -293,6 +369,20 @@ export const PlayerGamePage: React.FC = () => {
                 </div>
                 <span className="text-muted" style={{ fontSize: '11px' }}>{player.playerNumber === 2 ? player.playerName : 'PARTNER'}</span>
               </div>
+
+              {player.teamCode === 'CODEXCAPE-TEST' && (
+                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed var(--border-dim)' }}>
+                  <button
+                    type="button"
+                    onClick={handleResetTestTeam}
+                    className="btn btn-secondary"
+                    style={{ width: '100%', borderColor: 'var(--accent-warning)', color: 'var(--accent-warning)', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <RotateCcw size={12} style={{ marginRight: '6px' }} />
+                    <span>RESET TEST STATE (L1 S1)</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             <HintPanel hints={gameState.hints} currentLevel={gameState.currentLevel} currentStage={liveQuestion?.stageNumber} onUseHint={handleUseHint} />

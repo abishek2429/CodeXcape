@@ -19,10 +19,13 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.springframework.security.test.context.support.WithMockUser;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 @Transactional
+@WithMockUser(authorities = {"ROLE_ADMIN", "ROLE_ORGANIZER"})
 public class AdminTeamControllerTest {
 
     @Autowired
@@ -79,7 +82,7 @@ public class AdminTeamControllerTest {
                 .teamName("Duplicate Team")
                 .player1DisplayName("Echo")
                 .player2DisplayName("Foxtrot")
-                .customTeamCode("TEAM-001") // Existing team code in seed data
+                .customTeamCode("CODEXCAPE-TEST") // Existing team code in seed data
                 .build();
 
         mockMvc.perform(post("/api/admin/events/1/teams")
@@ -95,7 +98,7 @@ public class AdminTeamControllerTest {
         mockMvc.perform(get("/api/admin/teams/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.teamCode", is("TEAM-001")))
+                .andExpect(jsonPath("$.teamCode", is("CODEXCAPE-TEST")))
                 .andExpect(jsonPath("$.players", hasSize(2)));
     }
 

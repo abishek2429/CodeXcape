@@ -94,19 +94,29 @@ public class FinalEventRehearsalAndSmokeTest {
         adminEventControlService.updateEventPasskey(adminPrincipal, rehearsalEvent.getId(), "777888");
 
         for (int i = 1; i <= 6; i++) {
-            adminContentService.saveQuestionConfig(adminPrincipal, rehearsalEvent.getId(), i, QuestionConfigDto.builder()
-                    .playerNumber(QuestionPlayer.PLAYER_1)
-                    .evidence("Rehearsal Q L" + i + " P1")
-                    .expectedAnswer("ans_l" + i + "_p1")
-                    .answerType(AnswerType.TEXT)
-                    .build());
+            Level level = levelRepository.findByLevelNumber(i).orElseThrow();
+            int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                    .map(Question::getStageNumber)
+                    .max(Integer::compareTo)
+                    .orElse(1);
 
-            adminContentService.saveQuestionConfig(adminPrincipal, rehearsalEvent.getId(), i, QuestionConfigDto.builder()
-                    .playerNumber(QuestionPlayer.PLAYER_2)
-                    .evidence("Rehearsal Q L" + i + " P2")
-                    .expectedAnswer("ans_l" + i + "_p2")
-                    .answerType(AnswerType.TEXT)
-                    .build());
+            for (int stage = 1; stage <= totalStages; stage++) {
+                adminContentService.saveQuestionConfig(adminPrincipal, rehearsalEvent.getId(), i, QuestionConfigDto.builder()
+                        .stageNumber(stage)
+                        .playerNumber(QuestionPlayer.PLAYER_1)
+                        .evidence("Rehearsal Q L" + i + " S" + stage + " P1")
+                        .expectedAnswer("ans_l" + i + "_s" + stage + "_p1")
+                        .answerType(AnswerType.TEXT)
+                        .build());
+
+                adminContentService.saveQuestionConfig(adminPrincipal, rehearsalEvent.getId(), i, QuestionConfigDto.builder()
+                        .stageNumber(stage)
+                        .playerNumber(QuestionPlayer.PLAYER_2)
+                        .evidence("Rehearsal Q L" + i + " S" + stage + " P2")
+                        .expectedAnswer("ans_l" + i + "_s" + stage + "_p2")
+                        .answerType(AnswerType.TEXT)
+                        .build());
+            }
 
             adminContentService.saveHintConfig(adminPrincipal, rehearsalEvent.getId(), i, HintConfigDto.builder()
                     .hintContent("Rehearsal Hint L" + i)
@@ -149,18 +159,35 @@ public class FinalEventRehearsalAndSmokeTest {
 
         // 3. Complete Levels 1 through 6 Linear Progression
         for (int lvl = 1; lvl <= 6; lvl++) {
-            // P1 question check & submission
-            PlayerQuestionDto q1Dto = questionAnswerService.getCurrentQuestionForPlayer(p1Princ);
-            assertThat(q1Dto.getLevelNumber()).isEqualTo(lvl);
-            assertThat(q1Dto.toString()).doesNotContain("ans_l" + lvl);
+            Level level = levelRepository.findByLevelNumber(lvl).orElseThrow();
+            int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                    .map(Question::getStageNumber)
+                    .max(Integer::compareTo)
+                    .orElse(1);
 
-            AnswerSubmissionResponseDto p1Sub = questionAnswerService.submitAnswer(p1Princ, AnswerSubmissionRequest.builder().levelNumber(lvl).answer("ans_l" + lvl + "_p1").build());
-            assertThat(p1Sub.getCorrect()).isTrue();
+            for (int st = 1; st <= totalStages; st++) {
+                // P1 question check & submission
+                PlayerQuestionDto q1Dto = questionAnswerService.getCurrentQuestionForPlayer(p1Princ);
+                assertThat(q1Dto.getLevelNumber()).isEqualTo(lvl);
 
-            // P2 question check & submission
-            AnswerSubmissionResponseDto p2Sub = questionAnswerService.submitAnswer(p2Princ, AnswerSubmissionRequest.builder().levelNumber(lvl).answer("ans_l" + lvl + "_p2").build());
-            assertThat(p2Sub.getCorrect()).isTrue();
-            assertThat(p2Sub.getIsCompleted()).isTrue();
+                AnswerSubmissionResponseDto p1Sub = questionAnswerService.submitAnswer(p1Princ, AnswerSubmissionRequest.builder()
+                        .levelNumber(lvl)
+                        .answer("ans_l" + lvl + "_s" + st + "_p1")
+                        .build());
+                assertThat(p1Sub.getCorrect()).isTrue();
+
+                // P2 question check & submission
+                AnswerSubmissionResponseDto p2Sub = questionAnswerService.submitAnswer(p2Princ, AnswerSubmissionRequest.builder()
+                        .levelNumber(lvl)
+                        .answer("ans_l" + lvl + "_s" + st + "_p2")
+                        .build());
+                assertThat(p2Sub.getCorrect()).isTrue();
+                if (st == totalStages) {
+                    assertThat(p2Sub.getIsCompleted()).isTrue();
+                } else {
+                    assertThat(p2Sub.getStageCompleted()).isTrue();
+                }
+            }
 
             // Hint check
             PlayerHintsResponseDto hintsDto = hintService.getHintsForPlayer(p1Princ);

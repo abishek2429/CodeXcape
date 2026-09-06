@@ -133,7 +133,7 @@ class FinalPasskeyAndGameCompletionTest {
         FinalPasskeyResponseDto response = finalPasskeyService.submitFinalPasskey(p1, req);
 
         assertEquals("INCORRECT", response.getStatus());
-        assertEquals("Incorrect passkey.", response.getMessage());
+        assertEquals("ACCESS DENIED: INVALID SEQUENCE. ATTEMPT RECORDED.", response.getMessage());
         assertNull(response.getCompletedAt());
 
         Team updatedTeam = teamRepository.findById(teamA.getId()).orElseThrow();
@@ -221,11 +221,19 @@ class FinalPasskeyAndGameCompletionTest {
     private void completeAllSixLevels(PlayerPrincipal p1, PlayerPrincipal p2, Team team) {
         for (int levelNum = 1; levelNum <= 6; levelNum++) {
             Level level = levelRepository.findByLevelNumber(levelNum).orElseThrow();
-            Question q1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-            Question q2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(level.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
+            int totalStages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
+                    .map(Question::getStageNumber)
+                    .max(Integer::compareTo)
+                    .orElse(1);
+            for (int stage = 1; stage <= totalStages; stage++) {
+                Question q1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                        level.getId(), stage, QuestionPlayer.PLAYER_1).orElseThrow();
+                Question q2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
+                        level.getId(), stage, QuestionPlayer.PLAYER_2).orElseThrow();
 
-            questionAnswerService.submitAnswer(p1, AnswerSubmissionRequest.builder().levelNumber(levelNum).answer(q1.getExpectedAnswerHash()).build());
-            questionAnswerService.submitAnswer(p2, AnswerSubmissionRequest.builder().levelNumber(levelNum).answer(q2.getExpectedAnswerHash()).build());
+                questionAnswerService.submitAnswer(p1, AnswerSubmissionRequest.builder().levelNumber(levelNum).answer(q1.getExpectedAnswerHash()).build());
+                questionAnswerService.submitAnswer(p2, AnswerSubmissionRequest.builder().levelNumber(levelNum).answer(q2.getExpectedAnswerHash()).build());
+            }
         }
     }
 
