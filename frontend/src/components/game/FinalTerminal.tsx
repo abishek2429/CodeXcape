@@ -87,6 +87,41 @@ export const FinalTerminal: React.FC<FinalTerminalProps> = ({ isUnlocked, isComp
             <KeyRound size={40} className="animate-pulse" />
           </div>
 
+          {/* Core Status Telemetry Block */}
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '480px',
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              border: '1px solid var(--status-error)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '16px 20px',
+              textAlign: 'left',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '12px',
+              lineHeight: 1.7,
+              boxShadow: 'inset 0 0 20px rgba(239, 68, 68, 0.15)',
+            }}
+          >
+            <div style={{ color: 'var(--status-error)', fontWeight: 'bold', marginBottom: '8px', letterSpacing: '0.1em' }}>
+              CORE STATUS // EMERGENCY OVERRIDE
+            </div>
+            <div style={{ color: 'var(--status-warning)' }}>
+              NODE 01 — DEGRADED<br />
+              NODE 02 — DEGRADED<br />
+              NODE 03 — DEGRADED<br />
+              NODE 04 — DEGRADED<br />
+              <span style={{ color: 'var(--status-error)', fontWeight: 'bold' }}>NODE 05 — CRITICAL</span><br />
+              <span style={{ color: 'var(--accent-cyan)', fontWeight: 'bold' }}>NODE 06 — ACTIVE</span>
+            </div>
+            <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed var(--border-dim)', color: 'var(--text-muted)' }}>
+              RECOVERY PROTOCOL: <strong style={{ color: 'var(--status-success)' }}>READY</strong><br />
+              PERSONNEL: <strong style={{ color: 'var(--accent-cyan)' }}>TWO OPERATORS REQUIRED</strong><br />
+              FINAL PROTOCOL: <strong style={{ color: 'var(--status-success)' }}>ALL RECOVERY FRAGMENTS VERIFIED</strong><br />
+              SYSTEM LOCKED: <strong style={{ color: 'var(--status-error)' }}>ENTER SIX-DIGIT ACCESS CODE</strong>
+            </div>
+          </div>
+
           <div>
             <h3 className="terminal-text font-bold" style={{ fontSize: '20px', letterSpacing: '0.05em' }}>
               ENTER 6-DIGIT MASTER OVERRIDE PASSKEY

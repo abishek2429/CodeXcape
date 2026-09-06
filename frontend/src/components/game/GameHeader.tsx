@@ -10,6 +10,7 @@ interface GameHeaderProps {
   totalLevels: number;
   connectionStatus: SystemConnectionStatus;
   onLogout: () => void;
+  onOpenBriefing?: () => void;
 }
 
 export const GameHeader: React.FC<GameHeaderProps> = ({
@@ -18,6 +19,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
   totalLevels,
   connectionStatus,
   onLogout,
+  onOpenBriefing,
 }) => {
   const isPlayer1 = player.playerNumber === 1;
 
@@ -56,7 +58,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
         </div>
       </div>
 
-      {/* Center: Player Role & Level Badge */}
+      {/* Center: Player Role & Level Badge & Mission Briefing */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <div className={`player-role-badge badge ${isPlayer1 ? 'badge-cyan' : 'badge-purple'}`}>
           {isPlayer1 ? <Terminal size={12} /> : <Cpu size={12} />}
@@ -68,6 +70,27 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
           <span className="level-num">{currentLevel}</span>
           <span className="text-muted">/ {totalLevels}</span>
         </div>
+
+        {onOpenBriefing && (
+          <button
+            type="button"
+            onClick={onOpenBriefing}
+            className="badge badge-cyan"
+            style={{
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: '1px solid var(--border-cyan)',
+              backgroundColor: 'rgba(0, 217, 255, 0.1)',
+              fontSize: '10px',
+              letterSpacing: '0.05em',
+            }}
+          >
+            <span className="animate-pulse" style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--accent-cyan)' }} />
+            <span>MISSION: NODE 06</span>
+          </button>
+        )}
       </div>
 
       {/* Right: Telemetry Health & Logout */}

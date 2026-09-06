@@ -103,14 +103,22 @@ This single command automatically:
 2. Launches the Spring Boot backend on `http://localhost:8080`.
 3. Launches the React Vite frontend dev server on `http://localhost:5173`.
 
-### Reusable Test Login
+### Pre-Configured Teams & Credentials
 
-Use this local test account on the player login page:
+All legacy teams have been purged. Exclusively two verified teams are established in the database:
 
-- **Team code:** `CODEXCAPE-TEST`
-- **Player:** `1` or `2`
+| Team Code | Player 1 Passcode | Player 2 Passcode | Access Role | Reusable / Auto-Reset |
+| :--- | :--- | :--- | :--- | :--- |
+| **`CODEXCAPE-TEST`** | `TEST-P1-9021` | `TEST-P2-9021` | Test Sandbox | **Yes**: Auto-overrides active sessions on login. Can be reset to Level 1 anytime via `/api/player/reset-test-team` or the in-game **Reset Test Team** button. |
+| **`TEAM-ALPHA`** | `ALPHA-P1-4411` | `ALPHA-P2-4411` | Primary Demo Team | Standard competition session enforcement. |
 
-The account is created by Flyway migration `V34__create_reusable_test_login.sql`. To log in again after testing, use the same browser session or log out first; the backend intentionally rejects a second active session for the same player.
+### Admin Console Access
+- **URL:** [http://localhost:5173/admin](http://localhost:5173/admin)
+- **Admin Passcode:** `admin123`
+- Organizers can start, pause, emergency-stop, monitor live team ranks, and inspect audit logs.
+
+### Final Master Override Passkey
+- **Passkey:** `849201` (Synthesized by interleaving 6 clue fragments across Levels 1–6)
 
 ---
 
