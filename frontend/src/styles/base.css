@@ -61,6 +61,25 @@ code, pre, .font-mono {
   outline-offset: 2px;
 }
 
+/* Subtle CRT Scanline & Noise Overlays */
+.digital-noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 999;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.12) 0px,
+    rgba(0, 0, 0, 0.12) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  opacity: 0.35;
+}
+
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -68,5 +87,8 @@ code, pre, .font-mono {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .digital-noise-overlay {
+    display: none;
   }
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Terminal, Lock, KeyRound, AlertOctagon, Loader2, Zap } from 'lucide-react';
 import { submitFinalPasskey, FinalPasskeyResponse } from '../../services/passkeyService';
+import { soundService } from '../../services/soundService';
 
 interface FinalTerminalProps {
   isUnlocked: boolean;
@@ -29,15 +30,20 @@ export const FinalTerminal: React.FC<FinalTerminalProps> = ({ isUnlocked, isComp
     try {
       const res: FinalPasskeyResponse = await submitFinalPasskey(trimmed);
       if (res.status === 'COMPLETED' || res.status === 'ALREADY_COMPLETED') {
+        soundService.playLevelUnlock();
         if (onSuccess) onSuccess();
       } else if (res.status === 'INCORRECT') {
+        soundService.playAccessDenied();
         setErrorMsg(res.message || 'ACCESS DENIED: INVALID SEQUENCE. ATTEMPT RECORDED.');
       } else if (res.status === 'FINAL_NOT_AVAILABLE') {
+        soundService.playAccessDenied();
         setErrorMsg('TERMINAL UNAVAILABLE. COMPLETE ALL 6 TIERS FIRST.');
       } else {
+        soundService.playAccessDenied();
         setErrorMsg(res.message || 'PASSKEY SUBMISSION REJECTED.');
       }
     } catch (err: any) {
+      soundService.playAccessDenied();
       setErrorMsg(err.message || 'SYSTEM ERROR VALIDATING PASSKEY.');
     } finally {
       setIsSubmitting(false);

@@ -23,6 +23,7 @@ import { StorylineData } from '../../types/story';
 import { OpeningBriefingModal } from '../../components/game/OpeningBriefingModal';
 import { LevelTransitionModal } from '../../components/game/LevelTransitionModal';
 import { InvestigationDossier } from '../../components/game/InvestigationDossier';
+import { soundService } from '../../services/soundService';
 import './PlayerGamePage.css';
 
 const FRAGMENT_TITLES: Record<number, string> = {
@@ -74,6 +75,7 @@ export const PlayerGamePage: React.FC = () => {
 
       // Check if level has transitioned
       if (prevLevelRef.current !== null && stateData.currentLevel > prevLevelRef.current && stateData.currentLevel <= 6) {
+        soundService.playLevelUnlock();
         const completed = prevLevelRef.current;
         const nextLevelObj = stateData.levels?.find(l => l.levelNumber === stateData.currentLevel);
         setTransitionInfo({
@@ -208,14 +210,17 @@ export const PlayerGamePage: React.FC = () => {
     try {
       const res = await submitAnswer(answer, interactionPayload);
       if (res.correct) {
+        soundService.playAccessGranted();
         setFeedbackIsError(false);
-        setFeedbackMsg(res.message || 'SOLUTION ACCEPTED: NODE VERIFIED.');
+        setFeedbackMsg(res.message || 'ACCESS GRANTED: EVIDENCE VERIFIED. PROTOCOL UNLOCKED.');
         await loadData();
       } else {
+        soundService.playAccessDenied();
         setFeedbackIsError(true);
-        setFeedbackMsg(res.message || 'ACCESS DENIED: INCORRECT SOLUTION.');
+        setFeedbackMsg(res.message || 'ACCESS DENIED: INVALID SEQUENCE. ATTEMPT RECORDED.');
       }
     } catch (err: any) {
+      soundService.playAccessDenied();
       setFeedbackIsError(true);
       setFeedbackMsg(err.message || 'TRANSMISSION ERROR. RE-SUBMIT REQUIRED.');
     } finally {
@@ -371,7 +376,19 @@ export const PlayerGamePage: React.FC = () => {
   return (
     <div className="game-page">
       <div className="digital-noise-overlay"></div>
-      <GameHeader player={player} currentLevel={gameState.currentLevel} totalLevels={gameState.totalLevels} connectionStatus={gameState.connectionStatus} onLogout={logout} onOpenBriefing={() => setIsBriefingOpen(true)} />
+      <GameHeader
+        player={player}
+        currentLevel={gameState.currentLevel}
+        totalLevels={gameState.totalLevels}
+        currentStage={liveQuestion?.stageNumber || 1}
+        totalStages={liveQuestion?.totalStages || 1}
+        formattedRemaining={formattedRemaining}
+        remainingSeconds={remainingSeconds}
+        currentRank={gameState.currentRank}
+        connectionStatus={gameState.connectionStatus}
+        onLogout={logout}
+        onOpenBriefing={() => setIsBriefingOpen(true)}
+      />
 
       <main className="game-main">
         <LevelProgress levels={gameState.levels} currentLevel={gameState.currentLevel} />

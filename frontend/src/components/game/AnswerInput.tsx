@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Send, CheckCircle2, Terminal } from 'lucide-react';
 import { AnswerType } from '../../types/game';
+import { soundService } from '../../services/soundService';
 
 interface AnswerInputProps {
   answerType: AnswerType;
@@ -108,6 +109,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
     e.preventDefault();
     if (!answer.trim() || isSubmitting) return;
 
+    soundService.playClick();
     onSubmit(answer.trim(), JSON.stringify({
       interaction: interaction.interaction || 'answer',
       operation: selectedOperation || undefined,
@@ -116,7 +118,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
       process: selectedProcess || undefined,
       sequence: selectedSequence || undefined,
     }));
-    setSubmittedFeedback(`PAYLOAD "${answer.trim().toUpperCase()}" DISPATCHED.`);
+    setSubmittedFeedback(`> ACCESS REQUEST RECEIVED: TRANSMITTING "${answer.trim().toUpperCase()}"...`);
 
     setTimeout(() => {
       setSubmittedFeedback(null);
