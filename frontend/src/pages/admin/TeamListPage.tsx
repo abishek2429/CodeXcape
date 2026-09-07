@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchTeamsForEvent, updateTeamStatus, deleteTeam, uploadTeamExcelPreview, confirmTeamImport } from '../../services/teamService';
+import { resetTeamCredentials } from '../../services/adminService';
 import type { TeamImportPreview, TeamImportResult } from '../../services/teamService';
 import { fetchEventById } from '../../services/eventService';
 import { Team, TeamStatus } from '../../types/team';
 import { Event } from '../../types/event';
-import { Users, Plus, ArrowLeft, ShieldAlert, RefreshCw, Trash2, User, Key, Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Users, Plus, ArrowLeft, ShieldAlert, RefreshCw, Trash2, User, Key, Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 
 export const TeamListPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -62,6 +63,17 @@ export const TeamListPage: React.FC = () => {
       setTeams(prev => prev.filter(t => t.id !== teamId));
     } catch (err: any) {
       alert(err.message || 'Failed to delete team');
+    }
+  };
+
+  const handleResetTeamCredentials = async (teamId: number, teamCode: string) => {
+    if (!window.confirm(`Reset login credentials and purge all sessions for team ${teamCode}? Both players will be disconnected and their state restored to NOT_STARTED in the database.`)) return;
+    try {
+      await resetTeamCredentials(teamId);
+      alert(`Team ${teamCode} credentials and active sessions successfully reset.`);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to reset team credentials');
     }
   };
 
@@ -257,6 +269,15 @@ export const TeamListPage: React.FC = () => {
                         >
                           View Details
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleResetTeamCredentials(tm.id, tm.teamCode)}
+                          className="text-warning"
+                          title="Reset Team Credentials & Purge Sessions"
+                          style={{ padding: '6px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: 'var(--radius-xs)' }}
+                        >
+                          <RotateCcw size={14} />
+                        </button>
                         <button
                           onClick={() => handleDeleteTeam(tm.id, tm.teamCode)}
                           className="text-danger"

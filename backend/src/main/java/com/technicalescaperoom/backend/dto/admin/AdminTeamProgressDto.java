@@ -31,4 +31,23 @@ public class AdminTeamProgressDto {
     private Long player2SessionId;
     private Integer hintsUnlocked;
     private Instant completedAt;
+
+    // Active session and login monitoring metadata
+    private Boolean isLoggedIn;
+    private Integer activeSessionsCount;
+    private Boolean teamSessionActive;
+
+    private String player1Status;
+    private Boolean player1LoggedIn;
+    private Boolean player1Ready;
+    private String player1SessionToken;
+    private Instant player1LoginTime;
+    private Instant player1LastActivity;
+
+    private String player2Status;
+    private Boolean player2LoggedIn;
+    private Boolean player2Ready;
+    private String player2SessionToken;
+    private Instant player2LoginTime;
+    private Instant player2LastActivity;
 }

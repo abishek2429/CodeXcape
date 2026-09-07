@@ -1,9 +1,11 @@
 package com.technicalescaperoom.backend.service.admin;
 
+import com.technicalescaperoom.backend.dto.admin.AdminActiveSessionDto;
 import com.technicalescaperoom.backend.dto.admin.AdminDashboardResponseDto;
 import com.technicalescaperoom.backend.dto.admin.AdminTeamProgressDto;
 import com.technicalescaperoom.backend.entity.*;
 import com.technicalescaperoom.backend.enums.LevelStatus;
+import com.technicalescaperoom.backend.enums.SessionStatus;
 import com.technicalescaperoom.backend.enums.TeamGameState;
 import com.technicalescaperoom.backend.exception.ResourceNotFoundException;
 import com.technicalescaperoom.backend.repository.*;
@@ -40,6 +42,8 @@ public class AdminDashboardService {
         long oneOffline = 0;
         long bothOffline = 0;
         long disconnectedCount = 0;
+        long totalLoggedInTeams = 0;
+        long totalActiveSessions = 0;
 
         Map<Integer, Long> distribution = new HashMap<>();
         for (int i = 1; i <= 6; i++) {
@@ -51,8 +55,17 @@ public class AdminDashboardService {
             Player p1 = players.stream().filter(p -> p.getPlayerNumber() == 1).findFirst().orElse(null);
             Player p2 = players.stream().filter(p -> p.getPlayerNumber() == 2).findFirst().orElse(null);
 
-            boolean p1Connected = isPlayerOnline(p1);
-            boolean p2Connected = isPlayerOnline(p2);
+            GameSession s1 = p1 != null ? gameSessionRepository.findByPlayerIdAndStatus(p1.getId(), SessionStatus.ACTIVE).orElse(null) : null;
+            GameSession s2 = p2 != null ? gameSessionRepository.findByPlayerIdAndStatus(p2.getId(), SessionStatus.ACTIVE).orElse(null) : null;
+
+            boolean p1LoggedIn = s1 != null;
+            boolean p2LoggedIn = s2 != null;
+            if (p1LoggedIn) totalActiveSessions++;
+            if (p2LoggedIn) totalActiveSessions++;
+            if (p1LoggedIn || p2LoggedIn) totalLoggedInTeams++;
+
+            boolean p1Connected = p1LoggedIn && Boolean.TRUE.equals(s1.getIsConnected());
+            boolean p2Connected = p2LoggedIn && Boolean.TRUE.equals(s2.getIsConnected());
 
             if (p1 != null && !p1Connected) disconnectedCount++;
             if (p2 != null && !p2Connected) disconnectedCount++;
@@ -96,12 +109,54 @@ public class AdminDashboardService {
                 .bothPlayersOnlineTeams(bothOnline)
                 .onePlayerOfflineTeams(oneOffline)
                 .bothPlayersOfflineTeams(bothOffline)
+                .totalLoggedInTeams(totalLoggedInTeams)
+                .totalActiveSessions(totalActiveSessions)
                 .serverStatus("ONLINE")
                 .eventDurationSeconds(durationSeconds)
                 .startTime(event.getStartTime())
                 .endTime(event.getEndTime())
                 .levelDistribution(distribution)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminActiveSessionDto> getActiveSessions(Long eventId) {
+        List<Team> teams = teamRepository.findByEventId(eventId);
+        List<AdminActiveSessionDto> sessionDtos = new ArrayList<>();
+
+        for (Team team : teams) {
+            List<Player> players = playerRepository.findByTeamId(team.getId());
+            for (Player player : players) {
+                Optional<GameSession> activeSessionOpt = gameSessionRepository.findByPlayerIdAndStatus(player.getId(), SessionStatus.ACTIVE);
+                if (activeSessionOpt.isPresent()) {
+                    GameSession session = activeSessionOpt.get();
+                    String token = session.getSessionToken();
+                    String preview = token != null && token.length() > 8 ? token.substring(0, 8) + "..." : token;
+
+                    sessionDtos.add(AdminActiveSessionDto.builder()
+                            .sessionId(session.getId())
+                            .teamId(team.getId())
+                            .teamCode(team.getTeamCode())
+                            .teamName(team.getTeamName())
+                            .playerId(player.getId())
+                            .playerNumber(player.getPlayerNumber())
+                            .playerName(player.getDisplayName())
+                            .playerRole(player.getPlayerNumber() == 1 ? "OPERATOR" : "ANALYZER")
+                            .playerStatus(player.getStatus())
+                            .isReady(Boolean.TRUE.equals(player.getIsReady()))
+                            .sessionToken(token)
+                            .sessionTokenPreview(preview)
+                            .sessionStatus(session.getStatus())
+                            .isConnected(session.getIsConnected())
+                            .createdAt(session.getCreatedAt())
+                            .lastActivityAt(session.getLastActivityAt())
+                            .teamGameState(team.getGameState())
+                            .build());
+                }
+            }
+        }
+
+        return sessionDtos;
     }
 
     @Transactional(readOnly = true)
@@ -119,9 +174,27 @@ public class AdminDashboardService {
             Player p1 = players.stream().filter(p -> p.getPlayerNumber() == 1).findFirst().orElse(null);
             Player p2 = players.stream().filter(p -> p.getPlayerNumber() == 2).findFirst().orElse(null);
 
-            boolean p1Online = isPlayerOnline(p1);
-            boolean p2Online = isPlayerOnline(p2);
-            String connStatus = (p1Online && p2Online) ? "BOTH_ONLINE" : (!p1Online && !p2Online ? "BOTH_OFFLINE" : "ONE_OFFLINE");
+            GameSession s1 = p1 != null ? gameSessionRepository.findByPlayerIdAndStatus(p1.getId(), SessionStatus.ACTIVE).orElse(null) : null;
+            GameSession s2 = p2 != null ? gameSessionRepository.findByPlayerIdAndStatus(p2.getId(), SessionStatus.ACTIVE).orElse(null) : null;
+
+            boolean p1LoggedIn = s1 != null;
+            boolean p2LoggedIn = s2 != null;
+            int activeSessionsCount = (p1LoggedIn ? 1 : 0) + (p2LoggedIn ? 1 : 0);
+            boolean teamSessionActive = activeSessionsCount > 0;
+
+            boolean p1Online = p1LoggedIn && Boolean.TRUE.equals(s1.getIsConnected());
+            boolean p2Online = p2LoggedIn && Boolean.TRUE.equals(s2.getIsConnected());
+
+            String connStatus;
+            if (p1Online && p2Online) {
+                connStatus = "BOTH_ONLINE";
+            } else if (p1Online || p2Online) {
+                connStatus = "ONE_ONLINE";
+            } else if (p1LoggedIn || p2LoggedIn) {
+                connStatus = "WAITING";
+            } else {
+                connStatus = "OFFLINE";
+            }
 
             if (search != null && !search.isBlank()) {
                 String term = search.toLowerCase().trim();
@@ -147,13 +220,11 @@ public class AdminDashboardService {
                 if (filterUpper.equals("COMPLETED") && team.getGameState() != TeamGameState.COMPLETED) continue;
                 if (filterUpper.equals("IN_PROGRESS") && team.getGameState() == TeamGameState.COMPLETED) continue;
                 if (filterUpper.equals("ONLINE") && !connStatus.equals("BOTH_ONLINE")) continue;
-                if (filterUpper.equals("OFFLINE") && connStatus.equals("BOTH_ONLINE")) continue;
+                if (filterUpper.equals("OFFLINE") && !connStatus.equals("OFFLINE")) continue;
+                if (filterUpper.equals("LOGGED_IN") && !teamSessionActive) continue;
             }
 
             long hintsUnlocked = progressList.stream().filter(p -> p.getLevelStatus() == LevelStatus.COMPLETED).count();
-
-            GameSession s1 = p1 != null ? gameSessionRepository.findTopByPlayerIdOrderByCreatedAtDesc(p1.getId()).orElse(null) : null;
-            GameSession s2 = p2 != null ? gameSessionRepository.findTopByPlayerIdOrderByCreatedAtDesc(p2.getId()).orElse(null) : null;
 
             AdminTeamProgressDto dto = AdminTeamProgressDto.builder()
                     .teamId(team.getId())
@@ -173,6 +244,22 @@ public class AdminDashboardService {
                     .player2SessionId(s2 != null ? s2.getId() : null)
                     .hintsUnlocked((int) hintsUnlocked)
                     .completedAt(team.getCompletedAt())
+                    // Session monitoring fields
+                    .isLoggedIn(teamSessionActive)
+                    .activeSessionsCount(activeSessionsCount)
+                    .teamSessionActive(teamSessionActive)
+                    .player1Status(p1 != null ? p1.getStatus().name() : null)
+                    .player1LoggedIn(p1LoggedIn)
+                    .player1Ready(p1 != null && Boolean.TRUE.equals(p1.getIsReady()))
+                    .player1SessionToken(s1 != null ? (s1.getSessionToken().length() > 8 ? s1.getSessionToken().substring(0, 8) + "..." : s1.getSessionToken()) : null)
+                    .player1LoginTime(s1 != null ? s1.getCreatedAt() : null)
+                    .player1LastActivity(s1 != null ? s1.getLastActivityAt() : null)
+                    .player2Status(p2 != null ? p2.getStatus().name() : null)
+                    .player2LoggedIn(p2LoggedIn)
+                    .player2Ready(p2 != null && Boolean.TRUE.equals(p2.getIsReady()))
+                    .player2SessionToken(s2 != null ? (s2.getSessionToken().length() > 8 ? s2.getSessionToken().substring(0, 8) + "..." : s2.getSessionToken()) : null)
+                    .player2LoginTime(s2 != null ? s2.getCreatedAt() : null)
+                    .player2LastActivity(s2 != null ? s2.getLastActivityAt() : null)
                     .build();
 
             dtos.add(dto);
@@ -183,8 +270,8 @@ public class AdminDashboardService {
 
     private boolean isPlayerOnline(Player player) {
         if (player == null) return false;
-        return gameSessionRepository.findTopByPlayerIdOrderByCreatedAtDesc(player.getId())
-                .map(s -> Boolean.TRUE.equals(s.getIsConnected()) && s.getStatus() == com.technicalescaperoom.backend.enums.SessionStatus.ACTIVE)
+        return gameSessionRepository.findByPlayerIdAndStatus(player.getId(), SessionStatus.ACTIVE)
+                .map(s -> Boolean.TRUE.equals(s.getIsConnected()))
                 .orElse(false);
     }
 }

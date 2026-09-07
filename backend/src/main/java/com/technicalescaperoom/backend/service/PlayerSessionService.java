@@ -443,6 +443,141 @@ public class PlayerSessionService {
     }
 
     @Transactional
+    public void resetTeamCredentialsAndSessions(com.technicalescaperoom.backend.config.security.AdminPrincipal principal, Long teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found for ID " + teamId));
+
+        log.info("Admin {} resetting credentials and sessions for Team {} (#{})",
+                principal != null ? principal.getUsername() : "SYSTEM", team.getTeamCode(), teamId);
+
+        // 1. Terminate all sessions for this team
+        for (GameSession session : gameSessionRepository.findByTeamId(teamId)) {
+            session.setStatus(SessionStatus.TERMINATED);
+            session.setIsConnected(false);
+            session.setDisconnectedAt(Instant.now());
+            gameSessionRepository.save(session);
+        }
+
+        // 2. Reset all players on this team to INACTIVE and not ready
+        for (Player player : playerRepository.findByTeamId(teamId)) {
+            player.setStatus(PlayerStatus.INACTIVE);
+            player.setIsReady(false);
+            playerRepository.save(player);
+            webSocketPublisher.notifyPlayerConnection(teamId, player.getId(), player.getPlayerNumber(), player.getDisplayName(), false);
+        }
+
+        // 3. Purge team progress, attempts, and hint usages
+        entityManager.createQuery("DELETE FROM AnswerAttempt a WHERE a.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+        entityManager.createQuery("DELETE FROM DiscoverySubmission d WHERE d.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+        entityManager.createQuery("DELETE FROM TeamStageProgress s WHERE s.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+        entityManager.createQuery("DELETE FROM TeamLevelProgress l WHERE l.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+        entityManager.createQuery("DELETE FROM HintUsage h WHERE h.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+
+        // 4. Reset team state back to clean initial state
+        team.setStatus(TeamStatus.REGISTERED);
+        team.setGameState(TeamGameState.NOT_STARTED);
+        team.setStartedAt(null);
+        team.setCompletedAt(null);
+        teamRepository.saveAndFlush(team);
+
+        // 5. Broadcast reset event over WebSocket
+        webSocketPublisher.notifyEventStatusChange(teamId, "Team session and credentials have been reset by administrator.");
+
+        auditService.logEvent(
+                GameEventType.PLAYER_LOGOUT,
+                team.getEvent(),
+                team,
+                null,
+                "{\"action\": \"RESET_TEAM_CREDENTIALS\", \"admin\": \"" + (principal != null ? principal.getUsername() : "SYSTEM") + "\"}",
+                "ADMIN"
+        );
+    }
+
+    @Transactional
+    public void resetAllSessionsAndCredentials(com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
+        log.info("Admin {} initiated global reset of all team sessions and credentials.",
+                principal != null ? principal.getUsername() : "SYSTEM");
+
+        // 1. Terminate all game sessions
+        List<GameSession> allActiveSessions = gameSessionRepository.findByStatus(SessionStatus.ACTIVE);
+        for (GameSession session : allActiveSessions) {
+            session.setStatus(SessionStatus.TERMINATED);
+            session.setIsConnected(false);
+            session.setDisconnectedAt(Instant.now());
+            gameSessionRepository.save(session);
+        }
+
+        // 2. Reset all players
+        List<Player> allPlayers = playerRepository.findAll();
+        for (Player player : allPlayers) {
+            player.setStatus(PlayerStatus.INACTIVE);
+            player.setIsReady(false);
+            playerRepository.save(player);
+        }
+
+        // 3. Reset all teams
+        List<Team> allTeams = teamRepository.findAll();
+        for (Team team : allTeams) {
+            team.setStatus(TeamStatus.REGISTERED);
+            team.setGameState(TeamGameState.NOT_STARTED);
+            team.setStartedAt(null);
+            team.setCompletedAt(null);
+            teamRepository.save(team);
+            webSocketPublisher.notifyEventStatusChange(team.getId(), "Event session reset by administrator.");
+        }
+        teamRepository.flush();
+
+        // 4. Purge all game progression tables
+        entityManager.createQuery("DELETE FROM AnswerAttempt").executeUpdate();
+        entityManager.createQuery("DELETE FROM DiscoverySubmission").executeUpdate();
+        entityManager.createQuery("DELETE FROM TeamStageProgress").executeUpdate();
+        entityManager.createQuery("DELETE FROM TeamLevelProgress").executeUpdate();
+        entityManager.createQuery("DELETE FROM HintUsage").executeUpdate();
+
+        auditService.logEvent(
+                GameEventType.PLAYER_LOGOUT,
+                null,
+                null,
+                null,
+                "{\"action\": \"RESET_ALL_SESSIONS_AND_CREDENTIALS\", \"admin\": \"" + (principal != null ? principal.getUsername() : "SYSTEM") + "\"}",
+                "ADMIN"
+        );
+    }
+
+    @Transactional
+    public void revokeAllTeamSessions(com.technicalescaperoom.backend.config.security.AdminPrincipal principal, Long teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found for ID " + teamId));
+
+        List<GameSession> activeSessions = gameSessionRepository.findByTeamIdAndStatus(teamId, SessionStatus.ACTIVE);
+        for (GameSession session : activeSessions) {
+            session.setStatus(SessionStatus.TERMINATED);
+            session.setIsConnected(false);
+            session.setDisconnectedAt(Instant.now());
+            gameSessionRepository.save(session);
+        }
+
+        for (Player player : playerRepository.findByTeamId(teamId)) {
+            player.setStatus(PlayerStatus.DISCONNECTED);
+            player.setIsReady(false);
+            playerRepository.save(player);
+            webSocketPublisher.notifyPlayerConnection(teamId, player.getId(), player.getPlayerNumber(), player.getDisplayName(), false);
+        }
+
+        auditService.logEvent(
+                GameEventType.PLAYER_LOGOUT,
+                team.getEvent(),
+                team,
+                null,
+                "{\"action\": \"REVOKE_ALL_TEAM_SESSIONS\", \"admin\": \"" + (principal != null ? principal.getUsername() : "SYSTEM") + "\"}",
+                "ADMIN"
+        );
+
+        log.info("Admin {} revoked all active sessions for Team {} (#{})",
+                principal != null ? principal.getUsername() : "SYSTEM", team.getTeamCode(), teamId);
+    }
+
+    @Transactional
     public void resetTestTeam() {
         Optional<Team> testTeamOpt = teamRepository.findByTeamCode("CODEXCAPE-TEST");
         if (testTeamOpt.isEmpty()) {

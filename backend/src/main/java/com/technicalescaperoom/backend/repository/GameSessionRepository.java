@@ -13,4 +13,7 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
     Optional<GameSession> findByPlayerIdAndStatus(Long playerId, SessionStatus status);
     Optional<GameSession> findTopByPlayerIdOrderByCreatedAtDesc(Long playerId);
     java.util.List<GameSession> findByTeamId(Long teamId);
+    java.util.List<GameSession> findByStatus(SessionStatus status);
+    java.util.List<GameSession> findByTeamIdAndStatus(Long teamId, SessionStatus status);
+    void deleteByTeamId(Long teamId);
 }

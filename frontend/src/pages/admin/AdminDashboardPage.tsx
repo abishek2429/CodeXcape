@@ -23,10 +23,18 @@ import {
   Eye,
   FileCheck,
   Edit3,
+  Trash2,
+  Radio,
+  Terminal,
+  Cpu,
 } from 'lucide-react';
 import {
   fetchDashboardStats,
   fetchTeamsProgress,
+  fetchActiveSessions,
+  resetTeamCredentials,
+  resetAllSessionsAndCredentials,
+  revokeTeamSessions,
   startEvent,
   pauseEvent,
   resumeEvent,
@@ -46,15 +54,22 @@ import {
   fetchPlayerSafePreview,
   AdminDashboardStats,
   AdminTeamProgress,
+  AdminActiveSession,
   AdminAuditLog,
 } from '../../services/adminService';
 import { AdminMissionHeader } from '../../components/admin/AdminMissionHeader';
 import { AdminSystemHealth } from '../../components/admin/AdminSystemHealth';
 
 export const AdminDashboardPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'teams' | 'controls' | 'results' | 'audit'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'teams' | 'sessions' | 'controls' | 'results' | 'audit'>('dashboard');
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [teams, setTeams] = useState<AdminTeamProgress[]>([]);
+  const [activeSessions, setActiveSessions] = useState<AdminActiveSession[]>([]);
+  const [sessionSearch, setSessionSearch] = useState('');
+  const [sessionFilter, setSessionFilter] = useState<'ALL' | 'ACTIVE_ONLY' | 'BOTH_ONLINE' | 'WAITING' | 'OFFLINE'>('ALL');
+  const [showResetAllModal, setShowResetAllModal] = useState(false);
+  const [teamToReset, setTeamToReset] = useState<{ id: number; name: string; code: string } | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,20 +102,20 @@ export const AdminDashboardPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const statsData = await fetchDashboardStats(eventId);
+      const [statsData, teamsData, logs, content, validation, sessionsData] = await Promise.all([
+        fetchDashboardStats(eventId),
+        fetchTeamsProgress(eventId, searchTerm, levelFilter, statusFilter),
+        fetchAuditLogs(),
+        fetchEventContent(eventId),
+        fetchEventValidation(eventId),
+        fetchActiveSessions(eventId),
+      ]);
       setStats(statsData);
-
-      const teamsData = await fetchTeamsProgress(eventId, searchTerm, levelFilter, statusFilter);
       setTeams(teamsData);
-
-      const logs = await fetchAuditLogs();
       setAuditLogs(logs);
-
-      const content = await fetchEventContent(eventId);
       setContentData(content);
-
-      const validation = await fetchEventValidation(eventId);
       setReadinessData(validation);
+      setActiveSessions(sessionsData);
     } catch (err: any) {
       console.error('Failed to load admin data:', err);
     } finally {
@@ -267,6 +282,71 @@ export const AdminDashboardPage: React.FC = () => {
     }
   };
 
+  const handleResetTeamCredentialsAction = async (teamId: number, teamName: string, teamCode: string) => {
+    setIsResetting(true);
+    try {
+      await resetTeamCredentials(teamId);
+      setActionMsg(`CREDENTIALS PURGED: Active sessions and credentials for ${teamName} (${teamCode}) were completely reset in database.`);
+      setTeamToReset(null);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to reset team credentials');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const handleRevokeTeamSessionsAction = async (teamId: number, teamName: string) => {
+    if (!window.confirm(`Revoke all active sessions for team "${teamName}"? Connected players will be disconnected immediately.`)) return;
+    try {
+      await revokeTeamSessions(teamId);
+      setActionMsg(`All active sessions for team ${teamName} were terminated.`);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to revoke team sessions');
+    }
+  };
+
+  const handleResetAllCredentialsAction = async () => {
+    setIsResetting(true);
+    try {
+      await resetAllSessionsAndCredentials();
+      setActionMsg('GLOBAL DIRECTIVE EXECUTED: All team sessions and credentials have been purged and reset in the database.');
+      setShowResetAllModal(false);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to reset all credentials');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const filteredSessionTeams = teams.filter((t) => {
+    if (sessionSearch.trim()) {
+      const q = sessionSearch.toLowerCase().trim();
+      const match =
+        t.teamName.toLowerCase().includes(q) ||
+        t.teamCode.toLowerCase().includes(q) ||
+        (t.player1Name && t.player1Name.toLowerCase().includes(q)) ||
+        (t.player2Name && t.player2Name.toLowerCase().includes(q));
+      if (!match) return false;
+    }
+
+    if (sessionFilter === 'ACTIVE_ONLY') {
+      return Boolean(t.isLoggedIn);
+    }
+    if (sessionFilter === 'BOTH_ONLINE') {
+      return t.connectionStatus === 'BOTH_ONLINE';
+    }
+    if (sessionFilter === 'WAITING') {
+      return Boolean(t.isLoggedIn) && t.connectionStatus !== 'BOTH_ONLINE';
+    }
+    if (sessionFilter === 'OFFLINE') {
+      return !t.isLoggedIn;
+    }
+    return true;
+  });
+
   const formatDuration = (seconds?: number) => {
     if (!seconds || seconds <= 0) return 'Not Started';
     const hrs = Math.floor(seconds / 3600);
@@ -286,6 +366,17 @@ export const AdminDashboardPage: React.FC = () => {
         connectionsCount={`${stats?.bothPlayersOnlineTeams || 0} / ${stats?.totalTeams || 0}`}
         rightAction={
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowResetAllModal(true)}
+              className="admin-btn-secondary flex items-center gap-1"
+              style={{ borderColor: 'var(--accent-danger)', color: 'var(--accent-danger)', fontSize: '11px', padding: '6px 12px' }}
+              title="Purge all sessions and reset player login credentials across the database"
+              id="header-reset-all-credentials-btn"
+            >
+              <Trash2 size={13} />
+              <span>RESET ALL SESSIONS</span>
+            </button>
+
             <button
               onClick={() => setShowEmergencyModal(true)}
               className="admin-btn-danger flex items-center gap-2"
@@ -372,6 +463,88 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       )}
 
+      {/* Global Reset All Sessions & Credentials Modal */}
+      {showResetAllModal && (
+        <div className="flex items-center justify-center" style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
+          <div className="admin-panel" style={{ maxWidth: '540px', width: '90%', border: '1px solid var(--accent-danger)' }}>
+            <div className="text-danger flex items-center gap-2" style={{ marginBottom: '16px' }}>
+              <AlertOctagon size={24} className="animate-pulse" />
+              <h2 className="text-primary" style={{ margin: 0, fontSize: '16px' }}>PURGE ALL SESSIONS & RESET DATABASE</h2>
+            </div>
+            <p style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+              <strong style={{ color: 'var(--accent-danger)' }}>AUTHORITATIVE RESET:</strong> Are you sure you want to completely reset all team sessions and credentials?
+            </p>
+            <ul style={{ fontSize: '12px', lineHeight: '1.8', color: 'var(--text-primary)', marginBottom: '20px', paddingLeft: '20px' }}>
+              <li>Terminates all active player sessions across every team</li>
+              <li>Disconnects connected players and redirects them back to login</li>
+              <li>Resets all players to <span className="text-accent">INACTIVE</span> &amp; <span className="text-accent">is_ready = false</span></li>
+              <li>Resets all team states to <span className="text-accent">NOT_STARTED</span> in the database</li>
+              <li>Purges past answer attempts, stage progress, and hint usages</li>
+            </ul>
+            <div className="flex gap-2" style={{ justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowResetAllModal(false)}
+                className="admin-btn-secondary"
+                disabled={isResetting}
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                onClick={handleResetAllCredentialsAction}
+                className="admin-btn-danger text-primary"
+                disabled={isResetting}
+                id="confirm-global-reset-btn"
+              >
+                {isResetting ? 'PURGING DATABASE...' : 'CONFIRM RESET ALL SESSIONS'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Single Team Credentials Modal */}
+      {teamToReset && (
+        <div className="flex items-center justify-center" style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
+          <div className="admin-panel" style={{ maxWidth: '500px', width: '90%', border: '1px solid var(--accent-danger)' }}>
+            <div className="text-danger flex items-center gap-2" style={{ marginBottom: '16px' }}>
+              <AlertTriangle size={24} />
+              <h2 className="text-primary" style={{ margin: 0, fontSize: '16px' }}>RESET TEAM CREDENTIALS</h2>
+            </div>
+            <p style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+              Reset login credentials, terminate sessions, and clean state for:
+            </p>
+            <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.4)', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-dim)', marginBottom: '14px' }}>
+              <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>{teamToReset.name}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--accent-cyan)', marginTop: '4px' }}>CODE: {teamToReset.code}</div>
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              This will disconnect both operators, terminate active tokens in the database, clear their ready status, and restore the team to the pre-game lobby.
+            </p>
+            <div className="flex gap-2" style={{ justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setTeamToReset(null)}
+                className="admin-btn-secondary"
+                disabled={isResetting}
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                onClick={() => handleResetTeamCredentialsAction(teamToReset.id, teamToReset.name, teamToReset.code)}
+                className="admin-btn-danger text-primary"
+                disabled={isResetting}
+                id="confirm-team-reset-btn"
+              >
+                {isResetting ? 'RESETTING...' : 'RESET CREDENTIALS'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Safe Player Preview Modal */}
       {previewPlayerNum && safePreview && (
         <div className="flex items-center justify-center">
@@ -447,6 +620,23 @@ export const AdminDashboardPage: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('sessions')}
+          className={`admin-dynamic-element ${activeTab === 'sessions' ? 'active' : ''}`}
+          id="admin-active-sessions-tab"
+        >
+          <Radio size={14} className={stats?.totalActiveSessions && stats.totalActiveSessions > 0 ? 'text-success animate-pulse' : ''} />
+          <span>ACTIVE SESSIONS & LOGINS</span>
+          {stats?.totalActiveSessions !== undefined && (
+            <span
+              className={stats.totalActiveSessions > 0 ? 'badge-status-online' : 'badge-status-offline'}
+              style={{ fontSize: '10px', marginLeft: '6px', padding: '1px 7px', borderRadius: '10px', fontWeight: 800 }}
+            >
+              {stats.totalActiveSessions} LIVE
+            </span>
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveTab('controls')}
           className={`admin-dynamic-element ${activeTab === 'controls' ? 'active' : ''}`}
         >
@@ -518,6 +708,38 @@ export const AdminDashboardPage: React.FC = () => {
                   COMPLETED TEAMS
                 </p>
                 <p className="text-success">{stats.completedTeams}</p>
+              </div>
+
+              <div
+                className="admin-panel"
+                style={{ cursor: 'pointer', border: '1px solid rgba(14, 165, 233, 0.3)' }}
+                onClick={() => setActiveTab('sessions')}
+                title="Click to view all logged-in teams and active sessions"
+              >
+                <p className="text-secondary flex items-center gap-2">
+                  <Radio className="text-accent" />
+                  LOGGED-IN TEAMS
+                </p>
+                <p className="text-primary font-bold">
+                  {stats.totalLoggedInTeams ?? teams.filter(t => t.isLoggedIn).length} <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>/ {stats.totalTeams}</span>
+                </p>
+                <span style={{ fontSize: '10px', color: 'var(--accent-cyan)' }}>View Session Monitor &rarr;</span>
+              </div>
+
+              <div
+                className="admin-panel"
+                style={{ cursor: 'pointer', border: '1px solid rgba(16, 185, 129, 0.3)' }}
+                onClick={() => setActiveTab('sessions')}
+                title="Click to view live operator sessions"
+              >
+                <p className="text-secondary flex items-center gap-2">
+                  <Activity className="text-success" />
+                  ACTIVE SESSIONS
+                </p>
+                <p className="text-success font-bold">
+                  {stats.totalActiveSessions ?? activeSessions.length} LIVE
+                </p>
+                <span style={{ fontSize: '10px', color: 'var(--status-success)' }}>Real-time Link Pulse</span>
               </div>
 
               <div className="admin-panel">
@@ -887,7 +1109,8 @@ export const AdminDashboardPage: React.FC = () => {
                     </tr>
                   ) : (
                     teams.map((t) => {
-                      const isOnline = t.connectionStatus === 'ONLINE';
+                      const isOnline = t.connectionStatus === 'BOTH_ONLINE';
+                      const isPartial = t.connectionStatus === 'ONE_ONLINE';
                       const isWaiting = t.connectionStatus === 'WAITING';
                       return (
                         <tr key={t.teamId}>
@@ -949,8 +1172,8 @@ export const AdminDashboardPage: React.FC = () => {
                             </div>
                           </td>
                           <td>
-                            <span className={isOnline ? 'badge-status-online' : isWaiting ? 'badge-status-waiting' : 'badge-status-offline'}>
-                              {t.connectionStatus || 'OFFLINE'}
+                            <span className={isOnline ? 'badge-status-online' : isPartial ? 'badge-status-waiting' : isWaiting ? 'badge-status-waiting' : 'badge-status-offline'}>
+                              {isOnline ? 'BOTH ONLINE' : isPartial ? '1 NODE ONLINE' : isWaiting ? 'LOBBY WAITING' : 'OFFLINE'}
                             </span>
                           </td>
                           <td className="text-warning font-bold">{t.hintsUnlocked} / 6</td>
@@ -986,6 +1209,16 @@ export const AdminDashboardPage: React.FC = () => {
                                 <RotateCcw size={12} />
                                 <span>Reset</span>
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => setTeamToReset({ id: t.teamId, name: t.teamName, code: t.teamCode })}
+                                className="admin-btn-danger"
+                                style={{ padding: '4px 10px', fontSize: '11px' }}
+                                title="Reset credentials and purge all sessions for this team"
+                              >
+                                <Trash2 size={12} />
+                                <span>Credentials</span>
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -994,6 +1227,343 @@ export const AdminDashboardPage: React.FC = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* ACTIVE SESSIONS & LOGINS MONITOR TAB */}
+        {activeTab === 'sessions' && (
+          <div className="flex" style={{ flexDirection: 'column', gap: '16px' }}>
+            {/* Top Telemetry & Controls Box */}
+            <div className="admin-panel" style={{ borderLeft: '4px solid var(--accent-cyan)' }}>
+              <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h3 className="text-primary flex items-center gap-2" style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>
+                    <Radio size={18} className="text-accent animate-pulse" />
+                    <span>ACTIVE TEAM SESSIONS & LOGIN REGISTRY</span>
+                  </h3>
+                  <p className="text-secondary" style={{ marginTop: '4px', margin: 0 }}>
+                    Real-time console logins, active session tokens, and operator readiness telemetry
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowResetAllModal(true)}
+                    className="admin-btn-danger flex items-center gap-2"
+                    id="sessions-tab-reset-all-btn"
+                  >
+                    <Trash2 size={13} />
+                    <span>RESET ALL CREDENTIALS & SESSIONS</span>
+                  </button>
+                  <button
+                    onClick={loadData}
+                    className="admin-btn-secondary"
+                    title="Refresh session states"
+                  >
+                    <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+                    <span>REFRESH</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Aggregated Quick Metrics */}
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginTop: '16px', gap: '12px' }}>
+                <div style={{ background: 'rgba(14, 165, 233, 0.08)', padding: '12px', borderRadius: 'var(--radius-xs)', border: '1px solid rgba(14, 165, 233, 0.2)' }}>
+                  <p className="text-secondary" style={{ fontSize: '10px' }}>LOGGED-IN TEAMS</p>
+                  <p style={{ fontSize: '20px', fontWeight: 900, color: 'var(--accent-cyan)', margin: '4px 0 0 0' }}>
+                    {teams.filter(t => t.isLoggedIn).length} <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/ {teams.length}</span>
+                  </p>
+                </div>
+                <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '12px', borderRadius: 'var(--radius-xs)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                  <p className="text-secondary" style={{ fontSize: '10px' }}>ACTIVE PLAYER SESSIONS</p>
+                  <p style={{ fontSize: '20px', fontWeight: 900, color: 'var(--status-success)', margin: '4px 0 0 0' }}>
+                    {activeSessions.length} LIVE
+                  </p>
+                </div>
+                <div style={{ background: 'rgba(245, 158, 11, 0.08)', padding: '12px', borderRadius: 'var(--radius-xs)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                  <p className="text-secondary" style={{ fontSize: '10px' }}>BOTH NODES ACTIVE</p>
+                  <p style={{ fontSize: '20px', fontWeight: 900, color: 'var(--status-warning)', margin: '4px 0 0 0' }}>
+                    {teams.filter(t => t.connectionStatus === 'BOTH_ONLINE').length} TEAMS
+                  </p>
+                </div>
+                <div style={{ background: 'rgba(225, 29, 72, 0.08)', padding: '12px', borderRadius: 'var(--radius-xs)', border: '1px solid rgba(225, 29, 72, 0.2)' }}>
+                  <p className="text-secondary" style={{ fontSize: '10px' }}>AWAITING PARTNER / OFFLINE</p>
+                  <p style={{ fontSize: '20px', fontWeight: 900, color: 'var(--status-error)', margin: '4px 0 0 0' }}>
+                    {teams.filter(t => !t.isLoggedIn || t.connectionStatus === 'WAITING' || t.connectionStatus === 'ONE_ONLINE').length} TEAMS
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="admin-panel flex items-center justify-between" style={{ flexWrap: 'wrap', gap: '12px', padding: '12px 16px' }}>
+              <div className="relative flex items-center" style={{ minWidth: '280px', flex: 1 }}>
+                <Search size={14} className="absolute" style={{ left: '10px', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Filter by team name, security code, or operator..."
+                  value={sessionSearch}
+                  onChange={(e) => setSessionSearch(e.target.value)}
+                  style={{ paddingLeft: '32px', width: '100%' }}
+                />
+              </div>
+
+              <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
+                <span className="text-secondary">FILTER:</span>
+                {[
+                  { key: 'ALL', label: `ALL (${teams.length})` },
+                  { key: 'ACTIVE_ONLY', label: `ACTIVE LOGINS (${teams.filter(t => t.isLoggedIn).length})` },
+                  { key: 'BOTH_ONLINE', label: 'BOTH LIVE' },
+                  { key: 'WAITING', label: 'WAITING / PARTIAL' },
+                  { key: 'OFFLINE', label: 'OFFLINE' },
+                ].map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setSessionFilter(f.key as any)}
+                    className={`admin-dynamic-element ${sessionFilter === f.key ? 'active' : ''}`}
+                    style={{ fontSize: '11px', padding: '4px 10px' }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Team Active Session Cards Matrix */}
+            <div className="flex" style={{ flexDirection: 'column', gap: '14px' }}>
+              {filteredSessionTeams.length === 0 ? (
+                <div className="admin-panel flex items-center justify-center" style={{ padding: '48px', flexDirection: 'column', gap: '12px' }}>
+                  <Users size={32} className="text-secondary" />
+                  <p className="text-primary font-bold">No teams match the current session filter.</p>
+                  <p className="text-secondary">Try switching filters or verify team logins.</p>
+                </div>
+              ) : (
+                filteredSessionTeams.map((t) => {
+                  const isBothLive = t.connectionStatus === 'BOTH_ONLINE';
+                  const isOneLive = t.connectionStatus === 'ONE_ONLINE';
+                  const isWaiting = t.connectionStatus === 'WAITING';
+
+                  return (
+                    <div
+                      key={t.teamId}
+                      className="admin-panel"
+                      style={{
+                        borderLeft: isBothLive
+                          ? '4px solid var(--status-success)'
+                          : isOneLive || isWaiting
+                          ? '4px solid var(--status-warning)'
+                          : '4px solid var(--border-dim)',
+                        background: t.isLoggedIn ? 'rgba(14, 165, 233, 0.03)' : undefined,
+                        marginBottom: '4px',
+                      }}
+                    >
+                      {/* Team Header Row */}
+                      <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid var(--border-dim)', paddingBottom: '12px', marginBottom: '14px' }}>
+                        <div className="flex items-center gap-3">
+                          <div style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)' }}>
+                            {t.teamName}
+                          </div>
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '11px',
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-xs)',
+                              backgroundColor: 'rgba(14, 165, 233, 0.15)',
+                              border: '1px solid var(--accent-cyan)',
+                              color: 'var(--accent-cyan)',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {t.teamCode}
+                          </span>
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              borderRadius: 'var(--radius-xs)',
+                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid var(--border-dim)',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            STATE: {t.gameState}
+                          </span>
+                        </div>
+
+                        {/* Overall Session Pill & Actions */}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={
+                              isBothLive
+                                ? 'badge-status-online'
+                                : isOneLive || isWaiting
+                                ? 'badge-status-waiting'
+                                : 'badge-status-offline'
+                            }
+                            style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '12px' }}
+                          >
+                            {isBothLive
+                              ? '● BOTH PLAYERS LOGGED IN'
+                              : isOneLive
+                              ? '◐ 1 OPERATOR LOGGED IN'
+                              : isWaiting
+                              ? '◑ LOGGED IN (WAITING)'
+                              : '○ NO ACTIVE SESSIONS'}
+                          </span>
+
+                          {t.isLoggedIn && (
+                            <button
+                              type="button"
+                              onClick={() => handleRevokeTeamSessionsAction(t.teamId, t.teamName)}
+                              className="admin-btn-secondary"
+                              style={{ fontSize: '11px', padding: '4px 10px' }}
+                              title="Disconnect both players without clearing credentials"
+                            >
+                              Revoke Sessions
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setTeamToReset({ id: t.teamId, name: t.teamName, code: t.teamCode })}
+                            className="admin-btn-danger"
+                            style={{ fontSize: '11px', padding: '4px 10px' }}
+                            title="Reset team credentials and purge all sessions from database"
+                          >
+                            <Trash2 size={12} />
+                            <span>Reset Credentials</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Operator 1 & Analyzer 2 Session Nodes */}
+                      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                        {/* Operator Node 01 */}
+                        <div
+                          style={{
+                            padding: '12px 14px',
+                            borderRadius: 'var(--radius-xs)',
+                            background: t.player1LoggedIn ? 'rgba(16, 185, 129, 0.05)' : 'rgba(0, 0, 0, 0.25)',
+                            border: t.player1LoggedIn ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-dim)',
+                          }}
+                        >
+                          <div className="flex items-center justify-between" style={{ marginBottom: '8px' }}>
+                            <div className="flex items-center gap-2">
+                              <Terminal size={14} className={t.player1LoggedIn ? 'text-success' : 'text-secondary'} />
+                              <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+                                {t.player1Name || 'Operator 1'}
+                              </span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>[SLOT 1]</span>
+                            </div>
+                            <span
+                              className={t.player1Connected ? 'badge-status-online' : t.player1LoggedIn ? 'badge-status-waiting' : 'badge-status-offline'}
+                              style={{ fontSize: '9px', padding: '2px 6px' }}
+                            >
+                              {t.player1Connected ? 'ONLINE' : t.player1LoggedIn ? 'CONNECTED' : 'NOT LOGGED IN'}
+                            </span>
+                          </div>
+
+                          <div className="flex" style={{ flexDirection: 'column', gap: '4px', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-secondary">SESSION TOKEN:</span>
+                              <span style={{ color: t.player1SessionToken ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
+                                {t.player1SessionToken || 'None'}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-secondary">LOBBY READINESS:</span>
+                              <span style={{ color: t.player1Ready ? 'var(--status-success)' : 'var(--status-warning)', fontWeight: 700 }}>
+                                {t.player1Ready ? '✓ READY' : 'WAITING'}
+                              </span>
+                            </div>
+                            {t.player1LoginTime && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-secondary">LOGGED IN:</span>
+                                <span className="text-secondary">{new Date(t.player1LoginTime).toLocaleTimeString()}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {t.player1SessionId && (
+                            <div className="flex" style={{ justifyContent: 'flex-end', marginTop: '10px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleRevokeSessionAction(t.player1SessionId, t.player1Name)}
+                                className="text-danger"
+                                style={{ fontSize: '10px', padding: '2px 8px', border: '1px solid rgba(225, 29, 72, 0.4)', borderRadius: 'var(--radius-xs)' }}
+                              >
+                                Revoke Operator Session
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Analyzer Node 02 */}
+                        <div
+                          style={{
+                            padding: '12px 14px',
+                            borderRadius: 'var(--radius-xs)',
+                            background: t.player2LoggedIn ? 'rgba(16, 185, 129, 0.05)' : 'rgba(0, 0, 0, 0.25)',
+                            border: t.player2LoggedIn ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-dim)',
+                          }}
+                        >
+                          <div className="flex items-center justify-between" style={{ marginBottom: '8px' }}>
+                            <div className="flex items-center gap-2">
+                              <Cpu size={14} className={t.player2LoggedIn ? 'text-success' : 'text-secondary'} />
+                              <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+                                {t.player2Name || 'Analyzer 2'}
+                              </span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>[SLOT 2]</span>
+                            </div>
+                            <span
+                              className={t.player2Connected ? 'badge-status-online' : t.player2LoggedIn ? 'badge-status-waiting' : 'badge-status-offline'}
+                              style={{ fontSize: '9px', padding: '2px 6px' }}
+                            >
+                              {t.player2Connected ? 'ONLINE' : t.player2LoggedIn ? 'CONNECTED' : 'NOT LOGGED IN'}
+                            </span>
+                          </div>
+
+                          <div className="flex" style={{ flexDirection: 'column', gap: '4px', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-secondary">SESSION TOKEN:</span>
+                              <span style={{ color: t.player2SessionToken ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
+                                {t.player2SessionToken || 'None'}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-secondary">LOBBY READINESS:</span>
+                              <span style={{ color: t.player2Ready ? 'var(--status-success)' : 'var(--status-warning)', fontWeight: 700 }}>
+                                {t.player2Ready ? '✓ READY' : 'WAITING'}
+                              </span>
+                            </div>
+                            {t.player2LoginTime && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-secondary">LOGGED IN:</span>
+                                <span className="text-secondary">{new Date(t.player2LoginTime).toLocaleTimeString()}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {t.player2SessionId && (
+                            <div className="flex" style={{ justifyContent: 'flex-end', marginTop: '10px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleRevokeSessionAction(t.player2SessionId, t.player2Name)}
+                                className="text-danger"
+                                style={{ fontSize: '10px', padding: '2px 8px', border: '1px solid rgba(225, 29, 72, 0.4)', borderRadius: 'var(--radius-xs)' }}
+                              >
+                                Revoke Analyzer Session
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}

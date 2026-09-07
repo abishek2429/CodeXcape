@@ -102,6 +102,35 @@ public class AdminTeamController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/events/{eventId}/active-sessions")
+    public ResponseEntity<List<AdminActiveSessionDto>> getActiveSessions(@PathVariable Long eventId) {
+        List<AdminActiveSessionDto> response = adminDashboardService.getActiveSessions(eventId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/teams/{teamId}/reset-credentials")
+    public ResponseEntity<Void> resetTeamCredentials(
+            @PathVariable Long teamId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
+        playerSessionService.resetTeamCredentialsAndSessions(principal, teamId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/teams/{teamId}/revoke-sessions")
+    public ResponseEntity<Void> revokeTeamSessions(
+            @PathVariable Long teamId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
+        playerSessionService.revokeAllTeamSessions(principal, teamId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/sessions/reset-all")
+    public ResponseEntity<Void> resetAllSessions(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.technicalescaperoom.backend.config.security.AdminPrincipal principal) {
+        playerSessionService.resetAllSessionsAndCredentials(principal);
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/teams/{teamId}")
     public ResponseEntity<Void> deleteTeam(@PathVariable Long teamId) {
         teamService.deleteTeam(teamId);

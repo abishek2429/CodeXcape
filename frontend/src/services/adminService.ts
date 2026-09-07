@@ -9,11 +9,33 @@ export interface AdminDashboardStats {
   bothPlayersOnlineTeams: number;
   onePlayerOfflineTeams: number;
   bothPlayersOfflineTeams: number;
+  totalLoggedInTeams?: number;
+  totalActiveSessions?: number;
   serverStatus: string;
   eventDurationSeconds?: number;
   startTime?: string;
   endTime?: string;
   levelDistribution: Record<number, number>;
+}
+
+export interface AdminActiveSession {
+  sessionId: number;
+  teamId: number;
+  teamCode: string;
+  teamName: string;
+  playerId: number;
+  playerNumber: number;
+  playerName: string;
+  playerRole: string; // 'OPERATOR' | 'ANALYZER'
+  playerStatus: string;
+  isReady: boolean;
+  sessionToken?: string;
+  sessionTokenPreview: string;
+  sessionStatus: string;
+  isConnected: boolean;
+  createdAt: string;
+  lastActivityAt: string;
+  teamGameState: string;
 }
 
 export interface AdminTeamProgress {
@@ -34,6 +56,25 @@ export interface AdminTeamProgress {
   player2SessionId?: number;
   hintsUnlocked: number;
   completedAt?: string;
+
+  // Active session and login monitoring metadata
+  isLoggedIn?: boolean;
+  activeSessionsCount?: number;
+  teamSessionActive?: boolean;
+
+  player1Status?: string;
+  player1LoggedIn?: boolean;
+  player1Ready?: boolean;
+  player1SessionToken?: string;
+  player1LoginTime?: string;
+  player1LastActivity?: string;
+
+  player2Status?: string;
+  player2LoggedIn?: boolean;
+  player2Ready?: boolean;
+  player2SessionToken?: string;
+  player2LoginTime?: string;
+  player2LastActivity?: string;
 }
 
 export interface AdminAuditLog {
@@ -164,6 +205,42 @@ export async function resetTeam(teamId: number): Promise<void> {
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to reset team.');
+}
+
+export async function fetchActiveSessions(eventId: number): Promise<AdminActiveSession[]> {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/active-sessions`, {
+    headers: ADMIN_HEADERS,
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to fetch active sessions.');
+  return res.json();
+}
+
+export async function resetTeamCredentials(teamId: number): Promise<void> {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/teams/${teamId}/reset-credentials`, {
+    method: 'POST',
+    headers: ADMIN_HEADERS,
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to reset team credentials.');
+}
+
+export async function revokeTeamSessions(teamId: number): Promise<void> {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/teams/${teamId}/revoke-sessions`, {
+    method: 'POST',
+    headers: ADMIN_HEADERS,
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to revoke team sessions.');
+}
+
+export async function resetAllSessionsAndCredentials(): Promise<void> {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/sessions/reset-all`, {
+    method: 'POST',
+    headers: ADMIN_HEADERS,
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to reset all sessions and credentials.');
 }
 
 export async function fetchAuditLogs(): Promise<AdminAuditLog[]> {
