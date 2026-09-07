@@ -2,15 +2,21 @@ import { PlayerInfo, PlayerLoginRequest } from '../types/player';
 
 const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/player` : '/api/player';
 
+export function getAuthHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
+  const token = sessionStorage.getItem('codexcape_session');
+  return {
+    'Accept': 'application/json',
+    ...(token ? { 'X-Player-Session': token } : {}),
+    ...additionalHeaders,
+  };
+}
+
 export async function loginPlayer(payload: PlayerLoginRequest): Promise<PlayerInfo> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE}/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       credentials: 'include',
       body: JSON.stringify(payload),
     });
@@ -23,16 +29,18 @@ export async function loginPlayer(payload: PlayerLoginRequest): Promise<PlayerIn
     throw new Error(errorData.message || 'Login failed');
   }
 
-  return response.json();
+  const data = await response.json();
+  if (data.sessionToken) {
+    sessionStorage.setItem('codexcape_session', data.sessionToken);
+  }
+  return data;
 }
 
 export async function getCurrentPlayer(): Promise<PlayerInfo | null> {
   try {
     const response = await fetch(`${API_BASE}/me`, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders(),
       credentials: 'include',
       cache: 'no-store',
     });
@@ -45,7 +53,11 @@ export async function getCurrentPlayer(): Promise<PlayerInfo | null> {
       return null;
     }
 
-    return await response.json();
+    const data = await response.json();
+    if (data.sessionToken) {
+      sessionStorage.setItem('codexcape_session', data.sessionToken);
+    }
+    return data;
   } catch (err) {
     return null;
   }
@@ -54,9 +66,7 @@ export async function getCurrentPlayer(): Promise<PlayerInfo | null> {
 export async function fetchLobbyState(): Promise<PlayerInfo> {
   const response = await fetch(`${API_BASE}/lobby`, {
     method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
     cache: 'no-store',
   });
@@ -66,16 +76,17 @@ export async function fetchLobbyState(): Promise<PlayerInfo> {
     throw new Error(errorData.message || 'Failed to fetch team lobby state.');
   }
 
-  return response.json();
+  const data = await response.json();
+  if (data.sessionToken) {
+    sessionStorage.setItem('codexcape_session', data.sessionToken);
+  }
+  return data;
 }
 
 export async function setPlayerReady(ready: boolean): Promise<PlayerInfo> {
   const response = await fetch(`${API_BASE}/ready`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     credentials: 'include',
     body: JSON.stringify({ ready }),
   });
@@ -85,15 +96,17 @@ export async function setPlayerReady(ready: boolean): Promise<PlayerInfo> {
     throw new Error(errorData.message || 'Failed to update readiness.');
   }
 
-  return response.json();
+  const data = await response.json();
+  if (data.sessionToken) {
+    sessionStorage.setItem('codexcape_session', data.sessionToken);
+  }
+  return data;
 }
 
 export async function startTeamEvent(): Promise<PlayerInfo> {
   const response = await fetch(`${API_BASE}/event/start`, {
     method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
 
@@ -102,16 +115,19 @@ export async function startTeamEvent(): Promise<PlayerInfo> {
     throw new Error(errorData.message || 'Failed to start event.');
   }
 
-  return response.json();
+  const data = await response.json();
+  if (data.sessionToken) {
+    sessionStorage.setItem('codexcape_session', data.sessionToken);
+  }
+  return data;
 }
 
 export async function logoutPlayer(): Promise<void> {
+  sessionStorage.removeItem('codexcape_session');
   try {
     await fetch(`${API_BASE}/logout`, {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
   } catch (err) {

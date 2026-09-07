@@ -55,8 +55,11 @@ export class GameWebSocketService {
 
     this.updateStatus('RECONNECTING');
 
+    const token = sessionStorage.getItem('codexcape_session');
+
     this.client = new Client({
       brokerURL: wsUrl,
+      connectHeaders: token ? { 'sessionToken': token } : {},
       reconnectDelay: 3000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,

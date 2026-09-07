@@ -1,4 +1,5 @@
 import { LevelProgressItem } from '../types/game';
+import { getAuthHeaders } from './playerAuthService';
 
 export interface PlayerGameStateResponse {
   teamCode: string;
@@ -25,9 +26,7 @@ export async function fetchPlayerGameState(): Promise<PlayerGameStateResponse | 
   try {
     const response = await fetch(API_BASE, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders(),
       credentials: 'include',
       cache: 'no-store',
     });
@@ -46,9 +45,7 @@ export async function fetchCurrentLevel(): Promise<CurrentLevelResponse | null> 
   try {
     const response = await fetch(`${API_BASE}/current`, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders(),
       credentials: 'include',
       cache: 'no-store',
     });

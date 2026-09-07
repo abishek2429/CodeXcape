@@ -32,4 +32,7 @@ public class PlayerResponseDto {
     private Integer teammateNumber;
     private Boolean teammateLoggedIn;
     private Boolean teammateReady;
+
+    // Authentication token fallback
+    private String sessionToken;
 }

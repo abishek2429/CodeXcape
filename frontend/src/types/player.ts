@@ -20,6 +20,9 @@ export interface PlayerInfo {
   teammateNumber?: number | null;
   teammateLoggedIn?: boolean;
   teammateReady?: boolean;
+
+  // Authentication token fallback
+  sessionToken?: string;
 }
 
 export type AuthStatus = 'INITIALIZING' | 'NOT_AUTHENTICATED' | 'AUTHENTICATED' | 'SESSION_EXPIRED' | 'LOGGED_OUT';

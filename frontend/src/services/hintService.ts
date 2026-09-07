@@ -1,4 +1,5 @@
 import { HintData } from '../types/game';
+import { getAuthHeaders } from './playerAuthService';
 
 export interface PlayerHintResponse {
   levelNumber: number;
@@ -17,9 +18,7 @@ export async function fetchPlayerHints(): Promise<HintData[]> {
   try {
     const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/player/game/hints`, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders(),
       credentials: 'include',
       cache: 'no-store',
     });
@@ -43,7 +42,7 @@ export async function fetchPlayerHints(): Promise<HintData[]> {
 export async function usePlayerHint(levelNumber: number, stageNumber: number, hintNumber: number): Promise<PlayerHintResponse> {
   const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/player/game/hints/${levelNumber}/${stageNumber}/${hintNumber}`, {
     method: 'POST',
-    headers: { 'Accept': 'application/json' },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
   const data = await response.json().catch(() => ({}));

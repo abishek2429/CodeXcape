@@ -154,7 +154,7 @@ public class PlayerSessionService {
 
                 setSessionCookie(response, activeSession.getSessionToken());
                 webSocketPublisher.notifyPlayerConnection(team.getId(), player.getId(), player.getPlayerNumber(), player.getDisplayName(), true);
-                return mapToResponse(team, player);
+                return mapToResponse(team, player, activeSession.getSessionToken());
             } else if ("CODEXCAPE-TEST".equalsIgnoreCase(team.getTeamCode()) || team.getGameState() == TeamGameState.NOT_STARTED) {
                 // Pre-event lobby OR test team: Repeated logins permitted without penalty or locking.
                 // Terminate previous session and establish fresh session.
@@ -210,7 +210,7 @@ public class PlayerSessionService {
 
         // Set Cookie & return DTO
         setSessionCookie(response, newToken);
-        return mapToResponse(team, player);
+        return mapToResponse(team, player, newToken);
     }
 
     @Transactional
@@ -247,7 +247,7 @@ public class PlayerSessionService {
             }
         }
 
-        return mapToResponse(team, player);
+        return mapToResponse(team, player, principal.getSessionToken());
     }
 
     @Transactional(readOnly = true)
@@ -262,7 +262,7 @@ public class PlayerSessionService {
         Player player = playerRepository.findById(principal.getPlayerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Player not found."));
 
-        return mapToResponse(team, player);
+        return mapToResponse(team, player, principal.getSessionToken());
     }
 
     @Transactional
@@ -296,7 +296,7 @@ public class PlayerSessionService {
                 .build();
         webSocketPublisher.broadcastToTeam(team.getId(), readyEvent);
 
-        return mapToResponse(team, player);
+        return mapToResponse(team, player, principal.getSessionToken());
     }
 
     @Transactional
@@ -322,7 +322,7 @@ public class PlayerSessionService {
 
         // Idempotency: if already started, return current state
         if (team.getGameState() != TeamGameState.NOT_STARTED) {
-            return mapToResponse(team, player);
+            return mapToResponse(team, player, principal.getSessionToken());
         }
 
         // Two-Player Start Verification
@@ -375,7 +375,7 @@ public class PlayerSessionService {
         webSocketPublisher.broadcastToTeam(team.getId(), startEvent);
 
         log.info("Team ID {} ({}) officially started event at {}", team.getId(), team.getTeamCode(), serverStartTime);
-        return mapToResponse(team, player);
+        return mapToResponse(team, player, principal.getSessionToken());
     }
 
     @Transactional
@@ -521,7 +521,7 @@ public class PlayerSessionService {
         return null;
     }
 
-    private PlayerResponseDto mapToResponse(Team team, Player player) {
+    private PlayerResponseDto mapToResponse(Team team, Player player, String sessionToken) {
         Integer teammateNumber = player.getPlayerNumber() == 1 ? 2 : 1;
         Optional<Player> teammateOpt = playerRepository.findByTeamIdAndPlayerNumber(team.getId(), teammateNumber);
 
@@ -537,6 +537,7 @@ public class PlayerSessionService {
         }
 
         return PlayerResponseDto.builder()
+                .sessionToken(sessionToken)
                 .teamCode(team.getTeamCode())
                 .teamName(team.getTeamName())
                 .playerNumber(player.getPlayerNumber())

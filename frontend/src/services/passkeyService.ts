@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './playerAuthService';
+
 export interface FinalPasskeyResponse {
   status: 'COMPLETED' | 'INCORRECT' | 'FINAL_NOT_AVAILABLE' | 'ALREADY_COMPLETED';
   message: string;
@@ -9,10 +11,7 @@ export async function submitFinalPasskey(passkey: string): Promise<FinalPasskeyR
   try {
     response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/player/game/final-passkey`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       credentials: 'include',
       body: JSON.stringify({ passkey }),
     });

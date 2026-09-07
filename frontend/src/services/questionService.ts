@@ -1,4 +1,5 @@
 import { AnswerType } from '../types/game';
+import { getAuthHeaders } from './playerAuthService';
 
 export interface PlayerQuestionResponse {
   levelNumber: number;
@@ -29,9 +30,7 @@ export async function fetchCurrentQuestion(): Promise<PlayerQuestionResponse | n
   try {
     const response = await fetch(`${API_BASE}/question`, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders(),
       credentials: 'include',
       cache: 'no-store',
     });
@@ -51,10 +50,7 @@ export async function submitAnswer(answer: string, interactionPayload?: string):
   try {
     response = await fetch(`${API_BASE}/answer`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       credentials: 'include',
       body: JSON.stringify({ answer, interactionPayload }),
     });
