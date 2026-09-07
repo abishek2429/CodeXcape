@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,4 +20,16 @@ public class PlayerResponseDto {
     private Long eventId;
     private Long teamId;
     private Long playerId;
+
+    // Team Lobby & Event Start Telemetry
+    private Boolean isReady;
+    private String gameState;
+    private String eventStatus;
+    private Instant eventStartedAt;
+
+    // Teammate Telemetry
+    private String teammateName;
+    private Integer teammateNumber;
+    private Boolean teammateLoggedIn;
+    private Boolean teammateReady;
 }

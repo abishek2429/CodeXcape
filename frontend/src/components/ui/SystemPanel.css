@@ -1,0 +1,96 @@
+.system-panel {
+  position: relative;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.75);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.system-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.system-panel-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.system-panel-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.system-panel-title {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+
+.system-panel-cyan {
+  border-color: rgba(0, 217, 255, 0.25);
+}
+
+.system-panel-crimson {
+  border-color: rgba(225, 29, 72, 0.35);
+  box-shadow: 0 4px 24px rgba(225, 29, 72, 0.1);
+}
+
+/* Corner Notch Accents */
+.system-panel-notch-tl,
+.system-panel-notch-tr,
+.system-panel-notch-bl,
+.system-panel-notch-br {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  pointer-events: none;
+}
+
+.system-panel-notch-tl {
+  top: 0;
+  left: 0;
+  border-top: 2px solid var(--accent-cyan);
+  border-left: 2px solid var(--accent-cyan);
+}
+
+.system-panel-notch-tr {
+  top: 0;
+  right: 0;
+  border-top: 2px solid var(--accent-cyan);
+  border-right: 2px solid var(--accent-cyan);
+}
+
+.system-panel-notch-bl {
+  bottom: 0;
+  left: 0;
+  border-bottom: 2px solid var(--accent-cyan);
+  border-left: 2px solid var(--accent-cyan);
+}
+
+.system-panel-notch-br {
+  bottom: 0;
+  right: 0;
+  border-bottom: 2px solid var(--accent-cyan);
+  border-right: 2px solid var(--accent-cyan);
+}
+
+.system-panel-crimson .system-panel-notch-tl,
+.system-panel-crimson .system-panel-notch-tr,
+.system-panel-crimson .system-panel-notch-bl,
+.system-panel-crimson .system-panel-notch-br {
+  border-color: var(--accent-crimson);
+}

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Send, CheckCircle2, Terminal } from 'lucide-react';
+import { Send, CheckCircle2, Terminal, ChevronUp, ChevronDown } from 'lucide-react';
 import { AnswerType } from '../../types/game';
+import { CinematicButton } from '../cinematic/CinematicButton';
+import { SpotlightCard } from '../cinematic/SpotlightCard';
 import { soundService } from '../../services/soundService';
 
 interface AnswerInputProps {
@@ -52,11 +54,6 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
     try {
       const parsed = puzzleMetadata ? JSON.parse(puzzleMetadata) : {};
       setOrderedItems(Array.isArray(parsed.items) ? parsed.items : []);
-      if (parsed.discovery && !answer) {
-        if (parsed.interaction !== 'final-protocol' && parsed.interaction !== 'access-panel') {
-          // Pre-populate suggested discovery if appropriate
-        }
-      }
     } catch {
       setOrderedItems([]);
     }
@@ -103,6 +100,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
     const next = [...orderedItems];
     [next[index], next[target]] = [next[target], next[index]];
     setOrderedItems(next);
+    soundService.playClick();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -110,14 +108,17 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
     if (!answer.trim() || isSubmitting) return;
 
     soundService.playClick();
-    onSubmit(answer.trim(), JSON.stringify({
-      interaction: interaction.interaction || 'answer',
-      operation: selectedOperation || undefined,
-      order: orderedItems,
-      node: selectedNode || undefined,
-      process: selectedProcess || undefined,
-      sequence: selectedSequence || undefined,
-    }));
+    onSubmit(
+      answer.trim(),
+      JSON.stringify({
+        interaction: interaction.interaction || 'answer',
+        operation: selectedOperation || undefined,
+        order: orderedItems,
+        node: selectedNode || undefined,
+        process: selectedProcess || undefined,
+        sequence: selectedSequence || undefined,
+      })
+    );
     setSubmittedFeedback(`> ACCESS REQUEST RECEIVED: TRANSMITTING "${answer.trim().toUpperCase()}"...`);
 
     setTimeout(() => {
@@ -126,12 +127,41 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
   };
 
   return (
-    <div className="cyber-panel" style={{ padding: '24px', fontFamily: 'var(--font-mono)' }}>
-      
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px dashed var(--border-cyan)' }}>
-        <h2 className="terminal-text" style={{ fontSize: '13px', letterSpacing: '0.1em', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Terminal size={16} />
-          <span>SOLUTION DISPATCH</span>
+    <div
+      style={{
+        padding: '24px',
+        backgroundColor: 'var(--bg-panel)',
+        border: '1px solid var(--border-cyan)',
+        borderRadius: 'var(--radius-sm)',
+        fontFamily: 'var(--font-mono)',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.8)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '20px',
+          paddingBottom: '12px',
+          borderBottom: '1px dashed var(--border-cyan)',
+        }}
+      >
+        <h2
+          style={{
+            fontSize: '12px',
+            letterSpacing: '0.12em',
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: 'var(--accent-cyan)',
+            margin: 0,
+            textTransform: 'uppercase',
+          }}
+        >
+          <Terminal size={15} />
+          <span>SOLUTION DISPATCH CONSOLE</span>
         </h2>
         <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
           {interaction.interaction === 'final-protocol' ? 'FINAL ACCESS CODE ENTRY' : `${answerType} INPUT MODE`}
@@ -139,31 +169,59 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
       </div>
 
       {submittedFeedback && (
-        <div className="animate-fade-in" style={{ marginBottom: '20px', padding: '12px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--accent-cyan-faded)', border: '1px solid var(--accent-cyan-dim)', color: 'var(--accent-cyan)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div
+          className="animate-fade-in"
+          style={{
+            marginBottom: '20px',
+            padding: '12px 16px',
+            borderRadius: 'var(--radius-xs)',
+            backgroundColor: 'rgba(0, 217, 255, 0.08)',
+            border: '1px solid var(--accent-cyan)',
+            color: 'var(--accent-cyan)',
+            fontSize: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}
+        >
           <CheckCircle2 size={16} />
           <span className="font-bold">{submittedFeedback}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
-        {/* Level 1 Stage 2 Access Panel Controls */}
+        {/* Level 1 Stage 2: Access Panel Interactive Calibration */}
         {interaction.interaction === 'access-panel' && (
-          <div style={{ marginBottom: '20px', padding: '16px', border: '1px solid var(--border-cyan)', background: 'rgba(0,0,0,0.45)', borderRadius: 'var(--radius-sm)' }}>
-            <div className="terminal-text" style={{ fontSize: '12px', marginBottom: '14px', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
+          <SpotlightCard
+            variant="cyan"
+            style={{
+              marginBottom: '20px',
+              padding: '20px',
+              border: '1px solid var(--border-cyan)',
+              background: 'rgba(4, 5, 7, 0.7)',
+              borderRadius: 'var(--radius-xs)',
+            }}
+          >
+            <div style={{ fontSize: '12px', marginBottom: '16px', color: 'var(--accent-cyan)', fontWeight: 800, letterSpacing: '0.08em' }}>
               &gt; ACCESS PANEL INTERACTIVE CALIBRATION:
             </div>
 
-            {/* Node Selector */}
+            {/* Target Node Selector */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px' }}>NODE SELECTION:</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.05em' }}>
+                TARGET NODE:
+              </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                {(interaction.nodes || ['N-2', 'N-4', 'N-7']).map(node => (
+                {(interaction.nodes || ['N-2', 'N-4', 'N-7']).map((node) => (
                   <button
                     key={node}
                     type="button"
                     className={`btn ${selectedNode === node ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => setSelectedNode(node)}
-                    style={{ flex: 1, padding: '10px' }}
+                    onClick={() => {
+                      setSelectedNode(node);
+                      soundService.playClick();
+                    }}
+                    style={{ flex: 1, padding: '10px', fontSize: '12px' }}
                   >
                     {node}
                   </button>
@@ -173,15 +231,20 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
 
             {/* Process Selector */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px' }}>PROCESS SELECTION:</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.05em' }}>
+                PROCESS:
+              </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                {(interaction.processes || ['relay', 'watcher', 'archive']).map(proc => (
+                {(interaction.processes || ['relay', 'watcher', 'archive']).map((proc) => (
                   <button
                     key={proc}
                     type="button"
                     className={`btn ${selectedProcess === proc ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => setSelectedProcess(proc)}
-                    style={{ flex: 1, padding: '10px' }}
+                    onClick={() => {
+                      setSelectedProcess(proc);
+                      soundService.playClick();
+                    }}
+                    style={{ flex: 1, padding: '10px', fontSize: '12px' }}
                   >
                     {proc}
                   </button>
@@ -189,31 +252,45 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
               </div>
             </div>
 
-            {/* Sequence Selector */}
+            {/* Circuit Sequence Selector */}
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px' }}>SEQUENCE SELECTION:</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.05em' }}>
+                SEQUENCE:
+              </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                {(interaction.sequences || ['K-17', 'R-03', 'M-22']).map(seq => (
+                {(interaction.sequences || ['K-17', 'R-03', 'M-22']).map((seq) => (
                   <button
                     key={seq}
                     type="button"
                     className={`btn ${selectedSequence === seq ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => setSelectedSequence(seq)}
-                    style={{ flex: 1, padding: '10px' }}
+                    onClick={() => {
+                      setSelectedSequence(seq);
+                      soundService.playClick();
+                    }}
+                    style={{ flex: 1, padding: '10px', fontSize: '12px' }}
                   >
                     {seq}
                   </button>
                 ))}
               </div>
             </div>
-          </div>
+          </SpotlightCard>
         )}
 
-        {/* Transformation Pipeline Selection */}
+        {/* Level 2 & Level 4: Transformation Pipeline Selection */}
         {interaction.operations && interaction.operations.length > 0 && (
-          <div style={{ marginBottom: '20px', padding: '16px', border: '1px solid var(--border-cyan)', background: 'rgba(0,0,0,0.35)', borderRadius: 'var(--radius-sm)' }}>
-            <div className="terminal-text" style={{ fontSize: '11px', marginBottom: '10px', color: 'var(--accent-cyan)' }}>
-              SELECT OPERATION DISCOVERED FROM EVIDENCE:
+          <SpotlightCard
+            variant="cyan"
+            style={{
+              marginBottom: '20px',
+              padding: '18px',
+              border: '1px solid var(--border-cyan)',
+              background: 'rgba(4, 5, 7, 0.7)',
+              borderRadius: 'var(--radius-xs)',
+            }}
+          >
+            <div style={{ fontSize: '11px', marginBottom: '12px', color: 'var(--accent-cyan)', fontWeight: 700, letterSpacing: '0.08em' }}>
+              TRANSFORMATION PIPELINE // SELECT DISCOVERED OPERATION:
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {interaction.operations.map((operation) => (
@@ -221,42 +298,94 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
                   key={operation}
                   type="button"
                   className={`btn ${selectedOperation === operation ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setSelectedOperation(operation)}
+                  onClick={() => {
+                    setSelectedOperation(operation);
+                    soundService.playClick();
+                  }}
+                  style={{ fontSize: '12px', padding: '8px 16px' }}
                 >
                   {operation}
                 </button>
               ))}
             </div>
-          </div>
+          </SpotlightCard>
         )}
 
         {/* Ordered Reconstruction Items */}
         {orderedItems.length > 0 && (
-          <div style={{ marginBottom: '20px', padding: '16px', border: '1px solid var(--border-cyan)', background: 'rgba(0,0,0,0.35)', borderRadius: 'var(--radius-sm)' }}>
-            <div className="terminal-text" style={{ fontSize: '11px', marginBottom: '10px', color: 'var(--accent-cyan)' }}>
-              RECONSTRUCTION SEQUENCE ALIGNMENT:
+          <SpotlightCard
+            variant="cyan"
+            style={{
+              marginBottom: '20px',
+              padding: '18px',
+              border: '1px solid var(--border-cyan)',
+              background: 'rgba(4, 5, 7, 0.7)',
+              borderRadius: 'var(--radius-xs)',
+            }}
+          >
+            <div style={{ fontSize: '11px', marginBottom: '12px', color: 'var(--accent-cyan)', fontWeight: 700, letterSpacing: '0.08em' }}>
+              RECONSTRUCTION SEQUENCE ALIGNMENT // ORDER SPECIFICATION:
             </div>
             {orderedItems.map((item, index) => (
               <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <span className="terminal-text" style={{ width: '24px', color: 'var(--text-muted)' }}>{index + 1}.</span>
-                <span style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border-dim)', background: 'rgba(0,0,0,0.5)', borderRadius: 'var(--radius-sm)', fontSize: '13px' }}>
+                <span style={{ width: '28px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 800 }}>
+                  0{index + 1}.
+                </span>
+                <span
+                  style={{
+                    flex: 1,
+                    padding: '10px 14px',
+                    border: '1px solid var(--border-dim)',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: '13px',
+                    color: 'var(--text-cold-white)',
+                  }}
+                >
                   {item}
                 </span>
-                <button type="button" className="btn btn-secondary" disabled={index === 0} onClick={() => moveItem(index, -1)} title="Move item up">▲</button>
-                <button type="button" className="btn btn-secondary" disabled={index === orderedItems.length - 1} onClick={() => moveItem(index, 1)} title="Move item down">▼</button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={index === 0}
+                  onClick={() => moveItem(index, -1)}
+                  title="Move element up"
+                  style={{ padding: '8px 10px' }}
+                >
+                  <ChevronUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={index === orderedItems.length - 1}
+                  onClick={() => moveItem(index, 1)}
+                  title="Move element down"
+                  style={{ padding: '8px 10px' }}
+                >
+                  <ChevronDown size={14} />
+                </button>
               </div>
             ))}
-          </div>
+          </SpotlightCard>
         )}
 
-        {/* Level 6 Stage 3 Final Protocol 6-Digit Entry */}
+        {/* Level 6 Stage 3: Final Protocol 6-Digit Passkey Entry */}
         {interaction.interaction === 'final-protocol' ? (
-          <div style={{ marginBottom: '24px', padding: '24px', border: '1px solid var(--accent-cyan)', background: 'rgba(0, 20, 25, 0.7)', borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
-            <div className="terminal-text" style={{ fontSize: '12px', color: 'var(--accent-cyan)', letterSpacing: '0.1em', marginBottom: '4px', fontWeight: 'bold' }}>
-              FINAL PROTOCOL // SEQUENCE VERIFIED
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '24px',
+              border: '1px solid var(--accent-crimson)',
+              background: 'rgba(225, 29, 72, 0.08)',
+              borderRadius: 'var(--radius-xs)',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: '12px', color: 'var(--accent-crimson)', letterSpacing: '0.12em', marginBottom: '4px', fontWeight: 800 }}>
+              FINAL PROTOCOL // EMERGENCY OVERRIDE
             </div>
-            <div className="terminal-text" style={{ fontSize: '14px', color: 'var(--text-primary)', marginBottom: '16px', letterSpacing: '0.15em' }}>
-              ACCESS CODE:
+            <div style={{ fontSize: '14px', color: 'var(--text-cold-white)', marginBottom: '16px', letterSpacing: '0.1em' }}>
+              ENTER SIX-DIGIT ACCESS CODE:
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '14px' }}>
               {digits.map((d, i) => (
@@ -280,43 +409,59 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
                     backgroundColor: 'var(--bg-void)',
                     border: d ? '2px solid var(--accent-cyan)' : '1px solid var(--border-dim)',
                     color: 'var(--accent-cyan)',
-                    borderRadius: 'var(--radius-sm)',
+                    borderRadius: 'var(--radius-xs)',
                     outline: 'none',
-                    boxShadow: d ? '0 0 10px rgba(0,217,255,0.3)' : 'none',
+                    boxShadow: d ? '0 0 12px rgba(0, 217, 255, 0.4)' : 'none',
                   }}
                 />
               ))}
             </div>
-            <p className="terminal-text text-muted" style={{ fontSize: '11px' }}>
-              &gt; COMBINE ASSIGNED POSITIONS ACROSS BOTH NODES TO ENTER THE 6-DIGIT VALUE_
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+              &gt; COMBINE RECOVERED SHARD POSITIONS ACROSS BOTH OPERATORS_
             </p>
           </div>
         ) : answerType === 'MULTIPLE_CHOICE' && options && options.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginBottom: '20px' }}>
             {options.map((option, idx) => (
               <button
                 key={idx}
                 type="button"
-                onClick={() => setAnswer(option)}
+                onClick={() => {
+                  setAnswer(option);
+                  soundService.playClick();
+                }}
                 style={{
-                  padding: '16px', 
-                  borderRadius: 'var(--radius-sm)', 
-                  border: '1px solid', 
-                  fontSize: '14px', 
-                  textAlign: 'left', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '12px', 
+                  padding: '14px 16px',
+                  borderRadius: 'var(--radius-xs)',
+                  border: '1px solid',
+                  fontSize: '13px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
                   transition: 'all var(--transition-fast)',
-                  backgroundColor: answer === option ? 'var(--accent-cyan-faded)' : 'rgba(0,0,0,0.4)',
+                  backgroundColor: answer === option ? 'rgba(0, 217, 255, 0.12)' : 'rgba(0, 0, 0, 0.5)',
                   borderColor: answer === option ? 'var(--accent-cyan)' : 'var(--border-dim)',
-                  color: answer === option ? 'var(--accent-cyan)' : 'var(--text-primary)',
-                  boxShadow: answer === option ? 'inset 0 0 15px rgba(0,217,255,0.1)' : 'none',
-                  fontFamily: 'var(--font-mono)'
+                  color: answer === option ? 'var(--text-cold-white)' : 'var(--text-secondary)',
+                  boxShadow: answer === option ? '0 0 12px rgba(0, 217, 255, 0.2)' : 'none',
+                  fontFamily: 'var(--font-mono)',
                 }}
               >
-                <span style={{ width: '28px', height: '28px', borderRadius: 'var(--radius-sm)', backgroundColor: answer === option ? 'var(--bg-panel)' : 'rgba(255,255,255,0.05)', border: '1px solid var(--border-dim)', color: answer === option ? 'var(--accent-cyan)' : 'var(--text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>
+                <span
+                  style={{
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: 'var(--radius-xs)',
+                    backgroundColor: answer === option ? 'var(--accent-cyan)' : 'rgba(255, 255, 255, 0.05)',
+                    color: answer === option ? 'var(--bg-void)' : 'var(--text-muted)',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                  }}
+                >
                   {String.fromCharCode(65 + idx)}
                 </span>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option}</span>
@@ -325,7 +470,18 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
           </div>
         ) : (
           <div style={{ position: 'relative', marginBottom: '20px' }}>
-            <div className="terminal-text" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold', fontSize: '16px', pointerEvents: 'none' }}>
+            <div
+              style={{
+                position: 'absolute',
+                left: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontWeight: 800,
+                fontSize: '16px',
+                color: 'var(--accent-cyan)',
+                pointerEvents: 'none',
+              }}
+            >
               &gt;
             </div>
             <input
@@ -335,30 +491,44 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
               className="cyber-input"
               placeholder={placeholderText || (answerType === 'NUMERIC' ? 'INPUT NUMERIC SOLUTION_' : 'INPUT SOLUTION_')}
               disabled={isSubmitting}
-              style={{ paddingLeft: '40px', paddingRight: '80px', fontSize: '16px', height: '56px' }}
+              style={{ paddingLeft: '40px', paddingRight: '90px', fontSize: '15px', height: '52px' }}
             />
-            <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-dim)' }}>
+            <div
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: '10px',
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-xs)',
+                border: '1px solid var(--border-dim)',
+              }}
+            >
               {answerType}
             </div>
           </div>
         )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button
+          <CinematicButton
+            variant="primary"
             type="submit"
-            className="btn btn-primary"
             disabled={!answer.trim() || isSubmitting}
-            style={{ width: '100%' }}
+            style={{ width: '100%', padding: '14px', fontSize: '13px' }}
           >
             {isSubmitting ? (
-              <span>VERIFYING PAYLOAD...</span>
+              <span>TRANSMITTING PAYLOAD...</span>
             ) : (
               <>
                 <span>TRANSMIT SOLUTION</span>
-                <Send size={16} />
+                <Send size={15} />
               </>
             )}
-          </button>
+          </CinematicButton>
         </div>
       </form>
     </div>

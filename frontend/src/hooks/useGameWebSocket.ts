@@ -73,6 +73,14 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData }: UseGam
       if (onRefreshData) onRefreshData();
     });
 
+    const unsubReadyChanged = webSocketService.subscribe('PLAYER_READY_CHANGED', () => {
+      if (onRefreshData) onRefreshData();
+    });
+
+    const unsubEventStarted = webSocketService.subscribe('EVENT_STARTED', () => {
+      if (onRefreshData) onRefreshData();
+    });
+
     return () => {
       unsubStatus();
       unsubConnected();
@@ -83,6 +91,8 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData }: UseGam
       unsubHintUnlocked();
       unsubGameCompleted();
       unsubRankChanged();
+      unsubReadyChanged();
+      unsubEventStarted();
       webSocketService.disconnect();
     };
   }, [teamId, playerNumber]);

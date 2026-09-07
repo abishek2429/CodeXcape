@@ -1,0 +1,63 @@
+.system-message-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  background-color: var(--bg-panel-darker);
+  border: 1px solid var(--border-dim);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+  position: relative;
+  overflow: hidden;
+}
+
+.system-message-banner::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+
+.system-message-info {
+  border-color: rgba(0, 217, 255, 0.35);
+}
+.system-message-info::before {
+  background-color: var(--accent-cyan);
+}
+
+.system-message-success {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.system-message-success::before {
+  background-color: var(--status-success);
+}
+
+.system-message-warning {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.system-message-warning::before {
+  background-color: var(--status-warning);
+}
+
+.system-message-danger {
+  border-color: rgba(225, 29, 72, 0.55);
+  background-color: rgba(225, 29, 72, 0.08);
+}
+.system-message-danger::before {
+  background-color: var(--accent-crimson);
+}
+
+.system-message-text {
+  color: var(--text-primary);
+  font-weight: 600;
+  flex: 1;
+}
+
+.system-message-action {
+  flex-shrink: 0;
+}

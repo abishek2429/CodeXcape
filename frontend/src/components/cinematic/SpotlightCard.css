@@ -1,0 +1,94 @@
+.spotlight-card {
+  position: relative;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* Mouse-tracking Specular Gradient Overlay */
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0, 217, 255, 0.08),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+.spotlight-card:hover {
+  border-color: rgba(0, 217, 255, 0.3);
+}
+
+/* Danger / Anomaly Variant */
+.spotlight-card.spotlight-danger::before {
+  background: radial-gradient(
+    400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(225, 29, 72, 0.12),
+    transparent 65%
+  );
+}
+
+.spotlight-card.spotlight-danger:hover {
+  border-color: rgba(225, 29, 72, 0.4);
+}
+
+/* Card Content Container */
+.spotlight-card-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+}
+
+/* Technical Corner Markings */
+.spotlight-card-corner-tl,
+.spotlight-card-corner-tr,
+.spotlight-card-corner-bl,
+.spotlight-card-corner-br {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: rgba(0, 217, 255, 0.35);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.spotlight-card-corner-tl {
+  top: 0;
+  left: 0;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.spotlight-card-corner-tr {
+  top: 0;
+  right: 0;
+  border-top: 1px solid;
+  border-right: 1px solid;
+}
+
+.spotlight-card-corner-bl {
+  bottom: 0;
+  left: 0;
+  border-bottom: 1px solid;
+  border-left: 1px solid;
+}
+
+.spotlight-card-corner-br {
+  bottom: 0;
+  right: 0;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}

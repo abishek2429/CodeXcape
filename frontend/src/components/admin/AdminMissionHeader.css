@@ -1,0 +1,67 @@
+.admin-mission-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background-color: var(--bg-panel-darker);
+  border-bottom: 1px solid var(--border-dim);
+  font-family: var(--font-mono);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  backdrop-filter: blur(10px);
+}
+
+.admin-mission-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-mission-title {
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--text-cold-white);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-telemetry-counters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.admin-counter-pill {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 12px;
+  background-color: rgba(4, 5, 7, 0.7);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-xs);
+}
+
+.admin-counter-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-counter-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-cold-white);
+}
+
+.admin-counter-value.value-live {
+  color: var(--status-success);
+}
+.admin-counter-value.value-cyan {
+  color: var(--accent-cyan);
+}
+.admin-counter-value.value-warning {
+  color: var(--status-warning);
+}

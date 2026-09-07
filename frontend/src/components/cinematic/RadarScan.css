@@ -1,0 +1,128 @@
+.radar-scan-container {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 217, 255, 0.05) 0%, rgba(4, 5, 7, 0.95) 75%);
+  border: 1px solid rgba(0, 217, 255, 0.35);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), inset 0 0 25px rgba(0, 217, 255, 0.08);
+  overflow: hidden;
+}
+
+/* Concentric Distance Rings */
+.radar-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 1px dashed rgba(0, 217, 255, 0.2);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.radar-ring-1 { width: 33%; height: 33%; }
+.radar-ring-2 { width: 66%; height: 66%; }
+.radar-ring-3 { width: 95%; height: 95%; border-style: solid; border-color: rgba(0, 217, 255, 0.3); }
+
+/* Crosshair Reticle Axis */
+.radar-axis-x,
+.radar-axis-y {
+  position: absolute;
+  background-color: rgba(0, 217, 255, 0.2);
+  pointer-events: none;
+}
+
+.radar-axis-x {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.radar-axis-y {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+/* Rotating Sweep Beam */
+.radar-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 217, 255, 0.35) 0deg,
+    rgba(0, 217, 255, 0.08) 35deg,
+    transparent 70deg,
+    transparent 360deg
+  );
+  animation: radar-sweep-rotate 4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes radar-sweep-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Target Node Blips */
+.radar-blip {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-cyan);
+  box-shadow: 0 0 10px var(--accent-cyan);
+  transform: translate(-50%, -50%);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.radar-blip.blip-anomaly {
+  background-color: var(--accent-crimson);
+  box-shadow: 0 0 12px var(--accent-crimson);
+  animation: anomaly-pulse 1.2s infinite ease-in-out;
+}
+
+.radar-blip-label {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+  pointer-events: none;
+  background-color: rgba(4, 5, 7, 0.85);
+  padding: 1px 4px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 217, 255, 0.25);
+}
+
+.radar-blip.blip-anomaly .radar-blip-label {
+  color: var(--accent-crimson);
+  border-color: rgba(225, 29, 72, 0.35);
+}
+
+@keyframes anomaly-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.4); opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .radar-sweep {
+    animation: none;
+    opacity: 0.2;
+  }
+}

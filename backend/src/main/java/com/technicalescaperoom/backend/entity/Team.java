@@ -47,6 +47,9 @@ public class Team {
     @Builder.Default
     private TeamGameState gameState = TeamGameState.NOT_STARTED;
 
+    @Column(name = "started_at")
+    private Instant startedAt;
+
     @Column(name = "completed_at")
     private Instant completedAt;
 

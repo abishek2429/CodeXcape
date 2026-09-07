@@ -1,8 +1,7 @@
 import React from 'react';
 import { CheckCircle2, Lock, Radio } from 'lucide-react';
 import { LevelProgressItem } from '../../types/game';
-import { Card } from '../ui/Card';
-import { StatusDot } from '../ui/StatusDot';
+import { SpotlightCard } from '../cinematic/SpotlightCard';
 
 interface LevelProgressProps {
   levels: LevelProgressItem[];
@@ -11,78 +10,176 @@ interface LevelProgressProps {
 
 export const LevelProgress: React.FC<LevelProgressProps> = ({ levels }) => {
   return (
-    <Card style={{ padding: '20px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <StatusDot status="connected" />
-          SECURITY CLEARANCE PROGRESSION
-        </h2>
-        <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'rgba(0, 217, 255, 0.8)', backgroundColor: 'rgba(0, 217, 255, 0.1)', padding: '2px 10px', borderRadius: '4px', border: '1px solid rgba(0, 217, 255, 0.3)' }}>
+    <div
+      style={{
+        padding: '16px 20px',
+        marginBottom: '20px',
+        backgroundColor: 'var(--bg-panel)',
+        border: '1px solid var(--border-dim)',
+        borderRadius: 'var(--radius-sm)',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.7)',
+        fontFamily: 'var(--font-mono)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '14px',
+          borderBottom: '1px dashed var(--border-dim)',
+          paddingBottom: '10px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--accent-cyan)',
+              boxShadow: '0 0 6px var(--accent-cyan)',
+            }}
+          />
+          <h2
+            style={{
+              fontSize: '11px',
+              letterSpacing: '0.12em',
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              fontWeight: 700,
+              margin: 0,
+            }}
+          >
+            RESTRICTED TIER PROGRESSION
+          </h2>
+        </div>
+
+        <span
+          style={{
+            fontSize: '10px',
+            color: 'var(--accent-cyan)',
+            backgroundColor: 'rgba(0, 217, 255, 0.08)',
+            padding: '2px 8px',
+            borderRadius: 'var(--radius-xs)',
+            border: '1px solid var(--border-cyan)',
+            letterSpacing: '0.08em',
+          }}
+        >
           6 COOPERATIVE TIERS
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
         {levels.map((lvl) => {
           const isCompleted = lvl.status === 'COMPLETED';
           const isCurrent = lvl.status === 'CURRENT';
           const isLocked = lvl.status === 'LOCKED';
-
-          let bgColor = 'rgba(15, 23, 42, 0.5)';
-          let borderColor = 'rgba(30, 41, 59, 0.8)';
-          let textColor = 'var(--text-tertiary)';
-          let shadow = 'none';
-
-          if (isCompleted) {
-            bgColor = 'rgba(16, 185, 129, 0.1)';
-            borderColor = 'rgba(16, 185, 129, 0.5)';
-            textColor = '#6ee7b7';
-            shadow = '0 0 15px rgba(16, 185, 129, 0.15)';
-          } else if (isCurrent) {
-            bgColor = 'rgba(0, 217, 255, 0.15)';
-            borderColor = 'var(--accent-cyan)';
-            textColor = '#a5f3fc';
-            shadow = '0 0 20px rgba(0, 217, 255, 0.25)';
-          }
+          const isLevel6Active = lvl.levelNumber === 6 && isCurrent;
 
           return (
-            <div
+            <SpotlightCard
               key={lvl.levelNumber}
+              variant={isLevel6Active ? 'danger' : isCompleted ? 'cyan' : isCurrent ? 'cyan' : 'obsidian'}
+              showCorners={true}
               style={{
-                display: 'flex', flexDirection: 'column', padding: '12px', borderRadius: '12px', border: `1px solid ${borderColor}`,
-                backgroundColor: bgColor, color: textColor, boxShadow: shadow, transition: 'all 0.3s', fontFamily: 'var(--font-mono)'
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-xs)',
+                border: '1px solid',
+                borderColor: isLevel6Active
+                  ? 'var(--accent-crimson)'
+                  : isCompleted
+                  ? 'rgba(16, 185, 129, 0.4)'
+                  : isCurrent
+                  ? 'var(--accent-cyan)'
+                  : 'var(--border-dim)',
+                backgroundColor: isLevel6Active
+                  ? 'rgba(225, 29, 72, 0.12)'
+                  : isCompleted
+                  ? 'rgba(16, 185, 129, 0.06)'
+                  : isCurrent
+                  ? 'rgba(0, 217, 255, 0.08)'
+                  : 'rgba(4, 5, 7, 0.6)',
+                color: isLevel6Active
+                  ? 'var(--accent-crimson)'
+                  : isCompleted
+                  ? 'var(--status-success)'
+                  : isCurrent
+                  ? 'var(--text-cold-white)'
+                  : 'var(--text-muted)',
+                boxShadow: isLevel6Active
+                  ? '0 0 20px rgba(225, 29, 72, 0.35)'
+                  : isCurrent
+                  ? '0 0 16px rgba(0, 217, 255, 0.2)'
+                  : 'none',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  TIER 0{lvl.levelNumber}
+                <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em' }}>
+                  {isLevel6Active ? 'TIER 06 // CORE' : `TIER 0${lvl.levelNumber}`}
                 </span>
 
-                {isCompleted && <CheckCircle2 size={14} color="var(--status-success)" />}
-                {isCurrent && <Radio size={14} color="var(--accent-cyan)" className="animate-pulse" />}
-                {isLocked && <Lock size={12} color="var(--text-tertiary)" />}
+                {isCompleted && <CheckCircle2 size={13} color="var(--status-success)" />}
+                {isLevel6Active && <Radio size={13} color="var(--accent-crimson)" className="animate-pulse" />}
+                {isCurrent && !isLevel6Active && <Radio size={13} color="var(--accent-cyan)" className="animate-pulse" />}
+                {isLocked && <Lock size={12} color="var(--text-muted)" />}
               </div>
 
-              <p style={{ fontSize: '11px', fontFamily: 'var(--font-sans)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isLocked ? 'var(--text-tertiary)' : 'var(--text-primary)' }} title={lvl.name}>
+              <p
+                style={{
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-sans)',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  color: isLevel6Active ? 'var(--accent-crimson)' : isLocked ? 'var(--text-muted)' : 'var(--text-primary)',
+                  margin: '2px 0 8px 0',
+                }}
+                title={lvl.name}
+              >
                 {lvl.name.replace(/^Level \d+: /, '')}
               </p>
 
-              {/* Progress bar track */}
-              <div style={{ marginTop: '10px', width: '100%', backgroundColor: 'var(--bg-void)', height: '4px', borderRadius: '4px', overflow: 'hidden' }}>
+              {/* Progress track */}
+              <div
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--bg-void)',
+                  height: '3px',
+                  borderRadius: '1px',
+                  overflow: 'hidden',
+                  border: '1px solid var(--border-dim)',
+                }}
+              >
                 <div
                   style={{
-                    height: '100%', borderRadius: '4px', transition: 'all 0.5s',
+                    height: '100%',
                     width: isCompleted ? '100%' : isCurrent ? '50%' : '0%',
-                    backgroundColor: isCompleted ? 'var(--status-success)' : isCurrent ? 'var(--accent-cyan)' : 'transparent',
-                    boxShadow: isCompleted ? '0 0 8px rgba(16, 185, 129, 0.8)' : isCurrent ? '0 0 8px rgba(0, 217, 255, 0.8)' : 'none',
+                    backgroundColor: isCompleted
+                      ? 'var(--status-success)'
+                      : isLevel6Active
+                      ? 'var(--accent-crimson)'
+                      : isCurrent
+                      ? 'var(--accent-cyan)'
+                      : 'transparent',
+                    boxShadow: isCompleted
+                      ? '0 0 6px var(--status-success)'
+                      : isLevel6Active
+                      ? '0 0 8px var(--accent-crimson)'
+                      : isCurrent
+                      ? '0 0 6px var(--accent-cyan)'
+                      : 'none',
+                    transition: 'width 0.4s ease',
                   }}
-                  className={isCurrent ? 'animate-pulse' : ''}
-                ></div>
+                />
               </div>
-            </div>
+            </SpotlightCard>
           );
         })}
       </div>
-    </Card>
+    </div>
   );
 };

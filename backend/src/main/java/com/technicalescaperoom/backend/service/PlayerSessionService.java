@@ -3,6 +3,7 @@ package com.technicalescaperoom.backend.service;
 import com.technicalescaperoom.backend.config.security.PlayerPrincipal;
 import com.technicalescaperoom.backend.dto.player.PlayerLoginRequest;
 import com.technicalescaperoom.backend.dto.player.PlayerResponseDto;
+import com.technicalescaperoom.backend.dto.websocket.WebSocketEventDto;
 import com.technicalescaperoom.backend.entity.Event;
 import com.technicalescaperoom.backend.entity.GameSession;
 import com.technicalescaperoom.backend.entity.Player;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,6 +41,8 @@ public class PlayerSessionService {
     private final GameSessionRepository gameSessionRepository;
     private final AuditService auditService;
     private final jakarta.persistence.EntityManager entityManager;
+    private final GameWebSocketPublisher webSocketPublisher;
+    private final GameStateService gameStateService;
 
     @Value("${app.player.session-timeout-minutes:60}")
     private long sessionTimeoutMinutes;
@@ -149,16 +153,18 @@ public class PlayerSessionService {
                 );
 
                 setSessionCookie(response, activeSession.getSessionToken());
+                webSocketPublisher.notifyPlayerConnection(team.getId(), player.getId(), player.getPlayerNumber(), player.getDisplayName(), true);
                 return mapToResponse(team, player);
-            } else if ("CODEXCAPE-TEST".equalsIgnoreCase(team.getTeamCode())) {
-                // Testing convenience: terminate previous active session and establish fresh session
-                log.info("CODEXCAPE-TEST session override: terminating old session {} for player {}", activeSession.getSessionToken(), player.getId());
+            } else if ("CODEXCAPE-TEST".equalsIgnoreCase(team.getTeamCode()) || team.getGameState() == TeamGameState.NOT_STARTED) {
+                // Pre-event lobby OR test team: Repeated logins permitted without penalty or locking.
+                // Terminate previous session and establish fresh session.
+                log.info("Pre-event/Test session rotation: terminating old session {} for player {}", activeSession.getSessionToken(), player.getId());
                 activeSession.setStatus(SessionStatus.TERMINATED);
                 activeSession.setIsConnected(false);
                 activeSession.setDisconnectedAt(Instant.now());
                 gameSessionRepository.save(activeSession);
             } else {
-                // Duplicate login attempt from another computer!
+                // Active gameplay duplicate login attempt from another computer!
                 auditService.logEvent(
                         GameEventType.DUPLICATE_LOGIN_REJECTED,
                         event,
@@ -199,6 +205,9 @@ public class PlayerSessionService {
                 "PLAYER"
         );
 
+        // Broadcast player connection event to team via WebSocket
+        webSocketPublisher.notifyPlayerConnection(team.getId(), player.getId(), player.getPlayerNumber(), player.getDisplayName(), true);
+
         // Set Cookie & return DTO
         setSessionCookie(response, newToken);
         return mapToResponse(team, player);
@@ -223,6 +232,7 @@ public class PlayerSessionService {
             if (session.getStatus() == SessionStatus.ACTIVE) {
                 if (!Boolean.TRUE.equals(session.getIsConnected())) {
                     session.setIsConnected(true);
+                    webSocketPublisher.notifyPlayerConnection(team.getId(), player.getId(), player.getPlayerNumber(), player.getDisplayName(), true);
                     auditService.logEvent(
                             GameEventType.PLAYER_RECONNECTED,
                             team.getEvent(),
@@ -240,6 +250,134 @@ public class PlayerSessionService {
         return mapToResponse(team, player);
     }
 
+    @Transactional(readOnly = true)
+    public PlayerResponseDto getLobbyState(PlayerPrincipal principal) {
+        if (principal == null) {
+            throw new ResourceNotFoundException("No authenticated player session found.");
+        }
+
+        Team team = teamRepository.findById(principal.getTeamId())
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
+
+        Player player = playerRepository.findById(principal.getPlayerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Player not found."));
+
+        return mapToResponse(team, player);
+    }
+
+    @Transactional
+    public PlayerResponseDto setPlayerReady(PlayerPrincipal principal, boolean isReady) {
+        if (principal == null) {
+            throw new ResourceNotFoundException("No authenticated player session found.");
+        }
+
+        Player player = playerRepository.findById(principal.getPlayerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Player not found."));
+
+        Team team = teamRepository.findById(principal.getTeamId())
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
+
+        if (team.getGameState() != TeamGameState.NOT_STARTED) {
+            throw new IllegalStateException("Event has already started.");
+        }
+
+        player.setIsReady(isReady);
+        playerRepository.save(player);
+
+        // Broadcast readiness change over WebSocket
+        WebSocketEventDto readyEvent = WebSocketEventDto.builder()
+                .type(WebSocketEventType.PLAYER_READY_CHANGED)
+                .teamId(team.getId())
+                .playerId(player.getId())
+                .playerNumber(player.getPlayerNumber())
+                .displayName(player.getDisplayName())
+                .message("Player " + player.getPlayerNumber() + (isReady ? " is READY" : " is WAITING"))
+                .timestamp(Instant.now())
+                .build();
+        webSocketPublisher.broadcastToTeam(team.getId(), readyEvent);
+
+        return mapToResponse(team, player);
+    }
+
+    @Transactional
+    public PlayerResponseDto startTeamEvent(PlayerPrincipal principal) {
+        if (principal == null) {
+            throw new ResourceNotFoundException("No authenticated player session found.");
+        }
+
+        Player player = playerRepository.findById(principal.getPlayerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Player not found."));
+
+        Team team = teamRepository.findById(principal.getTeamId())
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
+
+        Event event = team.getEvent();
+        if (event == null || (event.getStatus() != EventStatus.READY && event.getStatus() != EventStatus.RUNNING)) {
+            throw new EventUnavailableException("Event is not currently accepting starts.");
+        }
+
+        if (team.getStatus() == TeamStatus.DISQUALIFIED || team.getStatus() == TeamStatus.COMPLETED) {
+            throw new EventUnavailableException("Team cannot start the event in its current status.");
+        }
+
+        // Idempotency: if already started, return current state
+        if (team.getGameState() != TeamGameState.NOT_STARTED) {
+            return mapToResponse(team, player);
+        }
+
+        // Two-Player Start Verification
+        List<Player> teamPlayers = playerRepository.findByTeamId(team.getId());
+        if (teamPlayers.size() < 2) {
+            throw new IllegalStateException("Both players must be registered for the team before starting.");
+        }
+
+        for (Player p : teamPlayers) {
+            if (p.getId().equals(player.getId())) {
+                p.setIsReady(true);
+                playerRepository.save(p);
+            } else {
+                Optional<GameSession> teammateSession = gameSessionRepository.findByPlayerIdAndStatus(p.getId(), SessionStatus.ACTIVE);
+                if (teammateSession.isEmpty()) {
+                    throw new IllegalStateException("OPERATOR 0" + p.getPlayerNumber() + " IS NOT LOGGED IN. BOTH OPERATORS MUST BE PRESENT.");
+                }
+                if (!Boolean.TRUE.equals(p.getIsReady())) {
+                    throw new IllegalStateException("WAITING FOR SECOND OPERATOR. OPERATOR 0" + p.getPlayerNumber() + " MUST CONFIRM READINESS.");
+                }
+            }
+        }
+
+        // Both players verified ready! Officially record authoritative server start time
+        Instant serverStartTime = Instant.now();
+        team.setStartedAt(serverStartTime);
+        team.setGameState(TeamGameState.IN_PROGRESS);
+        teamRepository.save(team);
+
+        // Initialize Level 1 and stage progress
+        gameStateService.initializeTeamGameState(team);
+
+        auditService.logEvent(
+                GameEventType.LEVEL_STARTED,
+                event,
+                team,
+                player,
+                "{\"action\": \"TEAM_EVENT_STARTED\", \"startedAt\": \"" + serverStartTime + "\"}",
+                "PLAYER"
+        );
+
+        // Broadcast EVENT_STARTED to both players via WebSocket
+        WebSocketEventDto startEvent = WebSocketEventDto.builder()
+                .type(WebSocketEventType.EVENT_STARTED)
+                .teamId(team.getId())
+                .message("TEAM VERIFIED: EVENT OFFICIALLY STARTED")
+                .serverTime(serverStartTime)
+                .timestamp(serverStartTime)
+                .build();
+        webSocketPublisher.broadcastToTeam(team.getId(), startEvent);
+
+        log.info("Team ID {} ({}) officially started event at {}", team.getId(), team.getTeamCode(), serverStartTime);
+        return mapToResponse(team, player);
+    }
+
     @Transactional
     public void logout(PlayerPrincipal principal, HttpServletResponse response) {
         if (principal != null && principal.getSessionToken() != null) {
@@ -254,7 +392,10 @@ public class PlayerSessionService {
                 Player player = session.getPlayer();
                 if (player != null) {
                     player.setStatus(PlayerStatus.DISCONNECTED);
+                    player.setIsReady(false);
                     playerRepository.save(player);
+
+                    webSocketPublisher.notifyPlayerConnection(session.getTeam().getId(), player.getId(), player.getPlayerNumber(), player.getDisplayName(), false);
 
                     auditService.logEvent(
                             GameEventType.PLAYER_LOGOUT,
@@ -284,7 +425,9 @@ public class PlayerSessionService {
         Player player = session.getPlayer();
         if (player != null) {
             player.setStatus(PlayerStatus.DISCONNECTED);
+            player.setIsReady(false);
             playerRepository.save(player);
+            webSocketPublisher.notifyPlayerConnection(session.getTeam().getId(), player.getId(), player.getPlayerNumber(), player.getDisplayName(), false);
         }
 
         auditService.logEvent(
@@ -323,10 +466,12 @@ public class PlayerSessionService {
 
         for (Player player : playerRepository.findByTeamId(teamId)) {
             player.setStatus(PlayerStatus.INACTIVE);
+            player.setIsReady(false);
             playerRepository.save(player);
         }
 
         team.setGameState(TeamGameState.NOT_STARTED);
+        team.setStartedAt(null);
         team.setCompletedAt(null);
         teamRepository.saveAndFlush(team);
 
@@ -377,6 +522,20 @@ public class PlayerSessionService {
     }
 
     private PlayerResponseDto mapToResponse(Team team, Player player) {
+        Integer teammateNumber = player.getPlayerNumber() == 1 ? 2 : 1;
+        Optional<Player> teammateOpt = playerRepository.findByTeamIdAndPlayerNumber(team.getId(), teammateNumber);
+
+        String teammateName = null;
+        boolean teammateLoggedIn = false;
+        boolean teammateReady = false;
+
+        if (teammateOpt.isPresent()) {
+            Player teammate = teammateOpt.get();
+            teammateName = teammate.getDisplayName() != null ? teammate.getDisplayName() : "Player " + teammateNumber;
+            teammateReady = Boolean.TRUE.equals(teammate.getIsReady());
+            teammateLoggedIn = gameSessionRepository.findByPlayerIdAndStatus(teammate.getId(), SessionStatus.ACTIVE).isPresent();
+        }
+
         return PlayerResponseDto.builder()
                 .teamCode(team.getTeamCode())
                 .teamName(team.getTeamName())
@@ -386,6 +545,14 @@ public class PlayerSessionService {
                 .eventId(team.getEvent().getId())
                 .teamId(team.getId())
                 .playerId(player.getId())
+                .isReady(Boolean.TRUE.equals(player.getIsReady()))
+                .gameState(team.getGameState().name())
+                .eventStatus(team.getEvent() != null ? team.getEvent().getStatus().name() : "UNKNOWN")
+                .eventStartedAt(team.getStartedAt())
+                .teammateName(teammateName)
+                .teammateNumber(teammateNumber)
+                .teammateLoggedIn(teammateLoggedIn)
+                .teammateReady(teammateReady)
                 .build();
     }
 }

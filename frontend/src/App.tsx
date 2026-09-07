@@ -10,6 +10,7 @@ import { CreateTeamPage } from './pages/admin/CreateTeamPage';
 import { TeamDetailsPage } from './pages/admin/TeamDetailsPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { PlayerLoginPage } from './pages/player/PlayerLoginPage';
+import { PlayerLobbyPage } from './pages/player/PlayerLobbyPage';
 import { PlayerGamePage } from './pages/player/PlayerGamePage';
 import { PlayerWaitingPage } from './pages/player/PlayerWaitingPage';
 import { PlayerProtectedRoute } from './components/PlayerProtectedRoute';
@@ -19,21 +20,38 @@ import { PublicLeaderboardPage } from './pages/public/PublicLeaderboardPage';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
+import { TargetCursor } from './components/cinematic/TargetCursor';
 
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AdminAuthProvider>
         <PlayerAuthProvider>
-          <div className="min-h-screen flex flex-col">
+          <div className="min-h-screen flex flex-col relative">
+            {/* Global Cinematic Target Crosshair Cursor */}
+            <TargetCursor enabled={true} />
+
+            {/* Global Scanline Overlay */}
+            <div className="scanline-overlay" aria-hidden="true" />
+
             <Header />
-            <main className="h-full">
+
+            <main className="h-full relative z-10">
               <Routes>
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<Navigate to="/player/login" replace />} />
                 <Route path="/public-leaderboard" element={<PublicLeaderboardPage />} />
 
                 {/* Player Phase 4 & 5 Routes */}
                 <Route path="/player/login" element={<PlayerLoginPage />} />
+                <Route
+                  path="/player/lobby"
+                  element={
+                    <PlayerProtectedRoute>
+                      <PlayerLobbyPage />
+                    </PlayerProtectedRoute>
+                  }
+                />
                 <Route
                   path="/player/game"
                   element={
@@ -63,12 +81,12 @@ export const App: React.FC = () => {
                 <Route path="/admin/events/:eventId/teams/new" element={<AdminProtectedRoute><CreateTeamPage /></AdminProtectedRoute>} />
                 <Route path="/admin/teams/:teamId" element={<AdminProtectedRoute><TeamDetailsPage /></AdminProtectedRoute>} />
 
-              {/* Fallback route */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        </div>
-      </PlayerAuthProvider>
+                {/* Fallback route */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </main>
+          </div>
+        </PlayerAuthProvider>
       </AdminAuthProvider>
     </BrowserRouter>
   );

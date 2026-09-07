@@ -1,0 +1,346 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { usePlayerAuth } from '../../context/PlayerAuthContext';
+import { fetchLobbyState, setPlayerReady, startTeamEvent } from '../../services/playerAuthService';
+import { useGameWebSocket } from '../../hooks/useGameWebSocket';
+import { PlayerInfo } from '../../types/player';
+import { soundService } from '../../services/soundService';
+import { SpotlightCard } from '../../components/cinematic/SpotlightCard';
+import { CinematicButton } from '../../components/cinematic/CinematicButton';
+import { Terminal, Cpu, Users, Shield, AlertOctagon, CheckCircle2, LogOut } from 'lucide-react';
+import './PlayerLobbyPage.css';
+
+export const PlayerLobbyPage: React.FC = () => {
+  const { player, logout, refreshPlayer } = usePlayerAuth();
+  const navigate = useNavigate();
+
+  const [lobbyData, setLobbyData] = useState<PlayerInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const data = await fetchLobbyState();
+      setLobbyData(data);
+
+      // If team has already started, transition to gameplay
+      if (data.gameState && data.gameState !== 'NOT_STARTED') {
+        navigate('/player/game', { replace: true });
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error loading lobby state.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Real-time synchronization via WebSocket
+  useGameWebSocket({
+    teamId: player?.teamId,
+    playerNumber: player?.playerNumber,
+    onRefreshData: loadData,
+  });
+
+  const isOperator1 = player?.playerNumber === 1;
+  const isSelfReady = Boolean(lobbyData?.isReady);
+  const isTeammateLoggedIn = Boolean(lobbyData?.teammateLoggedIn);
+  const isTeammateReady = Boolean(lobbyData?.teammateReady);
+  const teammateNum = isOperator1 ? 2 : 1;
+  const teammateName = lobbyData?.teammateName || `OPERATOR 0${teammateNum}`;
+
+  const handleToggleReady = async () => {
+    if (isSubmitting) return;
+    setErrorMsg(null);
+
+    // If teammate is ready and self is ready, trigger start confirmation
+    if (isTeammateLoggedIn && isTeammateReady) {
+      soundService.playClick();
+      setShowConfirmModal(true);
+      return;
+    }
+
+    // Otherwise toggle self readiness
+    try {
+      setIsSubmitting(true);
+      soundService.playClick();
+      const updated = await setPlayerReady(!isSelfReady);
+      setLobbyData(updated);
+
+      if (!isTeammateLoggedIn) {
+        setErrorMsg(`OPERATOR 0${teammateNum} IS NOT LOGGED IN. BOTH OPERATORS MUST BE PRESENT.`);
+      } else if (!isTeammateReady) {
+        setErrorMsg(`YOU ARE READY. WAITING FOR OPERATOR 0${teammateNum} TO CONFIRM READINESS.`);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to update readiness.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmStart = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setErrorMsg(null);
+
+    try {
+      soundService.playLevelUnlock();
+      setShowConfirmModal(false);
+      setTransitioning(true);
+
+      await startTeamEvent();
+      await refreshPlayer();
+
+      // Brief transition before game entry
+      setTimeout(() => {
+        navigate('/player/game', { replace: true });
+      }, 1500);
+    } catch (err: any) {
+      setTransitioning(false);
+      setErrorMsg(err.message || 'Failed to start event.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    soundService.playClick();
+    await logout();
+    navigate('/player/login');
+  };
+
+  if (transitioning) {
+    return (
+      <div className="lobby-transition-overlay">
+        <div className="lobby-transition-panel animate-fade-in">
+          <CheckCircle2 size={48} color="var(--status-success)" className="animate-pulse-glow" />
+          <h1 className="transition-title">TEAM VERIFIED</h1>
+          <div className="transition-sub">
+            &gt; OPERATOR 01 ... READY<br />
+            &gt; OPERATOR 02 ... READY
+          </div>
+          <div className="transition-alert animate-pulse">
+            STARTING CODEXCAPE // LEVEL 01
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="player-lobby-page">
+      {/* Background Ambience */}
+      <div className="lobby-scanline-overlay" aria-hidden="true" />
+      <div className="lobby-ambient-glow" aria-hidden="true" />
+
+      {/* Top Telemetry Strip */}
+      <header className="lobby-top-strip">
+        <div className="lobby-brand">
+          <Shield size={16} color="var(--accent-cyan)" />
+          <span>CODEXCAPE</span>
+          <span style={{ color: 'var(--accent-cyan)' }}>//</span>
+          <span style={{ color: 'var(--text-muted)' }}>TEAM LOBBY</span>
+        </div>
+
+        <button onClick={handleLogout} className="lobby-logout-btn" title="Exit to Login">
+          <LogOut size={14} />
+          <span>LOGOUT</span>
+        </button>
+      </header>
+
+      {/* Main Center Console */}
+      <main className="lobby-main-container">
+        <SpotlightCard variant="cyan" className="lobby-profile-card animate-slide-up">
+          {/* Header */}
+          <div className="profile-header">
+            <div>
+              <div className="profile-super">CLEARANCE LEVEL: OPERATOR</div>
+              <h1 className="profile-title">OPERATOR PROFILE</h1>
+            </div>
+            <div className="badge-event-status">
+              <span className="dot-pulse" />
+              <span>EVENT: NOT STARTED</span>
+            </div>
+          </div>
+
+          {errorMsg && (
+            <div className="lobby-error-banner animate-fade-in">
+              <AlertOctagon size={16} />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Section 1: Self Operator */}
+          <div className="profile-section">
+            <div className="section-title">
+              <Terminal size={14} color="var(--accent-cyan)" />
+              <span>OPERATOR IDENTIFIER</span>
+            </div>
+            <div className="section-grid">
+              <div className="data-field">
+                <span className="field-label">NAME</span>
+                <span className="field-value font-bold">{player?.playerName || 'OPERATOR'}</span>
+              </div>
+              <div className="data-field">
+                <span className="field-label">NODE ASSIGNMENT</span>
+                <span className="field-value text-cyan font-bold">OPERATOR 0{player?.playerNumber}</span>
+              </div>
+              <div className="data-field">
+                <span className="field-label">LOCAL STATUS</span>
+                <span className="field-value status-online">
+                  <span className="indicator-dot-green" /> LOGGED IN
+                </span>
+              </div>
+              <div className="data-field">
+                <span className="field-label">READINESS</span>
+                <span className={`field-value ${isSelfReady ? 'status-ready' : 'status-waiting'}`}>
+                  {isSelfReady ? '● READY' : '○ WAITING'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Team */}
+          <div className="profile-section">
+            <div className="section-title">
+              <Users size={14} color="var(--accent-cyan)" />
+              <span>TEAM IDENTIFICATION</span>
+            </div>
+            <div className="section-grid">
+              <div className="data-field">
+                <span className="field-label">TEAM NAME</span>
+                <span className="field-value font-bold">{player?.teamName || 'TEAM'}</span>
+              </div>
+              <div className="data-field">
+                <span className="field-label">TEAM CODE</span>
+                <span className="field-value text-cyan font-mono font-bold">{player?.teamCode}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Teammate Live Telemetry */}
+          <div className="profile-section">
+            <div className="section-title">
+              <Cpu size={14} color="var(--accent-cyan)" />
+              <span>COOPERATIVE PARTNER NODE (LIVE)</span>
+            </div>
+            <div className="section-grid">
+              <div className="data-field">
+                <span className="field-label">TEAMMATE</span>
+                <span className="field-value font-bold">{teammateName}</span>
+              </div>
+              <div className="data-field">
+                <span className="field-label">NODE</span>
+                <span className="field-value text-muted font-bold">OPERATOR 0{teammateNum}</span>
+              </div>
+              <div className="data-field">
+                <span className="field-label">CONNECTION STATUS</span>
+                <span className={`field-value ${isTeammateLoggedIn ? 'status-online' : 'status-offline'}`}>
+                  {isTeammateLoggedIn ? (
+                    <>
+                      <span className="indicator-dot-green" /> LOGGED IN
+                    </>
+                  ) : (
+                    <>
+                      <span className="indicator-dot-gray" /> NOT LOGGED IN
+                    </>
+                  )}
+                </span>
+              </div>
+              <div className="data-field">
+                <span className="field-label">TEAMMATE READINESS</span>
+                <span className={`field-value ${isTeammateReady ? 'status-ready' : 'status-waiting'}`}>
+                  {isTeammateReady ? '● READY' : '○ NOT READY'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Zone */}
+          <div className="lobby-action-zone">
+            <div className="status-summary-text">
+              {!isTeammateLoggedIn ? (
+                <span style={{ color: 'var(--text-muted)' }}>
+                  &gt; WAITING FOR OPERATOR 0{teammateNum} TO AUTHENTICATE_
+                </span>
+              ) : !isTeammateReady ? (
+                <span style={{ color: 'var(--status-warning)' }}>
+                  &gt; OPERATOR 0{teammateNum} LOGGED IN. AWAITING MUTUAL READINESS_
+                </span>
+              ) : (
+                <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>
+                  &gt; BOTH OPERATORS READY. AUTHORIZED TO BEGIN EVENT_
+                </span>
+              )}
+            </div>
+
+            <div className="lobby-buttons-row">
+              <CinematicButton
+                variant={isSelfReady && isTeammateReady ? 'primary' : isSelfReady ? 'secondary' : 'primary'}
+                onClick={handleToggleReady}
+                disabled={isSubmitting || isLoading}
+                className="lobby-start-btn"
+              >
+                {isSelfReady && isTeammateReady ? (
+                  <span>START EVENT</span>
+                ) : isSelfReady ? (
+                  <span>MARK WAITING (TOGGLE READY)</span>
+                ) : (
+                  <span>CONFIRM READINESS</span>
+                )}
+              </CinematicButton>
+            </div>
+          </div>
+        </SpotlightCard>
+      </main>
+
+      {/* Irreversible Start Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="confirm-modal-content animate-slide-up">
+            <div className="modal-header">
+              <AlertOctagon size={24} color="var(--accent-cyan)" />
+              <h2>START EVENT CONFIRMATION</h2>
+            </div>
+
+            <p className="modal-body-text">
+              Once the event officially begins:
+            </p>
+
+            <ul className="modal-rules-list">
+              <li>The authoritative server timer will start (90-minute limit).</li>
+              <li>Both operators will transition into <strong>Level 01: System Reconstruction</strong>.</li>
+              <li>Your team will be recorded as officially attending the event.</li>
+            </ul>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="modal-btn-cancel"
+                disabled={isSubmitting}
+              >
+                CANCEL
+              </button>
+              <CinematicButton
+                variant="primary"
+                onClick={handleConfirmStart}
+                disabled={isSubmitting}
+                className="modal-btn-confirm"
+              >
+                <span>CONFIRM START</span>
+              </CinematicButton>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

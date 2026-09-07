@@ -108,6 +108,20 @@ public class GameStateService {
         Instant serverTime = Instant.now();
         Instant deadline = event.getStartTime() == null ? null : event.getStartTime().plusSeconds(90 * 60L);
 
+        if (team.getGameState() == TeamGameState.NOT_STARTED) {
+            return PlayerGameStateDto.builder()
+                    .teamCode(team.getTeamCode())
+                    .teamName(team.getTeamName())
+                    .gameStatus(TeamGameState.NOT_STARTED)
+                    .currentLevel(1)
+                    .currentRank(null)
+                    .eventStatus(event != null ? event.getStatus() : null)
+                    .levels(List.of())
+                    .serverTime(serverTime)
+                    .deadline(deadline)
+                    .build();
+        }
+
         List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
         if (progressList.isEmpty() && (event.getStatus() == EventStatus.READY || event.getStatus() == EventStatus.RUNNING)) {
             progressList = initializeTeamGameState(team);

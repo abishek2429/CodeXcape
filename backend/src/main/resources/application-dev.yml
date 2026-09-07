@@ -6,6 +6,11 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     show-sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    validate-on-migrate: false
+    ignore-migration-patterns: "*:missing"
 
 logging:
   level:

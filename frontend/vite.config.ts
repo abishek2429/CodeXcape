@@ -20,6 +20,22 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    port: 5173,
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/ws': {
+        target: 'http://localhost:8080',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     target: 'esnext',
     minify: 'terser',

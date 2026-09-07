@@ -1,0 +1,116 @@
+.faulty-terminal {
+  position: relative;
+  background-color: var(--bg-panel-darker);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+/* Terminal Title Bar */
+.faulty-terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-dim);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.faulty-terminal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-cyan);
+}
+
+.faulty-terminal-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.faulty-terminal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--border-dim);
+}
+
+.faulty-terminal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.terminal-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  word-break: break-word;
+}
+
+.terminal-line-prompt {
+  color: var(--accent-cyan);
+  user-select: none;
+}
+
+.terminal-line-cyan {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.terminal-line-success {
+  color: var(--status-success);
+}
+
+.terminal-line-warning {
+  color: var(--status-warning);
+}
+
+.terminal-line-danger {
+  color: var(--accent-crimson);
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(225, 29, 72, 0.6);
+  animation: terminal-glitch-flicker 0.4s ease-in-out infinite alternate;
+}
+
+/* React Bits Text Cursor */
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background-color: var(--accent-cyan);
+  vertical-align: middle;
+  margin-left: 4px;
+  animation: cursor-blink 0.85s step-start infinite;
+}
+
+.terminal-cursor.cursor-danger {
+  background-color: var(--accent-crimson);
+  box-shadow: 0 0 6px var(--accent-crimson);
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes terminal-glitch-flicker {
+  0% { opacity: 0.92; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(1px); }
+  100% { opacity: 0.85; transform: translateX(-1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-line-danger {
+    animation: none !important;
+  }
+}

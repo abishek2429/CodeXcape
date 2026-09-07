@@ -64,6 +64,10 @@ public class QuestionAnswerService {
             throw new EventUnavailableException("The event is not currently active.");
         }
 
+        if (team.getGameState() == TeamGameState.NOT_STARTED) {
+            throw new EventUnavailableException("The event has not been started by your team yet. Please enter the team lobby.");
+        }
+
         // Find active level progress for team
         List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
         TeamLevelProgress activeProgress = progressList.stream()
@@ -128,6 +132,10 @@ public class QuestionAnswerService {
         enforceDeadline(event);
         if (event.getStatus() != EventStatus.RUNNING && event.getStatus() != EventStatus.READY) {
             throw new EventUnavailableException("The event is not currently active.");
+        }
+
+        if (team.getGameState() == TeamGameState.NOT_STARTED) {
+            throw new EventUnavailableException("The event has not been started by your team yet. Please enter the team lobby.");
         }
 
         // Server-Authoritative Active Level and major-stage derivation

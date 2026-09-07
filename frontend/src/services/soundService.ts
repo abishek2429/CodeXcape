@@ -1,6 +1,8 @@
 class SoundService {
   private ctx: AudioContext | null = null;
   private muted: boolean = false;
+  private ambientOsc: OscillatorNode | null = null;
+  private ambientGain: GainNode | null = null;
 
   constructor() {
     this.muted = localStorage.getItem('codexcape_muted') === 'true';
@@ -27,10 +29,53 @@ class SoundService {
   public toggleMute(): boolean {
     this.muted = !this.muted;
     localStorage.setItem('codexcape_muted', String(this.muted));
-    if (!this.muted) {
+    if (this.muted) {
+      this.stopAmbientHum();
+    } else {
       this.playClick();
     }
     return this.muted;
+  }
+
+  // Subtle ambient server hum (55Hz / 110Hz sub-audible texture)
+  public startAmbientHum() {
+    if (this.muted || this.ambientOsc) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+    try {
+      this.ambientOsc = ctx.createOscillator();
+      this.ambientGain = ctx.createGain();
+
+      this.ambientOsc.type = 'sine';
+      this.ambientOsc.frequency.setValueAtTime(55, ctx.currentTime);
+
+      this.ambientGain.gain.setValueAtTime(0.015, ctx.currentTime);
+
+      this.ambientOsc.connect(this.ambientGain);
+      this.ambientGain.connect(ctx.destination);
+      this.ambientOsc.start();
+    } catch {}
+  }
+
+  public stopAmbientHum() {
+    if (this.ambientOsc) {
+      try {
+        this.ambientOsc.stop();
+        this.ambientOsc.disconnect();
+      } catch {}
+      this.ambientOsc = null;
+    }
+    if (this.ambientGain) {
+      try {
+        this.ambientGain.disconnect();
+      } catch {}
+      this.ambientGain = null;
+    }
+  }
+
+  // Silence ambient briefly before Final Protocol
+  public silenceAmbient() {
+    this.stopAmbientHum();
   }
 
   // Crisp mechanical key click / button tap
@@ -144,6 +189,48 @@ class SoundService {
       gain.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + 0.08);
+    } catch {}
+  }
+
+  // Core System Activation Drone (Level 6)
+  public playCoreActivation() {
+    const ctx = this.initCtx();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      [110, 165, 220].forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 1.2);
+      });
+    } catch {}
+  }
+
+  // System Recovery Restoration Chime (Final Protocol Success)
+  public playSystemRestoration() {
+    const ctx = this.initCtx();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      [261.63, 329.63, 392.00, 523.25, 659.25, 783.99].forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+        gain.gain.setValueAtTime(0.16, now + idx * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.8);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.12);
+        osc.stop(now + idx * 0.12 + 0.8);
+      });
     } catch {}
   }
 }

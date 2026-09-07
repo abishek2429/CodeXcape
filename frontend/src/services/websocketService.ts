@@ -3,6 +3,8 @@ import { Client, IMessage } from '@stomp/stompjs';
 export type WebSocketEventType =
   | 'PLAYER_CONNECTED'
   | 'PLAYER_DISCONNECTED'
+  | 'PLAYER_READY_CHANGED'
+  | 'EVENT_STARTED'
   | 'PARTNER_CHALLENGE_COMPLETED'
   | 'LEVEL_COMPLETED'
   | 'NEXT_LEVEL_UNLOCKED'
@@ -17,6 +19,8 @@ export interface WebSocketEventPayload {
   playerId?: number;
   playerNumber?: number;
   displayName?: string;
+  isReady?: boolean;
+  gameState?: string;
   levelNumber?: number;
   stageNumber?: number;
   nextStageNumber?: number;

@@ -41,6 +41,10 @@ public class Player {
     @Builder.Default
     private PlayerStatus status = PlayerStatus.INACTIVE;
 
+    @Column(name = "is_ready", nullable = false)
+    @Builder.Default
+    private Boolean isReady = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

@@ -12,6 +12,14 @@ export interface PlayerInfo {
   eventId: number;
   teamId: number;
   playerId: number;
+  isReady?: boolean;
+  gameState?: string;
+  eventStatus?: string;
+  eventStartedAt?: string | null;
+  teammateName?: string | null;
+  teammateNumber?: number | null;
+  teammateLoggedIn?: boolean;
+  teammateReady?: boolean;
 }
 
 export type AuthStatus = 'INITIALIZING' | 'NOT_AUTHENTICATED' | 'AUTHENTICATED' | 'SESSION_EXPIRED' | 'LOGGED_OUT';

@@ -1,0 +1,71 @@
+.final-restoration-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #030406;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+  animation: restorationFadeIn 0.5s ease;
+}
+
+.final-restoration-container {
+  max-width: 760px;
+  width: 100%;
+  background-color: var(--bg-panel-darker);
+  border: 1px solid var(--status-success);
+  border-radius: var(--radius-sm);
+  padding: 40px;
+  box-shadow: 0 0 80px rgba(16, 185, 129, 0.25), inset 0 0 40px rgba(0, 0, 0, 0.95);
+  font-family: var(--font-mono);
+}
+
+.restoration-step-card {
+  padding: 20px 24px;
+  background-color: rgba(4, 5, 7, 0.85);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-xs);
+  margin-bottom: 24px;
+  line-height: 1.8;
+  font-size: 13px;
+}
+
+.story-reveal-block {
+  padding: 32px;
+  background-color: rgba(4, 5, 7, 0.95);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: var(--radius-xs);
+  text-align: center;
+  font-size: 16px;
+  line-height: 2.2;
+  color: var(--text-cold-white);
+  margin: 28px 0;
+}
+
+.story-quote-main {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--accent-cyan);
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 16px rgba(0, 217, 255, 0.4);
+}
+
+.final-telemetry-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 16px 20px;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-xs);
+  margin-top: 24px;
+}
+
+@keyframes restorationFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

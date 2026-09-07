@@ -1,74 +1,89 @@
 :root {
-  /* Core Obsidian Dark Theme */
-  --bg-void: #050608;
-  --bg-dark: #080A0F;
-  --bg-panel: #0C1017;
-  --bg-panel-darker: #07090E;
-  --bg-panel-light: rgba(12, 16, 23, 0.75);
-  
-  /* Technical Cyan Accents */
-  --accent-cyan: #00D9FF;
-  --accent-cyan-dim: rgba(0, 217, 255, 0.35);
-  --accent-cyan-faded: rgba(0, 217, 255, 0.12);
-  --accent-cyan-glow: 0 0 10px rgba(0, 217, 255, 0.4), 0 0 20px rgba(0, 217, 255, 0.2);
-  
-  /* Danger Crimson Accents */
-  --accent-crimson: #E11D48;
-  --accent-crimson-dim: rgba(225, 29, 72, 0.35);
-  --accent-crimson-faded: rgba(225, 29, 72, 0.15);
-  --glow-crimson: 0 0 15px rgba(225, 29, 72, 0.45);
+  /* ===================================================
+     CODEXCAPE UNIFIED FORENSIC DESIGN SYSTEM TOKENS
+     =================================================== */
 
-  /* Limited Secondary Violet */
-  --accent-purple: #8B5CF6;
-  --accent-purple-dim: rgba(139, 92, 246, 0.35);
-  --accent-purple-faded: rgba(139, 92, 246, 0.12);
-  
-  /* System Status Colors */
-  --status-success: #10B981;
+  /* 1. Backgrounds: Near-Black / Obsidian Mainframe */
+  --bg-void: #040507;
+  --bg-obsidian: #07090d;
+  --bg-panel: #0a0e17;
+  --bg-panel-darker: #06080d;
+  --bg-chassis: #0e131d;
+  --bg-panel-light: rgba(10, 14, 23, 0.85);
+
+  /* 2. Danger: Deep Crimson / Blood Red Anomaly */
+  --accent-crimson: #e11d48;
+  --accent-crimson-deep: #be123c;
+  --accent-crimson-dark: #881337;
+  --accent-crimson-dim: rgba(225, 29, 72, 0.35);
+  --accent-crimson-faded: rgba(225, 29, 72, 0.12);
+  --glow-crimson: 0 0 12px rgba(225, 29, 72, 0.45);
+  --glow-crimson-intense: 0 0 24px rgba(225, 29, 72, 0.6);
+
+  /* 3. Primary Text: Cold White & Forensic Silvers */
+  --text-primary: #f8fafc;
+  --text-cold-white: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-dim: #475569;
+
+  /* 4. Technical Accent: Restrained Cyan (Not Overblown Neon) */
+  --accent-cyan: #00d9ff;
+  --accent-cyan-hover: #38bdf8;
+  --accent-cyan-dim: rgba(0, 217, 255, 0.3);
+  --accent-cyan-faded: rgba(0, 217, 255, 0.08);
+  --accent-cyan-glow: 0 0 10px rgba(0, 217, 255, 0.35);
+
+  /* 5. Secondary: Dark Violet Subsystem */
+  --accent-purple: #7c3aed;
+  --accent-purple-dim: rgba(124, 58, 237, 0.25);
+  --accent-purple-faded: rgba(124, 58, 237, 0.08);
+
+  /* 6. Success & Warning Telemetry */
+  --status-success: #10b981;
   --status-success-dim: rgba(16, 185, 129, 0.2);
-  --status-warning: #F59E0B;
+  --status-warning: #f59e0b;
   --status-warning-dim: rgba(245, 158, 11, 0.2);
-  --status-error: #EF4444;
+  --status-error: #ef4444;
   --status-error-dim: rgba(239, 68, 68, 0.2);
-  --status-neutral: #64748B;
-  
-  /* UI Borders */
-  --border-dim: rgba(255, 255, 255, 0.08);
+  --status-neutral: #64748b;
+
+  /* 7. UI Borders & Technical Graticules */
+  --border-dim: rgba(255, 255, 255, 0.07);
+  --border-subtle: rgba(255, 255, 255, 0.12);
   --border-cyan: rgba(0, 217, 255, 0.25);
+  --border-cyan-strong: rgba(0, 217, 255, 0.5);
   --border-crimson: rgba(225, 29, 72, 0.35);
+  --border-crimson-strong: rgba(225, 29, 72, 0.65);
   --border-success: rgba(16, 185, 129, 0.3);
-  
-  /* Cold White Primary Text */
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  
-  /* Typography */
+
+  /* 8. Typography Systems */
   --font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 
-  /* Spacing */
+  /* 9. Sharp Hardware Geometry (No SaaS pill blobs) */
+  --radius-none: 0;
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* 10. Spacing Scale */
   --space-xs: 0.25rem;
   --space-s: 0.5rem;
   --space-m: 1rem;
   --space-l: 1.5rem;
   --space-xl: 2rem;
   --space-2xl: 3rem;
-  
-  /* Radii */
-  --radius-none: 0;
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
-  
-  /* Shadows & Tactical Glows */
-  --shadow-elevation: 0px 10px 30px rgba(0, 0, 0, 0.7);
-  --glow-cyan-text: 0 0 8px rgba(0, 217, 255, 0.5);
-  --glow-red-text: 0 0 8px rgba(239, 68, 68, 0.5);
-  
-  /* Transitions */
+
+  /* 11. Shadows & Depth */
+  --shadow-chassis: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --glow-cyan-text: 0 0 8px rgba(0, 217, 255, 0.4);
+  --glow-red-text: 0 0 8px rgba(225, 29, 72, 0.5);
+
+  /* 12. Transitions */
   --transition-fast: 0.12s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }

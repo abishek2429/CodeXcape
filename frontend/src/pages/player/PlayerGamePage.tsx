@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePlayerAuth } from '../../context/PlayerAuthContext';
 import { fetchPlayerGameState, PlayerGameStateResponse } from '../../services/playerGameStateService';
 import { fetchCurrentQuestion, submitAnswer, PlayerQuestionResponse } from '../../services/questionService';
@@ -13,7 +14,7 @@ import { FinalTerminal } from '../../components/game/FinalTerminal';
 import { GameStatus } from '../../components/game/GameStatus';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { GameErrorState } from '../../components/game/GameErrorState';
-import { Shield, Clock, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy, RotateCcw } from 'lucide-react';
+import { Shield, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy, RotateCcw } from 'lucide-react';
 import { GameSessionState, ChallengeData } from '../../types/game';
 
 import { fetchPlayerHints, usePlayerHint } from '../../services/hintService';
@@ -22,7 +23,11 @@ import { fetchStoryline } from '../../services/storyService';
 import { StorylineData } from '../../types/story';
 import { OpeningBriefingModal } from '../../components/game/OpeningBriefingModal';
 import { LevelTransitionModal } from '../../components/game/LevelTransitionModal';
+import { CoreEntryModal } from '../../components/game/CoreEntryModal';
+import { FinalRestorationModal } from '../../components/game/FinalRestorationModal';
 import { InvestigationDossier } from '../../components/game/InvestigationDossier';
+import { CodeXcapeBackground } from '../../components/cinematic/CodeXcapeBackground';
+import { SpotlightCard } from '../../components/cinematic/SpotlightCard';
 import { soundService } from '../../services/soundService';
 import './PlayerGamePage.css';
 
@@ -37,6 +42,7 @@ const FRAGMENT_TITLES: Record<number, string> = {
 
 export const PlayerGamePage: React.FC = () => {
   const { player, logout, authStatus } = usePlayerAuth();
+  const navigate = useNavigate();
   const [serverState, setServerState] = useState<PlayerGameStateResponse | null>(null);
   const [liveQuestion, setLiveQuestion] = useState<PlayerQuestionResponse | null>(null);
   const [hints, setHints] = useState<HintData[]>([]);
@@ -48,6 +54,8 @@ export const PlayerGamePage: React.FC = () => {
   const [feedbackIsError, setFeedbackIsError] = useState(false);
   const [clockNow, setClockNow] = useState(() => Date.now());
   const [isBriefingOpen, setIsBriefingOpen] = useState(false);
+  const [isCoreEntryOpen, setIsCoreEntryOpen] = useState(false);
+  const [isRestorationOpen, setIsRestorationOpen] = useState(false);
   const [transitionInfo, setTransitionInfo] = useState<{
     completedLevel: number;
     nextLevel: number;
@@ -73,6 +81,12 @@ export const PlayerGamePage: React.FC = () => {
         throw new Error('AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
       }
 
+      // If team has not started the event, redirect to Player Profile / Team Lobby
+      if (stateData.gameStatus === 'NOT_STARTED') {
+        navigate('/player/lobby', { replace: true });
+        return;
+      }
+
       // Check if level has transitioned
       if (prevLevelRef.current !== null && stateData.currentLevel > prevLevelRef.current && stateData.currentLevel <= 6) {
         soundService.playLevelUnlock();
@@ -91,12 +105,22 @@ export const PlayerGamePage: React.FC = () => {
       setStoryline(storyData);
 
       // Trigger briefing modal on first session load if not seen
-      if (stateData.gameStatus !== 'NOT_STARTED' && !sessionStorage.getItem('codexcape_briefing_seen')) {
+      if (!sessionStorage.getItem('codexcape_briefing_seen')) {
         setIsBriefingOpen(true);
       }
 
-      // A waiting or finished team has no current question to load yet.
-      if (stateData.gameStatus === 'NOT_STARTED' || stateData.gameStatus === 'FINAL_PASSKEY' || stateData.gameStatus === 'COMPLETED') {
+      // Trigger Core Entry Modal on Level 6 entry
+      if (stateData.currentLevel === 6 && stateData.gameStatus !== 'COMPLETED' && !sessionStorage.getItem('codexcape_core_seen')) {
+        setIsCoreEntryOpen(true);
+      }
+
+      // Trigger Final Restoration Modal when game is completed
+      if (stateData.gameStatus === 'COMPLETED' && !sessionStorage.getItem('codexcape_restoration_seen')) {
+        setIsRestorationOpen(true);
+      }
+
+      // A finished or passkey team has no current question to load yet.
+      if (stateData.gameStatus === 'FINAL_PASSKEY' || stateData.gameStatus === 'COMPLETED') {
         setLiveQuestion(null);
         setHints([]);
         return;
@@ -126,6 +150,23 @@ export const PlayerGamePage: React.FC = () => {
       loadData();
     }
   }, [authStatus, player]);
+
+  // Procedural Ambient Hum and Final Protocol Silence
+  useEffect(() => {
+    const isPlaying = serverState?.gameStatus === 'IN_PROGRESS' || serverState?.gameStatus === 'FINAL_PASSKEY';
+    if (isPlaying && serverState) {
+      if (serverState.currentLevel === 6 && (serverState.gameStatus === 'FINAL_PASSKEY' || liveQuestion?.stageNumber === 3)) {
+        soundService.silenceAmbient();
+      } else {
+        soundService.startAmbientHum();
+      }
+    } else {
+      soundService.stopAmbientHum();
+    }
+    return () => {
+      soundService.stopAmbientHum();
+    };
+  }, [serverState?.gameStatus, serverState?.currentLevel, liveQuestion?.stageNumber]);
 
   if (authStatus === 'INITIALIZING' || !player || isLoadingData) {
     return <GameLoadingState message="INITIALIZING CONSOLE TELEMETRY..." />;
@@ -257,42 +298,24 @@ export const PlayerGamePage: React.FC = () => {
   };
 
   if (serverState && serverState.gameStatus === 'NOT_STARTED') {
-    return (
-      <div className="game-page">
-        <GameHeader player={player} currentLevel={1} totalLevels={6} connectionStatus={gameState.connectionStatus} onLogout={logout} />
-        <main className="game-main centered-main">
-          <div className="cyber-panel status-panel">
-            <Clock size={48} className="status-icon animate-pulse text-cyan" />
-            <h1 className="status-title">WAITING FOR LAUNCH</h1>
-            <p className="terminal-text text-muted">
-              &gt; IDENTITY VERIFIED. WAITING FOR ORGANIZER TO RELEASE LOCKS_
-            </p>
-            <div className="badge badge-cyan mt-l">
-              TEAM: {player.teamCode} | NODE 0{player.playerNumber}
-            </div>
-            {player.teamCode === 'CODEXCAPE-TEST' && (
-              <button
-                type="button"
-                onClick={handleResetTestTeam}
-                className="btn btn-secondary mt-m"
-                style={{ borderColor: 'var(--accent-warning)', color: 'var(--accent-warning)', fontSize: '11px' }}
-              >
-                <RotateCcw size={12} style={{ marginRight: '6px' }} />
-                RE-INITIALIZE TEST TEAM
-              </button>
-            )}
-          </div>
-        </main>
-      </div>
-    );
+    return <GameLoadingState message="REDIRECTING TO OPERATOR LOBBY..." />;
   }
 
   if (serverState && serverState.gameStatus === 'COMPLETED') {
     return (
       <div className="game-page">
-        <GameHeader player={player} currentLevel={6} totalLevels={6} connectionStatus={gameState.connectionStatus} onLogout={logout} onOpenBriefing={() => setIsBriefingOpen(true)} />
-        <main className="game-main centered-main" style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 20px' }}>
-          <div className="cyber-panel status-panel success-panel animate-slide-up" style={{ textAlign: 'left', padding: '36px', borderColor: 'var(--status-success)', boxShadow: '0 0 50px rgba(16, 185, 129, 0.2)' }}>
+        <CodeXcapeBackground intensity="minimal" />
+        <GameHeader
+          player={player}
+          currentLevel={6}
+          totalLevels={6}
+          connectionStatus={gameState.connectionStatus}
+          partnerStatus={partnerStatus}
+          onLogout={logout}
+          onOpenBriefing={() => setIsBriefingOpen(true)}
+        />
+        <main className="game-main centered-main" style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 20px' }}>
+          <div className="status-panel success-panel animate-slide-up" style={{ textAlign: 'left', padding: '36px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderBottom: '1px solid var(--status-success)', paddingBottom: '20px', marginBottom: '24px' }}>
               <CheckCircle2 size={48} className="text-success animate-pulse-glow" />
               <div>
@@ -308,9 +331,9 @@ export const PlayerGamePage: React.FC = () => {
             {/* System Recovery Diagnostics */}
             <div
               style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                backgroundColor: 'rgba(4, 5, 7, 0.85)',
                 border: '1px solid var(--border-dim)',
-                borderRadius: 'var(--radius-sm)',
+                borderRadius: 'var(--radius-xs)',
                 padding: '24px',
                 fontFamily: 'var(--font-mono)',
                 fontSize: '13px',
@@ -354,8 +377,16 @@ export const PlayerGamePage: React.FC = () => {
               </div>
             </div>
 
-            {player.teamCode === 'CODEXCAPE-TEST' && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setIsRestorationOpen(true)}
+                className="btn btn-primary"
+                style={{ fontSize: '12px' }}
+              >
+                REPLAY RESTORATION SEQUENCE
+              </button>
+              {player.teamCode === 'CODEXCAPE-TEST' && (
                 <button
                   type="button"
                   onClick={handleResetTestTeam}
@@ -365,17 +396,26 @@ export const PlayerGamePage: React.FC = () => {
                   <RotateCcw size={14} style={{ marginRight: '6px' }} />
                   RESTART TEST ESCAPE ROOM (LEVEL 1)
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </main>
+        <FinalRestorationModal
+          isOpen={isRestorationOpen}
+          finalRank={gameState.currentRank}
+          elapsedTime={formattedRemaining}
+          onClose={() => {
+            setIsRestorationOpen(false);
+            sessionStorage.setItem('codexcape_restoration_seen', 'true');
+          }}
+        />
       </div>
     );
   }
 
   return (
     <div className="game-page">
-      <div className="digital-noise-overlay"></div>
+      <CodeXcapeBackground intensity="minimal" />
       <GameHeader
         player={player}
         currentLevel={gameState.currentLevel}
@@ -386,6 +426,7 @@ export const PlayerGamePage: React.FC = () => {
         remainingSeconds={remainingSeconds}
         currentRank={gameState.currentRank}
         connectionStatus={gameState.connectionStatus}
+        partnerStatus={partnerStatus}
         onLogout={logout}
         onOpenBriefing={() => setIsBriefingOpen(true)}
       />
@@ -394,19 +435,19 @@ export const PlayerGamePage: React.FC = () => {
         <LevelProgress levels={gameState.levels} currentLevel={gameState.currentLevel} />
 
         <div className="game-grid animate-slide-up">
-          {/* Main Content Column */}
+          {/* Main Investigation Workspace Column */}
           <div className="panel-container">
             <GameStatus message={gameState.gameStatusMessage} />
 
             {latestNotification && (
-              <div className="cyber-panel notification-banner animate-pulse">
+              <div className="notification-banner animate-pulse">
                 <Radio size={16} />
                 <span>{latestNotification}</span>
               </div>
             )}
 
             {feedbackMsg && (
-              <div className={`cyber-panel notification-banner animate-fade-in ${feedbackIsError ? 'banner-error' : 'banner-success'}`}>
+              <div className={`notification-banner animate-fade-in ${feedbackIsError ? 'banner-error' : 'banner-success'}`}>
                 {feedbackIsError ? <AlertOctagon size={16} /> : <CheckCircle2 size={16} />}
                 <span className="terminal-text">{feedbackMsg}</span>
               </div>
@@ -415,12 +456,12 @@ export const PlayerGamePage: React.FC = () => {
             <ChallengePanel challenge={gameState.challenge} playerNumber={player.playerNumber} />
 
             {isChallengeCompleted ? (
-              <div className="cyber-panel verified-panel">
+              <div className="verified-panel">
                 <div className="badge badge-success mb-m">
                   <CheckCircle2 size={14} style={{ marginRight: '6px' }} />
                   NODE VERIFIED
                 </div>
-                <p className="terminal-text text-muted">
+                <p className="terminal-text text-muted" style={{ margin: 0 }}>
                   &gt; AWAITING PARTNER NODE SYNCHRONIZATION FOR TIER 0{gameState.currentLevel}_
                 </p>
               </div>
@@ -438,26 +479,22 @@ export const PlayerGamePage: React.FC = () => {
             <FinalTerminal
               isUnlocked={gameState.isFinalTerminalUnlocked}
               isCompleted={serverState?.gameStatus === 'COMPLETED'}
-              onSuccess={loadData}
+              onSuccess={() => {
+                setIsRestorationOpen(true);
+                loadData();
+              }}
             />
           </div>
 
-          {/* Sidebar Column */}
+          {/* Sidebar Telemetry & Dossier Column */}
           <div className="panel-container sidebar-container">
             <PartnerStatus partner={gameState.partner} />
 
-            <div className="cyber-panel team-matrix-panel">
-              <div className="panel-header terminal-text">
-                <Clock size={14} />
-                OFFICIAL TIME REMAINING
-              </div>
-              <div className="terminal-text text-warning text-lg font-bold">{formattedRemaining}</div>
-            </div>
-            
-            <div className="cyber-panel team-matrix-panel">
-              <div className="panel-header terminal-text">
-                <Shield size={14} />
-                TEAM IDENTITY MATRIX
+            {/* Team Identity Matrix with SpotlightCard */}
+            <SpotlightCard variant="cyan" className="team-matrix-panel">
+              <div className="panel-header">
+                <Shield size={14} color="var(--accent-cyan)" />
+                <span>TEAM IDENTITY MATRIX</span>
               </div>
 
               <div className="matrix-row">
@@ -503,14 +540,19 @@ export const PlayerGamePage: React.FC = () => {
                   </button>
                 </div>
               )}
-            </div>
+            </SpotlightCard>
 
             <InvestigationDossier
               storyline={storyline}
               onOpenBriefing={() => setIsBriefingOpen(true)}
             />
 
-            <HintPanel hints={gameState.hints} currentLevel={gameState.currentLevel} currentStage={liveQuestion?.stageNumber} onUseHint={handleUseHint} />
+            <HintPanel
+              hints={gameState.hints}
+              currentLevel={gameState.currentLevel}
+              currentStage={liveQuestion?.stageNumber}
+              onUseHint={handleUseHint}
+            />
           </div>
         </div>
       </main>
@@ -531,6 +573,24 @@ export const PlayerGamePage: React.FC = () => {
         nextLevelName={transitionInfo?.nextName || ''}
         recoveryFragmentTitle={transitionInfo?.fragmentTitle || ''}
         onClose={() => setTransitionInfo(null)}
+      />
+
+      <CoreEntryModal
+        isOpen={isCoreEntryOpen}
+        onClose={() => {
+          setIsCoreEntryOpen(false);
+          sessionStorage.setItem('codexcape_core_seen', 'true');
+        }}
+      />
+
+      <FinalRestorationModal
+        isOpen={isRestorationOpen}
+        finalRank={gameState.currentRank}
+        elapsedTime={formattedRemaining}
+        onClose={() => {
+          setIsRestorationOpen(false);
+          sessionStorage.setItem('codexcape_restoration_seen', 'true');
+        }}
       />
     </div>
   );

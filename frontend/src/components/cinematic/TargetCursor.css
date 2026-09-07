@@ -1,0 +1,102 @@
+.target-cursor-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 99999;
+  overflow: hidden;
+}
+
+.target-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: width 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s ease;
+  will-change: transform;
+}
+
+/* Reticle Corner Brackets */
+.target-cursor-reticle {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(0, 217, 255, 0.45);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+/* Center Crosshair Pip */
+.target-cursor-pip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  background-color: var(--accent-cyan);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 6px var(--accent-cyan);
+  border-radius: 50%;
+}
+
+/* Crosshair Hairlines */
+.target-cursor-hairline-x,
+.target-cursor-hairline-y {
+  position: absolute;
+  background-color: rgba(0, 217, 255, 0.25);
+}
+
+.target-cursor-hairline-x {
+  top: 50%;
+  left: -8px;
+  right: -8px;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.target-cursor-hairline-y {
+  left: 50%;
+  top: -8px;
+  bottom: -8px;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+/* Active Hover State on Interactive Elements */
+.target-cursor.is-hovering {
+  width: 44px;
+  height: 44px;
+}
+
+.target-cursor.is-hovering .target-cursor-reticle {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.35);
+}
+
+.target-cursor.is-hovering .target-cursor-pip {
+  background-color: #ffffff;
+  box-shadow: 0 0 8px #ffffff;
+}
+
+/* Danger / Anomaly Hover State */
+.target-cursor.is-danger .target-cursor-reticle {
+  border-color: var(--accent-crimson);
+  box-shadow: 0 0 12px rgba(225, 29, 72, 0.5);
+}
+
+.target-cursor.is-danger .target-cursor-pip {
+  background-color: var(--accent-crimson);
+  box-shadow: 0 0 8px var(--accent-crimson);
+}
+
+/* Hide on Touch Devices and when reduced motion is preferred */
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .target-cursor-container {
+    display: none !important;
+  }
+}

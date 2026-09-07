@@ -10,8 +10,18 @@ export const PlayerLoginPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login } = usePlayerAuth();
+  const { login, player, authStatus } = usePlayerAuth();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (authStatus === 'AUTHENTICATED' && player) {
+      if (player.gameState === 'NOT_STARTED') {
+        navigate('/player/lobby', { replace: true });
+      } else {
+        navigate('/player/game', { replace: true });
+      }
+    }
+  }, [authStatus, player, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,11 +34,15 @@ export const PlayerLoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login({
+      const playerInfo = await login({
         teamCode: teamCode.trim().toUpperCase(),
         playerNumber,
       });
-      navigate('/player/game', { replace: true });
+      if (playerInfo.gameState === 'NOT_STARTED') {
+        navigate('/player/lobby', { replace: true });
+      } else {
+        navigate('/player/game', { replace: true });
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'ACCESS DENIED: CONNECTION REJECTED');
     } finally {

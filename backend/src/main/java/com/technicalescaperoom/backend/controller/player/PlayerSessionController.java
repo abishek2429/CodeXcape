@@ -37,6 +37,28 @@ public class PlayerSessionController {
         return ResponseEntity.ok(playerResponse);
     }
 
+    @GetMapping("/lobby")
+    public ResponseEntity<PlayerResponseDto> getLobbyState(@AuthenticationPrincipal PlayerPrincipal principal) {
+        PlayerResponseDto lobbyState = playerSessionService.getLobbyState(principal);
+        return ResponseEntity.ok(lobbyState);
+    }
+
+    @PostMapping("/ready")
+    public ResponseEntity<PlayerResponseDto> setReady(
+            @AuthenticationPrincipal PlayerPrincipal principal,
+            @RequestBody(required = false) Map<String, Boolean> body
+    ) {
+        boolean isReady = body == null || body.get("ready") == null || Boolean.TRUE.equals(body.get("ready"));
+        PlayerResponseDto updated = playerSessionService.setPlayerReady(principal, isReady);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/event/start")
+    public ResponseEntity<PlayerResponseDto> startEvent(@AuthenticationPrincipal PlayerPrincipal principal) {
+        PlayerResponseDto response = playerSessionService.startTeamEvent(principal);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(
             @AuthenticationPrincipal PlayerPrincipal principal,

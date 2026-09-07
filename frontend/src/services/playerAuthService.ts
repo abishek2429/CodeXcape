@@ -51,6 +51,60 @@ export async function getCurrentPlayer(): Promise<PlayerInfo | null> {
   }
 }
 
+export async function fetchLobbyState(): Promise<PlayerInfo> {
+  const response = await fetch(`${API_BASE}/lobby`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch team lobby state.');
+  }
+
+  return response.json();
+}
+
+export async function setPlayerReady(ready: boolean): Promise<PlayerInfo> {
+  const response = await fetch(`${API_BASE}/ready`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ ready }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to update readiness.');
+  }
+
+  return response.json();
+}
+
+export async function startTeamEvent(): Promise<PlayerInfo> {
+  const response = await fetch(`${API_BASE}/event/start`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+    },
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to start event.');
+  }
+
+  return response.json();
+}
+
 export async function logoutPlayer(): Promise<void> {
   try {
     await fetch(`${API_BASE}/logout`, {

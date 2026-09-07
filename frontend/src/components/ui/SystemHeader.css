@@ -1,0 +1,28 @@
+.system-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background-color: var(--bg-panel-darker);
+  border-bottom: 1px solid var(--border-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.system-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.system-header-label {
+  color: var(--text-secondary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.system-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

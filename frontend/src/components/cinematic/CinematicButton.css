@@ -1,0 +1,115 @@
+.cinematic-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-cyan);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+  user-select: none;
+}
+
+/* Specular Light Gradient following cursor */
+.cinematic-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    140px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0, 217, 255, 0.25),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.cinematic-btn:hover::before {
+  opacity: 1;
+}
+
+.cinematic-btn:hover {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 14px rgba(0, 217, 255, 0.35);
+}
+
+.cinematic-btn:active {
+  transform: translateY(1px);
+}
+
+/* Primary Cyan Variant */
+.cinematic-btn-primary {
+  background-color: rgba(0, 217, 255, 0.1);
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+}
+
+.cinematic-btn-primary:hover {
+  background-color: rgba(0, 217, 255, 0.18);
+  box-shadow: 0 0 20px rgba(0, 217, 255, 0.45);
+}
+
+/* Danger Crimson Variant */
+.cinematic-btn-danger {
+  background-color: rgba(225, 29, 72, 0.1);
+  border-color: var(--accent-crimson);
+  color: #ffffff;
+}
+
+.cinematic-btn-danger::before {
+  background: radial-gradient(
+    140px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(225, 29, 72, 0.35),
+    transparent 70%
+  );
+}
+
+.cinematic-btn-danger:hover {
+  background-color: rgba(225, 29, 72, 0.22);
+  border-color: var(--accent-crimson);
+  box-shadow: 0 0 16px rgba(225, 29, 72, 0.5);
+}
+
+/* Secondary Dim Variant */
+.cinematic-btn-secondary {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: var(--border-dim);
+  color: var(--text-secondary);
+}
+
+.cinematic-btn-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+
+/* Technical Bracket Corners */
+.cinematic-btn-bracket {
+  color: var(--accent-cyan);
+  opacity: 0.6;
+  font-weight: 400;
+  transition: opacity 0.2s ease;
+}
+
+.cinematic-btn:hover .cinematic-btn-bracket {
+  opacity: 1;
+}
+
+/* Disabled State */
+.cinematic-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  border-color: var(--border-dim);
+  box-shadow: none;
+}

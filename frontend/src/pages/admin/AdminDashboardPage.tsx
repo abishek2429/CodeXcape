@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './AdminDashboardPage.css';
 import {
-  Shield,
   Play,
   Pause,
   RotateCcw,
@@ -49,13 +48,15 @@ import {
   AdminTeamProgress,
   AdminAuditLog,
 } from '../../services/adminService';
+import { AdminMissionHeader } from '../../components/admin/AdminMissionHeader';
+import { AdminSystemHealth } from '../../components/admin/AdminSystemHealth';
 
 export const AdminDashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'teams' | 'controls' | 'results' | 'audit'>('dashboard');
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [teams, setTeams] = useState<AdminTeamProgress[]>([]);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -276,51 +277,50 @@ export const AdminDashboardPage: React.FC = () => {
 
   return (
     <div className="admin-layout relative">
-      {/* Admin Command Center Header */}
-      <header className="admin-panel flex items-center justify-between gap-4">
-        <div className="flex items-center">
-          <div className="text-accent flex items-center justify-center">
-            <Shield className="" />
+      {/* Admin Mission Control Header */}
+      <AdminMissionHeader
+        eventStatus={stats?.eventStatus || 'STANDBY'}
+        totalTeams={stats?.totalTeams || 0}
+        completedTeams={stats?.completedTeams || 0}
+        activeTeams={(stats?.totalTeams || 0) - (stats?.completedTeams || 0)}
+        connectionsCount={`${stats?.bothPlayersOnlineTeams || 0} / ${stats?.totalTeams || 0}`}
+        rightAction={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowEmergencyModal(true)}
+              className="admin-btn-danger flex items-center gap-2"
+            >
+              <AlertOctagon size={14} className="animate-pulse" />
+              <span>EMERGENCY STOP</span>
+            </button>
+            
+            <button
+              onClick={loadData}
+              className="admin-btn-secondary"
+              title="Refresh telemetry"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
+            
+            <a
+              href="/"
+              className="admin-btn-secondary flex items-center gap-1"
+            >
+              <LogOut size={14} />
+              <span>Exit Portal</span>
+            </a>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-primary">
-                CODEXCAPE
-              </h1>
-              <span className="">
-                COMMAND CENTER // ADMIN
-              </span>
-            </div>
-            <p className="text-secondary">Authoritative Live Event Operations & Mission Orchestration</p>
-          </div>
-        </div>
+        }
+      />
 
-        <div className="flex items-center">
-          <button
-            onClick={() => setShowEmergencyModal(true)}
-            className="admin-btn-danger text-primary flex items-center gap-2"
-          >
-            <AlertOctagon className="animate-pulse" />
-            <span>EMERGENCY STOP</span>
-          </button>
-          
-          <button
-            onClick={loadData}
-            className="admin-panel admin-btn-secondary"
-            title="Refresh telemetry"
-          >
-            <RefreshCw className="admin-dynamic-element" />
-          </button>
-          
-          <a
-            href="/"
-            className="admin-panel admin-btn-secondary flex items-center"
-          >
-            <LogOut className="" />
-            <span>Exit Portal</span>
-          </a>
-        </div>
-      </header>
+      {/* Infrastructure System Health Bar */}
+      <AdminSystemHealth
+        backendOnline={true}
+        databaseOnline={true}
+        websocketOnline={true}
+        eventStatus={stats?.eventStatus || 'STANDBY'}
+        activeConnections={stats?.bothPlayersOnlineTeams || 0}
+      />
 
       {/* Action Telemetry Alert Banner */}
       {actionMsg && (
@@ -421,19 +421,19 @@ export const AdminDashboardPage: React.FC = () => {
       <nav className="admin-panel flex gap-2">
         <button
           onClick={() => setActiveTab('dashboard')}
-          className="admin-dynamic-element"
+          className={`admin-dynamic-element ${activeTab === 'dashboard' ? 'active' : ''}`}
         >
           TELEMETRY OVERVIEW
         </button>
 
         <button
           onClick={() => setActiveTab('content')}
-          className="admin-dynamic-element"
+          className={`admin-dynamic-element ${activeTab === 'content' ? 'active' : ''}`}
         >
-          <BookOpen className="" />
+          <BookOpen size={14} />
           <span>CONTENT & READINESS</span>
           {readinessData && (
-            <span className="admin-dynamic-element">
+            <span className={readinessData.overallReady ? 'badge-status-online' : 'badge-status-offline'} style={{ fontSize: '9px', marginLeft: '4px' }}>
               {readinessData.overallReady ? 'READY' : 'INCOMPLETE'}
             </span>
           )}
@@ -441,28 +441,28 @@ export const AdminDashboardPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('teams')}
-          className="admin-dynamic-element"
+          className={`admin-dynamic-element ${activeTab === 'teams' ? 'active' : ''}`}
         >
           TEAM MONITORING ({teams.length})
         </button>
 
         <button
           onClick={() => setActiveTab('controls')}
-          className="admin-dynamic-element"
+          className={`admin-dynamic-element ${activeTab === 'controls' ? 'active' : ''}`}
         >
           EVENT CONTROLS & PASSKEY
         </button>
 
         <button
           onClick={() => setActiveTab('results')}
-          className="admin-dynamic-element"
+          className={`admin-dynamic-element ${activeTab === 'results' ? 'active' : ''}`}
         >
           LEADERBOARD & EXPORTS
         </button>
 
         <button
           onClick={() => setActiveTab('audit')}
-          className="admin-dynamic-element"
+          className={`admin-dynamic-element ${activeTab === 'audit' ? 'active' : ''}`}
         >
           SECURITY AUDIT LOGS ({auditLogs.length})
         </button>
@@ -471,7 +471,8 @@ export const AdminDashboardPage: React.FC = () => {
           href="/public-leaderboard"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center"
+          className="admin-btn-secondary"
+          style={{ marginLeft: 'auto' }}
         >
           <span>🏆 Public Board</span>
         </a>
@@ -885,79 +886,111 @@ export const AdminDashboardPage: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    teams.map((t) => (
-                      <tr key={t.teamId} className="admin-btn-secondary">
-                        <td className="text-primary">
-                          <div className="">{t.teamName}</div>
-                          <div className="text-accent">{t.teamCode}</div>
-                        </td>
-                        <td className="">
-                          <span className="">
-                            Tier 0{t.currentLevel}
-                          </span>
-                        </td>
-                        <td className="">
-                          <div className="flex items-center">
-                            <span className="admin-dynamic-element" />
-                            <span className={t.player1Completed ? 'text-emerald-300 font-bold' : 'text-slate-300'}>{t.player1Name}</span>
-                            {t.player1SessionId && (
-                              <button
-                                title="Revoke Session"
-                                onClick={() => handleRevokeSessionAction(t.player1SessionId, t.player1Name)}
-                                className="text-danger"
-                              >
-                                [Revoke]
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        <td className="">
-                          <div className="flex items-center">
-                            <span className="admin-dynamic-element" />
-                            <span className={t.player2Completed ? 'text-emerald-300 font-bold' : 'text-slate-300'}>{t.player2Name}</span>
-                            {t.player2SessionId && (
-                              <button
-                                title="Revoke Session"
-                                onClick={() => handleRevokeSessionAction(t.player2SessionId, t.player2Name)}
-                                className="text-danger"
-                              >
-                                [Revoke]
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        <td className="">
-                          <span className="admin-dynamic-element">
-                            {t.connectionStatus || 'OFFLINE'}
-                          </span>
-                        </td>
-                        <td className="text-warning">{t.hintsUnlocked} / 6</td>
-                        <td className="">
-                          {t.status === 'PAUSED' ? (
-                            <button
-                              onClick={() => handleResumeTeamAction(t.teamId, t.teamName)}
-                              className=""
+                    teams.map((t) => {
+                      const isOnline = t.connectionStatus === 'ONLINE';
+                      const isWaiting = t.connectionStatus === 'WAITING';
+                      return (
+                        <tr key={t.teamId}>
+                          <td className="text-primary">
+                            <div style={{ fontWeight: 700, fontSize: '13px' }}>{t.teamName}</div>
+                            <div className="text-accent" style={{ fontSize: '11px', fontFamily: 'var(--font-mono)' }}>{t.teamCode}</div>
+                          </td>
+                          <td>
+                            <span
+                              style={{
+                                padding: '2px 8px',
+                                borderRadius: 'var(--radius-xs)',
+                                backgroundColor: 'rgba(14, 165, 233, 0.12)',
+                                border: '1px solid var(--accent-cyan)',
+                                color: 'var(--accent-cyan)',
+                                fontWeight: 800,
+                                fontSize: '11px',
+                              }}
                             >
-                              Resume Team
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handlePauseTeamAction(t.teamId, t.teamName)}
-                              className=""
-                            >
-                              Pause Team
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleTeamReset(t.teamId, t.teamName)}
-                            className="flex items-center"
-                          >
-                            <RotateCcw className="" />
-                            <span>Reset</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                              TIER 0{t.currentLevel}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <span className={t.player1Completed ? 'text-success font-bold' : 'text-primary'}>
+                                {t.player1Name}
+                              </span>
+                              {t.player1Completed && <CheckCircle2 size={12} className="text-success" />}
+                              {t.player1SessionId && (
+                                <button
+                                  type="button"
+                                  title="Revoke Session"
+                                  onClick={() => handleRevokeSessionAction(t.player1SessionId, t.player1Name)}
+                                  className="text-danger"
+                                  style={{ padding: '2px 6px', fontSize: '10px', marginLeft: 'auto' }}
+                                >
+                                  Revoke
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <span className={t.player2Completed ? 'text-success font-bold' : 'text-primary'}>
+                                {t.player2Name}
+                              </span>
+                              {t.player2Completed && <CheckCircle2 size={12} className="text-success" />}
+                              {t.player2SessionId && (
+                                <button
+                                  type="button"
+                                  title="Revoke Session"
+                                  onClick={() => handleRevokeSessionAction(t.player2SessionId, t.player2Name)}
+                                  className="text-danger"
+                                  style={{ padding: '2px 6px', fontSize: '10px', marginLeft: 'auto' }}
+                                >
+                                  Revoke
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <span className={isOnline ? 'badge-status-online' : isWaiting ? 'badge-status-waiting' : 'badge-status-offline'}>
+                              {t.connectionStatus || 'OFFLINE'}
+                            </span>
+                          </td>
+                          <td className="text-warning font-bold">{t.hintsUnlocked} / 6</td>
+                          <td>
+                            <div className="flex items-center gap-2">
+                              {t.status === 'PAUSED' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleResumeTeamAction(t.teamId, t.teamName)}
+                                  className="admin-btn-primary"
+                                  style={{ padding: '4px 10px', fontSize: '11px' }}
+                                >
+                                  <Play size={12} />
+                                  <span>Resume</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handlePauseTeamAction(t.teamId, t.teamName)}
+                                  className="admin-btn-secondary"
+                                  style={{ padding: '4px 10px', fontSize: '11px' }}
+                                >
+                                  <Pause size={12} />
+                                  <span>Pause</span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleTeamReset(t.teamId, t.teamName)}
+                                className="admin-btn-secondary"
+                                style={{ padding: '4px 10px', fontSize: '11px', borderColor: 'var(--accent-warning)', color: 'var(--accent-warning)' }}
+                              >
+                                <RotateCcw size={12} />
+                                <span>Reset</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1148,16 +1181,30 @@ export const AdminDashboardPage: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  auditLogs.map((log) => (
-                    <tr key={log.id} className="admin-btn-secondary">
-                      <td className="text-secondary">{new Date(log.createdAt).toLocaleString()}</td>
-                      <td className="">{log.adminUsername}</td>
-                      <td className=""><span className="">{log.role}</span></td>
-                      <td className="text-success">{log.action}</td>
-                      <td className="">{log.target || '-'}</td>
-                      <td className="text-secondary">{log.details || '-'}</td>
-                    </tr>
-                  ))
+                  auditLogs.map((log) => {
+                    const isDanger = log.action.includes('STOP') || log.action.includes('REVOKE') || log.action.includes('RESET');
+                    const isWarning = log.action.includes('PAUSE') || log.action.includes('PASSKEY');
+                    return (
+                      <tr key={log.id}>
+                        <td style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                          {new Date(log.createdAt).toLocaleTimeString()}
+                        </td>
+                        <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{log.adminUsername}</td>
+                        <td>
+                          <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-dim)', borderRadius: '2px' }}>
+                            {log.role}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{ fontWeight: 700, color: isDanger ? 'var(--status-error)' : isWarning ? 'var(--status-warning)' : 'var(--status-success)' }}>
+                            {log.action}
+                          </span>
+                        </td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{log.target || '-'}</td>
+                        <td style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>{log.details || '-'}</td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

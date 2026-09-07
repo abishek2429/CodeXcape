@@ -14,81 +14,91 @@ html, body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Add subtle background grid for the whole app */
-  background-image: 
-    linear-gradient(rgba(0, 217, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 217, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  background-position: center center;
 }
 
+/* System Typography Hierarchy */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sans);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-cold-white);
 }
 
-code, pre, .font-mono {
+code, pre, .font-mono, [data-mono="true"] {
   font-family: var(--font-mono);
 }
 
-/* Custom Cyber Scrollbar */
+/* Custom Tactical Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: var(--bg-void);
   border-left: 1px solid var(--border-dim);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--accent-cyan-dim);
-  border-radius: var(--radius-sm);
+  background: rgba(0, 217, 255, 0.2);
+  border-radius: var(--radius-none);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-cyan);
 }
 
-/* Text Selection */
+/* Tactical Selection */
 ::selection {
   background-color: var(--accent-cyan-dim);
-  color: #fff;
+  color: #ffffff;
 }
 
-/* Focus Outline for Accessibility */
+/* Focus Outline for Accessibility (High Contrast Cyan) */
 *:focus-visible {
   outline: 2px solid var(--accent-cyan);
   outline-offset: 2px;
 }
 
-/* Subtle CRT Scanline & Noise Overlays */
-.digital-noise-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 999;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 0, 0, 0.12) 0px,
-    rgba(0, 0, 0, 0.12) 1px,
-    transparent 1px,
-    transparent 2px
-  );
-  opacity: 0.35;
+/* Screen Reader Only Utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
-/* Reduced Motion */
+/* Global Subtle Scanline Layer */
+.scanline-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 998;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.015),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.015)
+  );
+  background-size: 100% 3px, 6px 100%;
+  opacity: 0.45;
+}
+
+/* Reduced Motion Overrides */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+  .scanline-overlay,
   .digital-noise-overlay {
-    display: none;
+    display: none !important;
   }
 }

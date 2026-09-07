@@ -1,0 +1,41 @@
+.operator-status-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.operator-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--bg-panel-darker);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  transition: border-color 0.2s ease;
+}
+
+.operator-status-row.is-current {
+  border-color: rgba(0, 217, 255, 0.35);
+  background-color: rgba(0, 217, 255, 0.04);
+}
+
+.operator-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.operator-tag {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}

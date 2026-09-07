@@ -12,6 +12,11 @@ export const Header: React.FC = () => {
   const isLeaderboardRoute = location.pathname === '/public-leaderboard';
   const isHomeRoute = location.pathname === '/';
 
+  // Minimal Landing Page requirement: Root landing page displays ONLY title + login button
+  if (isHomeRoute) {
+    return null;
+  }
+
   // Admin Header Variant
   if (isAdminRoute) {
     return (
