@@ -45,6 +45,12 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        // Permit all OPTIONS preflight requests immediately so CORS preflight can complete
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         if (isProtectedAdminRoute(request)) {
             handleAdminAuthentication(request, response, filterChain);
             return;

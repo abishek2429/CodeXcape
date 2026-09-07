@@ -6,7 +6,10 @@ export function getAuthHeaders(additionalHeaders: Record<string, string> = {}): 
   const token = sessionStorage.getItem('codexcape_session');
   return {
     'Accept': 'application/json',
-    ...(token ? { 'X-Player-Session': token } : {}),
+    ...(token ? { 
+      'X-Player-Session': token,
+      'Authorization': `Bearer ${token}`
+    } : {}),
     ...additionalHeaders,
   };
 }
@@ -64,12 +67,17 @@ export async function getCurrentPlayer(): Promise<PlayerInfo | null> {
 }
 
 export async function fetchLobbyState(): Promise<PlayerInfo> {
-  const response = await fetch(`${API_BASE}/lobby`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    cache: 'no-store',
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/lobby`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      cache: 'no-store',
+    });
+  } catch (err: any) {
+    throw new Error('Unable to communicate with the game server. Please check your connection or retry.');
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -84,12 +92,17 @@ export async function fetchLobbyState(): Promise<PlayerInfo> {
 }
 
 export async function setPlayerReady(ready: boolean): Promise<PlayerInfo> {
-  const response = await fetch(`${API_BASE}/ready`, {
-    method: 'POST',
-    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-    credentials: 'include',
-    body: JSON.stringify({ ready }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/ready`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      credentials: 'include',
+      body: JSON.stringify({ ready }),
+    });
+  } catch (err: any) {
+    throw new Error('Unable to communicate with the game server. Please check your connection or retry.');
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -104,11 +117,16 @@ export async function setPlayerReady(ready: boolean): Promise<PlayerInfo> {
 }
 
 export async function startTeamEvent(): Promise<PlayerInfo> {
-  const response = await fetch(`${API_BASE}/event/start`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/event/start`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+  } catch (err: any) {
+    throw new Error('Unable to communicate with the game server. Please check your connection or retry.');
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

@@ -171,9 +171,31 @@ export const PlayerLobbyPage: React.FC = () => {
           </div>
 
           {errorMsg && (
-            <div className="lobby-error-banner animate-fade-in">
-              <AlertOctagon size={16} />
-              <span>{errorMsg}</span>
+            <div className="lobby-error-banner animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertOctagon size={16} className="shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMsg(null);
+                  loadData();
+                }}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  color: '#fca5a5',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  fontFamily: 'monospace',
+                  cursor: 'pointer',
+                  letterSpacing: '0.05em'
+                }}
+              >
+                RETRY
+              </button>
             </div>
           )}
 

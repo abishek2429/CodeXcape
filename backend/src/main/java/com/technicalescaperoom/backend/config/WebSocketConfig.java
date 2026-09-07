@@ -34,7 +34,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final GameSessionRepository gameSessionRepository;
 
-    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}")
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,https://code-xcape.vercel.app,https://*.vercel.app}")
     private String allowedOrigins;
 
     @Override
@@ -45,12 +45,27 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        List<String> origins = new java.util.ArrayList<>();
+        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
+            for (String o : allowedOrigins.split(",")) {
+                String trimmed = o.trim();
+                if (!trimmed.isEmpty() && !origins.contains(trimmed)) {
+                    origins.add(trimmed);
+                }
+            }
+        }
+        for (String def : Arrays.asList("http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "https://code-xcape.vercel.app", "https://*.vercel.app")) {
+            if (!origins.contains(def)) origins.add(def);
+        }
+
+        String[] patterns = origins.toArray(String[]::new);
+
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(",")).map(String::trim).toArray(String[]::new))
+                .setAllowedOriginPatterns(patterns)
                 .withSockJS();
 
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(",")).map(String::trim).toArray(String[]::new));
+                .setAllowedOriginPatterns(patterns);
     }
 
     @Override
