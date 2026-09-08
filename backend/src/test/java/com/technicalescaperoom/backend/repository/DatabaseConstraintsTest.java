@@ -42,6 +42,9 @@ public class DatabaseConstraintsTest {
     @Autowired
     private TeamLevelProgressRepository teamLevelProgressRepository;
 
+    @Autowired
+    private AnswerAttemptRepository answerAttemptRepository;
+
     @Test
     @DisplayName("1. Verify seed data loaded correctly from Flyway V12")
     void testSeedDataLoaded() {
@@ -190,6 +193,46 @@ public class DatabaseConstraintsTest {
                     .team(team)
                     .level(level1)
                     .levelStatus(LevelStatus.IN_PROGRESS)
+                    .build());
+        }).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Autowired
+    private DiscoverySubmissionRepository discoverySubmissionRepository;
+
+    @Test
+    @DisplayName("8. Prevent duplicate discovery submission for same team, level, stage, and player")
+    void testPreventDuplicateDiscoverySubmission() {
+        Event event = eventRepository.findById(1L).orElseThrow();
+        Team team = teamRepository.save(Team.builder()
+                .event(event)
+                .teamCode("TEAM-DUP-DISC")
+                .status(TeamStatus.REGISTERED)
+                .build());
+        Player player = playerRepository.save(Player.builder()
+                .team(team)
+                .playerNumber(1)
+                .displayName("Player 1 Test")
+                .build());
+        Level level1 = levelRepository.findByLevelNumber(1).orElseThrow();
+
+        discoverySubmissionRepository.saveAndFlush(DiscoverySubmission.builder()
+                .team(team)
+                .level(level1)
+                .player(player)
+                .stageNumber(1)
+                .discoveryValueHash("HASH1")
+                .isCorrect(true)
+                .build());
+
+        assertThatThrownBy(() -> {
+            discoverySubmissionRepository.saveAndFlush(DiscoverySubmission.builder()
+                    .team(team)
+                    .level(level1)
+                    .player(player)
+                    .stageNumber(1)
+                    .discoveryValueHash("HASH2")
+                    .isCorrect(true)
                     .build());
         }).isInstanceOf(DataIntegrityViolationException.class);
     }

@@ -129,7 +129,7 @@ public class PlayerSessionService {
             for (GameSession activeSession : activeSessions) {
                 if (activeSession.getLastActivityAt().isBefore(timeoutThreshold)) {
                     // Session expired -> mark expired
-                    log.info("Active session {} for player {} expired. Marking EXPIRED.", activeSession.getSessionToken(), player.getId());
+                    log.info("Active session {} for player {} expired. Marking EXPIRED.", maskToken(activeSession.getSessionToken()), player.getId());
                     activeSession.setStatus(SessionStatus.EXPIRED);
                     activeSession.setIsConnected(false);
                     activeSession.setDisconnectedAt(Instant.now());
@@ -140,12 +140,12 @@ public class PlayerSessionService {
                             event,
                             team,
                             player,
-                            "{\"sessionToken\": \"" + activeSession.getSessionToken() + "\"}",
+                            "{\"sessionToken\": \"" + maskToken(activeSession.getSessionToken()) + "\"}",
                             "SYSTEM"
                     );
                 } else if (existingToken != null && existingToken.equals(activeSession.getSessionToken())) {
                     // Reconnection from same computer/browser with valid session token
-                    log.info("Reconnecting player {} with existing valid session {}", player.getId(), activeSession.getSessionToken());
+                    log.info("Reconnecting player {} with existing valid session {}", player.getId(), maskToken(activeSession.getSessionToken()));
                     activeSession.setLastActivityAt(Instant.now());
                     activeSession.setIsConnected(true);
                     gameSessionRepository.save(activeSession);
@@ -158,7 +158,7 @@ public class PlayerSessionService {
                             event,
                             team,
                             player,
-                            "{\"sessionToken\": \"" + activeSession.getSessionToken() + "\"}",
+                            "{\"sessionToken\": \"" + maskToken(activeSession.getSessionToken()) + "\"}",
                             "PLAYER"
                     );
 
@@ -168,7 +168,7 @@ public class PlayerSessionService {
                 } else {
                     // Repeated login or session rotation (pre-event or active gameplay):
                     // Cleanly terminate previous session and proceed to issue a fresh active session
-                    log.info("Session rotation: terminating prior active session {} for player {}", activeSession.getSessionToken(), player.getId());
+                    log.info("Session rotation: terminating prior active session {} for player {}", maskToken(activeSession.getSessionToken()), player.getId());
                     activeSession.setStatus(SessionStatus.TERMINATED);
                     activeSession.setIsConnected(false);
                     activeSession.setDisconnectedAt(Instant.now());
@@ -691,5 +691,10 @@ public class PlayerSessionService {
                 .teammateLoggedIn(teammateLoggedIn)
                 .teammateReady(teammateReady)
                 .build();
+    }
+
+    private String maskToken(String token) {
+        if (token == null) return null;
+        return token.length() > 8 ? token.substring(0, 8) + "..." : "***";
     }
 }

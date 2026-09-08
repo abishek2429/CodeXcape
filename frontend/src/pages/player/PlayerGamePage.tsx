@@ -72,10 +72,32 @@ export const PlayerGamePage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoadError(null);
-      const [stateData, storyData] = await Promise.all([
+
+      let storyData = storyline;
+      if (!storyData) {
+        const stored = sessionStorage.getItem('codexcape_storyline_cache');
+        if (stored) {
+          try {
+            storyData = JSON.parse(stored);
+          } catch {
+            // ignore parse failure
+          }
+        }
+      }
+
+      const [stateData, fetchedStory] = await Promise.all([
         fetchPlayerGameState(),
-        fetchStoryline(),
+        storyData ? Promise.resolve(storyData) : fetchStoryline(),
       ]);
+
+      if (fetchedStory && !storyData) {
+        storyData = fetchedStory;
+        try {
+          sessionStorage.setItem('codexcape_storyline_cache', JSON.stringify(fetchedStory));
+        } catch {
+          // ignore storage failure
+        }
+      }
 
       if (!stateData) {
         throw new Error('AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
@@ -102,7 +124,7 @@ export const PlayerGamePage: React.FC = () => {
       prevLevelRef.current = stateData.currentLevel;
 
       setServerState(stateData);
-      setStoryline(storyData);
+      setStoryline(storyData || fetchedStory);
 
       // Trigger briefing modal on first session load if not seen
       if (!sessionStorage.getItem('codexcape_briefing_seen')) {

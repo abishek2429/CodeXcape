@@ -30,6 +30,27 @@ public class LeaderboardService {
     private final PlayerRepository playerRepository;
     private final TeamLevelProgressRepository teamLevelProgressRepository;
 
+    private static class CachedEventRanks {
+        final long timestamp;
+        final Map<Long, Integer> ranksByTeamId;
+
+        CachedEventRanks(long timestamp, Map<Long, Integer> ranksByTeamId) {
+            this.timestamp = timestamp;
+            this.ranksByTeamId = ranksByTeamId;
+        }
+    }
+
+    private final Map<Long, CachedEventRanks> eventRanksCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long RANK_CACHE_TTL_MS = 3000; // 3 seconds TTL
+
+    public void clearLeaderboardCache(Long eventId) {
+        if (eventId != null) {
+            eventRanksCache.remove(eventId);
+        } else {
+            eventRanksCache.clear();
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<LeaderboardEntryDto> getLeaderboard(Long eventId) {
         Event event = eventRepository.findById(eventId)
@@ -65,8 +86,15 @@ public class LeaderboardService {
     public Integer getTeamCurrentRank(Long teamId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-        
-        List<Team> allTeams = teamRepository.findByEventId(team.getEvent().getId());
+        Long eventId = team.getEvent().getId();
+
+        long now = System.currentTimeMillis();
+        CachedEventRanks cached = eventRanksCache.get(eventId);
+        if (cached != null && (now - cached.timestamp) < RANK_CACHE_TTL_MS) {
+            return cached.ranksByTeamId.get(teamId);
+        }
+
+        List<Team> allTeams = teamRepository.findByEventId(eventId);
         if (allTeams.isEmpty()) return null;
 
         List<Long> teamIds = allTeams.stream().map(Team::getId).collect(Collectors.toList());
@@ -76,16 +104,18 @@ public class LeaderboardService {
 
         Map<Long, Integer> teamLevelMap = calculateTeamLevelMap(allTeams, progressByTeam);
         allTeams.sort(getTeamComparator(teamLevelMap));
-        
+
+        Map<Long, Integer> newRanks = new HashMap<>();
         for (int i = 0; i < allTeams.size(); i++) {
-            if (allTeams.get(i).getId().equals(teamId)) {
-                return i + 1;
-            }
+            newRanks.put(allTeams.get(i).getId(), i + 1);
         }
-        return null;
+        eventRanksCache.put(eventId, new CachedEventRanks(now, newRanks));
+
+        return newRanks.get(teamId);
     }
 
     public void recalculateAndBroadcastRanks(Long eventId, com.technicalescaperoom.backend.service.GameWebSocketPublisher webSocketPublisher) {
+        eventRanksCache.remove(eventId);
         List<Team> allTeams = teamRepository.findByEventId(eventId);
         if (allTeams.isEmpty()) return;
 
@@ -96,12 +126,15 @@ public class LeaderboardService {
 
         Map<Long, Integer> teamLevelMap = calculateTeamLevelMap(allTeams, progressByTeam);
         allTeams.sort(getTeamComparator(teamLevelMap));
-        
+
+        Map<Long, Integer> newRanks = new HashMap<>();
         for (int i = 0; i < allTeams.size(); i++) {
             Team team = allTeams.get(i);
             int newRank = i + 1;
+            newRanks.put(team.getId(), newRank);
             webSocketPublisher.notifyRankChanged(team.getId(), newRank);
         }
+        eventRanksCache.put(eventId, new CachedEventRanks(System.currentTimeMillis(), newRanks));
     }
 
     private Map<Long, Integer> calculateTeamLevelMap(List<Team> teams, Map<Long, List<TeamLevelProgress>> progressByTeam) {

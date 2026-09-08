@@ -301,14 +301,18 @@ public class QuestionAnswerService {
         }
     }
 
+    private final java.util.Map<Long, Integer> totalStagesCache = new java.util.concurrent.ConcurrentHashMap<>();
+
     private int findCurrentStage(Level level, Long teamId) {
-        List<Question> stages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
-                .filter(question -> !stageCompletedForBoth(teamId, level, question.getStageNumber()))
-                .toList();
-        return stages.stream()
-                .map(Question::getStageNumber)
-                .min(Integer::compareTo)
-                .orElse(1);
+        List<TeamStageProgress> stages = teamStageProgressRepository.findByTeamIdAndLevelIdOrderByStageNumberAsc(teamId, level.getId());
+        if (!stages.isEmpty()) {
+            return stages.stream()
+                    .filter(s -> s.getCompletedAt() == null && !(Boolean.TRUE.equals(s.getPlayer1Completed()) && Boolean.TRUE.equals(s.getPlayer2Completed())))
+                    .map(TeamStageProgress::getStageNumber)
+                    .findFirst()
+                    .orElse(stages.get(stages.size() - 1).getStageNumber());
+        }
+        return 1;
     }
 
     private boolean stageCompletedForBoth(Team team, Level level, int stageNumber) {
@@ -316,40 +320,22 @@ public class QuestionAnswerService {
     }
 
     private boolean stageCompletedForBoth(Long teamId, Level level, int stageNumber) {
-        List<Question> questions = questionRepository.findByLevelIdAndStageNumberAndIsActiveTrue(level.getId(), stageNumber);
-        if (questions.size() < 2) return false;
-
-        boolean playersCorrect = questions.stream().allMatch(question -> {
-            Long playerId = question.getPlayerNumber() == QuestionPlayer.PLAYER_1
-                    ? findPlayerId(teamId, 1)
-                    : findPlayerId(teamId, 2);
-            return playerId != null && answerAttemptRepository
-                    .existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
-                            teamId, playerId, level.getId(), question.getId());
-        });
-                if (!playersCorrect) return false;
-
-                List<DiscoverySubmission> submissions = questions.stream()
-                    .map(question -> findPlayerId(teamId, question.getPlayerNumber() == QuestionPlayer.PLAYER_1 ? 1 : 2))
-                    .map(playerId -> playerId == null ? null : discoverySubmissionRepository
-                        .findByTeamIdAndLevelIdAndStageNumberAndPlayerId(teamId, level.getId(), stageNumber, playerId)
-                        .orElse(null))
-                    .toList();
-                return submissions.size() == 2
-                    && submissions.stream().allMatch(s -> s != null && Boolean.TRUE.equals(s.getIsCorrect()));
+        return teamStageProgressRepository.findByTeamIdAndLevelIdAndStageNumber(teamId, level.getId(), stageNumber)
+                .map(s -> (Boolean.TRUE.equals(s.getPlayer1Completed()) && Boolean.TRUE.equals(s.getPlayer2Completed())) || s.getCompletedAt() != null)
+                .orElse(false);
     }
 
-                private String hashDiscovery(String value) {
-                try {
-                    byte[] digest = MessageDigest.getInstance("SHA-256")
-                        .digest(value.trim().toUpperCase().getBytes(StandardCharsets.UTF_8));
-                    StringBuilder result = new StringBuilder();
-                    for (byte item : digest) result.append(String.format("%02x", item));
-                    return result.toString();
-                } catch (NoSuchAlgorithmException exception) {
-                    throw new IllegalStateException("Discovery hashing is unavailable.", exception);
-                }
-                }
+    private String hashDiscovery(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                .digest(value.trim().toUpperCase().getBytes(StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder();
+            for (byte item : digest) result.append(String.format("%02x", item));
+            return result.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("Discovery hashing is unavailable.", exception);
+        }
+    }
 
     private Long findPlayerId(Long teamId, int playerNumber) {
         return playerRepository.findByTeamIdAndPlayerNumber(teamId, playerNumber)
@@ -364,10 +350,13 @@ public class QuestionAnswerService {
     }
 
     private int getTotalStages(Level level) {
-        return questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
-                .map(Question::getStageNumber)
-                .max(Integer::compareTo)
-                .orElse(1);
+        if (level == null || level.getId() == null) return 1;
+        return totalStagesCache.computeIfAbsent(level.getId(), id ->
+            questionRepository.findByLevelIdAndIsActiveTrue(id).stream()
+                    .map(Question::getStageNumber)
+                    .max(Integer::compareTo)
+                    .orElse(1)
+        );
     }
 
     private boolean normalizeAndValidate(String submitted, String expected, AnswerType answerType) {

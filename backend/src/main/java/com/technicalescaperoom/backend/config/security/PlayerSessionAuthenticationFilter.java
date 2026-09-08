@@ -120,7 +120,7 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
         String token = extractToken(request);
 
         if (token != null && !token.isBlank()) {
-            Optional<GameSession> sessionOpt = gameSessionRepository.findBySessionToken(token);
+            Optional<GameSession> sessionOpt = gameSessionRepository.findBySessionTokenWithDetails(token);
 
             if (sessionOpt.isPresent()) {
                 GameSession session = sessionOpt.get();
@@ -129,7 +129,8 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
                     Instant timeoutThreshold = Instant.now().minusSeconds(sessionTimeoutMinutes * 60);
 
                     if (session.getLastActivityAt().isBefore(timeoutThreshold)) {
-                        log.info("Session {} expired for player ID {}", token, session.getPlayer().getId());
+                        String maskedToken = token.length() > 8 ? token.substring(0, 8) + "..." : "***";
+                        log.info("Session {} expired for player ID {}", maskedToken, session.getPlayer().getId());
                         session.setStatus(SessionStatus.EXPIRED);
                         session.setIsConnected(false);
                         session.setDisconnectedAt(Instant.now());

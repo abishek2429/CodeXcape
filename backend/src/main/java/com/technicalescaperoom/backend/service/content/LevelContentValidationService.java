@@ -23,11 +23,20 @@ public class LevelContentValidationService {
 
     private final LevelRepository levelRepository;
     private final QuestionRepository questionRepository;
+    private final java.util.Set<Long> validatedLevelIds = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    public void clearValidationCache() {
+        validatedLevelIds.clear();
+    }
 
     @Transactional(readOnly = true)
     public void validateLevelContent(Level level) {
         if (level == null) {
             throw new IncompleteLevelContentException("Level cannot be null.");
+        }
+
+        if (level.getId() != null && validatedLevelIds.contains(level.getId())) {
+            return;
         }
 
         if (!Boolean.TRUE.equals(level.getIsActive())) {
@@ -70,6 +79,10 @@ public class LevelContentValidationService {
                     || !Long.valueOf(1).equals(countByPlayer.get(QuestionPlayer.PLAYER_2))) {
                 throw new IncompleteLevelContentException("Level " + level.getLevelNumber() + ", Stage " + stageNumber + " must have exactly one artifact for each player.");
             }
+        }
+
+        if (level.getId() != null) {
+            validatedLevelIds.add(level.getId());
         }
     }
 
