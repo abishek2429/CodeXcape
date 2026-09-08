@@ -45,6 +45,10 @@ public class Player {
     @Builder.Default
     private Boolean isReady = false;
 
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

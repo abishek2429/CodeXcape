@@ -63,6 +63,7 @@ class CooperativeStageProgressionTest {
                 .teamCode("STAGE-TEST")
                 .teamName("Stage Test")
                 .status(TeamStatus.REGISTERED)
+                .gameState(com.technicalescaperoom.backend.enums.TeamGameState.IN_PROGRESS)
                 .build());
         Player p1 = playerRepository.save(Player.builder().team(team).playerNumber(1).displayName("P1").status(PlayerStatus.INACTIVE).build());
         Player p2 = playerRepository.save(Player.builder().team(team).playerNumber(2).displayName("P2").status(PlayerStatus.INACTIVE).build());

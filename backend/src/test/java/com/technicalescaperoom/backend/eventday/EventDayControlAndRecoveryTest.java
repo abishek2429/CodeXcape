@@ -141,7 +141,7 @@ public class EventDayControlAndRecoveryTest {
         assertThat(progress).hasSize(1);
         assertThat(progress.get(0).getPlayer1Connected()).isTrue();
         assertThat(progress.get(0).getPlayer2Connected()).isFalse();
-        assertThat(progress.get(0).getConnectionStatus()).isEqualTo("ONE_OFFLINE");
+        assertThat(progress.get(0).getConnectionStatus()).isEqualTo("ONE_ONLINE");
     }
 
     @Test

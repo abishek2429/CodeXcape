@@ -83,24 +83,6 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String adminRoleHeader = request.getHeader("X-Admin-Role");
-        if (adminRoleHeader != null && !adminRoleHeader.isBlank()) {
-            String username = request.getHeader("X-Admin-Username");
-            if (username == null || username.isBlank()) username = "admin";
-            com.technicalescaperoom.backend.enums.UserRole role =
-                    com.technicalescaperoom.backend.enums.UserRole.valueOf(adminRoleHeader.trim().toUpperCase());
-            AdminPrincipal adminPrincipal = AdminPrincipal.builder()
-                    .username(username)
-                    .role(role)
-                    .build();
-            org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
-                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                            adminPrincipal, null, adminPrincipal.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String playerToken = extractToken(request);
         if (playerToken != null && !playerToken.isBlank()) {
             handlePlayerAuthentication(request, response, filterChain);
@@ -156,6 +138,11 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
                         sendJsonError(response, HttpStatus.UNAUTHORIZED, "SESSION_EXPIRED", "Session has expired. Please log in again.");
                         return;
                     } else {
+                        if (Boolean.FALSE.equals(session.getPlayer().getIsActive())) {
+                            sendJsonError(response, HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "Player account is deactivated or ineligible.");
+                            return;
+                        }
+
                         PlayerPrincipal principal = PlayerPrincipal.builder()
                                 .playerId(session.getPlayer().getId())
                                 .teamId(session.getTeam().getId())
@@ -165,6 +152,7 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
                                 .teamName(session.getTeam().getTeamName())
                                 .displayName(session.getPlayer().getDisplayName())
                                 .sessionToken(session.getSessionToken())
+                                .isActive(session.getPlayer().getIsActive())
                                 .build();
 
                         PlayerAuthenticationToken authentication = new PlayerAuthenticationToken(principal, token);

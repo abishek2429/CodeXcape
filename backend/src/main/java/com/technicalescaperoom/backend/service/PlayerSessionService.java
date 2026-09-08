@@ -9,6 +9,7 @@ import com.technicalescaperoom.backend.entity.GameSession;
 import com.technicalescaperoom.backend.entity.Player;
 import com.technicalescaperoom.backend.entity.Team;
 import com.technicalescaperoom.backend.enums.*;
+import com.technicalescaperoom.backend.exception.AccountDisabledException;
 import com.technicalescaperoom.backend.exception.DuplicateLoginException;
 import com.technicalescaperoom.backend.exception.EventUnavailableException;
 import com.technicalescaperoom.backend.exception.ResourceNotFoundException;
@@ -92,7 +93,7 @@ public class PlayerSessionService {
             throw new EventUnavailableException("The event is not currently accepting players.");
         }
 
-        // 4. Resolve Player
+        // 4. Resolve Player & Account Eligibility
         Player player = playerRepository.findByTeamIdAndPlayerNumber(team.getId(), request.getPlayerNumber())
                 .orElseThrow(() -> {
                     auditService.logEvent(
@@ -106,74 +107,73 @@ public class PlayerSessionService {
                     return new ResourceNotFoundException("Selected player is not registered for this team.");
                 });
 
-        // 5. Active Session & Duplicate Login Check
-        Optional<GameSession> activeSessionOpt = gameSessionRepository.findByPlayerIdAndStatus(player.getId(), SessionStatus.ACTIVE);
+        if (Boolean.FALSE.equals(player.getIsActive())) {
+            auditService.logEvent(
+                    GameEventType.PLAYER_LOGIN_FAILED,
+                    event,
+                    team,
+                    player,
+                    "{\"reason\": \"Player account is deactivated or ineligible\"}",
+                    "PLAYER"
+            );
+            throw new AccountDisabledException("Player account is deactivated or ineligible.");
+        }
+
+        // 5. Active Session Handling & Clean Session Rotation
+        List<GameSession> activeSessions = gameSessionRepository.findAllByPlayerIdAndStatus(player.getId(), SessionStatus.ACTIVE);
         String existingToken = extractTokenFromRequest(httpRequest);
 
-        if (activeSessionOpt.isPresent()) {
-            GameSession activeSession = activeSessionOpt.get();
+        if (!activeSessions.isEmpty()) {
             Instant timeoutThreshold = Instant.now().minusSeconds(sessionTimeoutMinutes * 60);
 
-            if (activeSession.getLastActivityAt().isBefore(timeoutThreshold)) {
-                // Session expired -> mark expired and proceed to issue a new session
-                log.info("Active session {} for player {} expired. Marking EXPIRED.", activeSession.getSessionToken(), player.getId());
-                activeSession.setStatus(SessionStatus.EXPIRED);
-                activeSession.setIsConnected(false);
-                activeSession.setDisconnectedAt(Instant.now());
-                gameSessionRepository.save(activeSession);
+            for (GameSession activeSession : activeSessions) {
+                if (activeSession.getLastActivityAt().isBefore(timeoutThreshold)) {
+                    // Session expired -> mark expired
+                    log.info("Active session {} for player {} expired. Marking EXPIRED.", activeSession.getSessionToken(), player.getId());
+                    activeSession.setStatus(SessionStatus.EXPIRED);
+                    activeSession.setIsConnected(false);
+                    activeSession.setDisconnectedAt(Instant.now());
+                    gameSessionRepository.save(activeSession);
 
-                player.setStatus(PlayerStatus.DISCONNECTED);
-                playerRepository.save(player);
+                    auditService.logEvent(
+                            GameEventType.PLAYER_SESSION_EXPIRED,
+                            event,
+                            team,
+                            player,
+                            "{\"sessionToken\": \"" + activeSession.getSessionToken() + "\"}",
+                            "SYSTEM"
+                    );
+                } else if (existingToken != null && existingToken.equals(activeSession.getSessionToken())) {
+                    // Reconnection from same computer/browser with valid session token
+                    log.info("Reconnecting player {} with existing valid session {}", player.getId(), activeSession.getSessionToken());
+                    activeSession.setLastActivityAt(Instant.now());
+                    activeSession.setIsConnected(true);
+                    gameSessionRepository.save(activeSession);
 
-                auditService.logEvent(
-                        GameEventType.PLAYER_SESSION_EXPIRED,
-                        event,
-                        team,
-                        player,
-                        "{\"sessionToken\": \"" + activeSession.getSessionToken() + "\"}",
-                        "SYSTEM"
-                );
-            } else if (existingToken != null && existingToken.equals(activeSession.getSessionToken())) {
-                // Reconnection from same computer/browser with valid session token
-                log.info("Reconnecting player {} with existing valid session {}", player.getId(), activeSession.getSessionToken());
-                activeSession.setLastActivityAt(Instant.now());
-                activeSession.setIsConnected(true);
-                gameSessionRepository.save(activeSession);
+                    player.setStatus(PlayerStatus.CONNECTED);
+                    playerRepository.save(player);
 
-                player.setStatus(PlayerStatus.CONNECTED);
-                playerRepository.save(player);
+                    auditService.logEvent(
+                            GameEventType.PLAYER_RECONNECTED,
+                            event,
+                            team,
+                            player,
+                            "{\"sessionToken\": \"" + activeSession.getSessionToken() + "\"}",
+                            "PLAYER"
+                    );
 
-                auditService.logEvent(
-                        GameEventType.PLAYER_RECONNECTED,
-                        event,
-                        team,
-                        player,
-                        "{\"sessionToken\": \"" + activeSession.getSessionToken() + "\"}",
-                        "PLAYER"
-                );
-
-                setSessionCookie(response, activeSession.getSessionToken());
-                webSocketPublisher.notifyPlayerConnection(team.getId(), player.getId(), player.getPlayerNumber(), player.getDisplayName(), true);
-                return mapToResponse(team, player, activeSession.getSessionToken());
-            } else if ("CODEXCAPE-TEST".equalsIgnoreCase(team.getTeamCode()) || team.getGameState() == TeamGameState.NOT_STARTED) {
-                // Pre-event lobby OR test team: Repeated logins permitted without penalty or locking.
-                // Terminate previous session and establish fresh session.
-                log.info("Pre-event/Test session rotation: terminating old session {} for player {}", activeSession.getSessionToken(), player.getId());
-                activeSession.setStatus(SessionStatus.TERMINATED);
-                activeSession.setIsConnected(false);
-                activeSession.setDisconnectedAt(Instant.now());
-                gameSessionRepository.save(activeSession);
-            } else {
-                // Active gameplay duplicate login attempt from another computer!
-                auditService.logEvent(
-                        GameEventType.DUPLICATE_LOGIN_REJECTED,
-                        event,
-                        team,
-                        player,
-                        "{\"reason\": \"Duplicate connection attempt rejected\"}",
-                        "PLAYER"
-                );
-                throw new DuplicateLoginException("This player is already connected from another computer.");
+                    setSessionCookie(response, activeSession.getSessionToken());
+                    webSocketPublisher.notifyPlayerConnection(team.getId(), player.getId(), player.getPlayerNumber(), player.getDisplayName(), true);
+                    return mapToResponse(team, player, activeSession.getSessionToken());
+                } else {
+                    // Repeated login or session rotation (pre-event or active gameplay):
+                    // Cleanly terminate previous session and proceed to issue a fresh active session
+                    log.info("Session rotation: terminating prior active session {} for player {}", activeSession.getSessionToken(), player.getId());
+                    activeSession.setStatus(SessionStatus.TERMINATED);
+                    activeSession.setIsConnected(false);
+                    activeSession.setDisconnectedAt(Instant.now());
+                    gameSessionRepository.save(activeSession);
+                }
             }
         }
 
@@ -681,6 +681,7 @@ public class PlayerSessionService {
                 .eventId(team.getEvent().getId())
                 .teamId(team.getId())
                 .playerId(player.getId())
+                .isActive(player.getIsActive())
                 .isReady(Boolean.TRUE.equals(player.getIsReady()))
                 .gameState(team.getGameState().name())
                 .eventStatus(team.getEvent() != null ? team.getEvent().getStatus().name() : "UNKNOWN")

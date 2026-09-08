@@ -14,6 +14,7 @@ import java.util.Optional;
 @Repository
 public interface TeamLevelProgressRepository extends JpaRepository<TeamLevelProgress, Long> {
     List<TeamLevelProgress> findByTeamIdOrderByLevelIdAsc(Long teamId);
+    List<TeamLevelProgress> findByTeamIdIn(List<Long> teamIds);
     Optional<TeamLevelProgress> findByTeamIdAndLevelId(Long teamId, Long levelId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

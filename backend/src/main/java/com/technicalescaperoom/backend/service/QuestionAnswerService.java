@@ -150,6 +150,13 @@ public class QuestionAnswerService {
         }
 
         Level currentLevel = activeProgress.getLevel();
+
+        // Concurrency Protection: Pessimistic write lock row to serialize concurrent submissions
+        TeamLevelProgress progressToUpdate = teamLevelProgressRepository
+                .findForUpdateByTeamIdAndLevelId(team.getId(), currentLevel.getId())
+                .orElse(activeProgress);
+        entityManager.refresh(progressToUpdate);
+
         int currentStage = findCurrentStage(currentLevel, team.getId());
         QuestionPlayer qPlayerRole = (player.getPlayerNumber() == 1) ? QuestionPlayer.PLAYER_1 : QuestionPlayer.PLAYER_2;
 
@@ -159,7 +166,7 @@ public class QuestionAnswerService {
         boolean alreadyCompleted = answerAttemptRepository
             .existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
                 team.getId(), player.getId(), currentLevel.getId(), question.getId());
-        if (alreadyCompleted || activeProgress.getLevelStatus() == LevelStatus.COMPLETED) {
+        if (alreadyCompleted || progressToUpdate.getLevelStatus() == LevelStatus.COMPLETED) {
             return AnswerSubmissionResponseDto.builder()
                     .correct(true)
                     .isCompleted(true)
@@ -193,12 +200,6 @@ public class QuestionAnswerService {
         answerAttemptRepository.save(attempt);
 
         if (isCorrect) {
-            TeamLevelProgress progressToUpdate = teamLevelProgressRepository
-                    .findForUpdateByTeamIdAndLevelId(team.getId(), currentLevel.getId())
-                    .orElse(activeProgress);
-
-            entityManager.refresh(progressToUpdate);
-
             if (progressToUpdate.getLevelStatus() == LevelStatus.AVAILABLE) {
                 progressToUpdate.setLevelStatus(LevelStatus.IN_PROGRESS);
             }

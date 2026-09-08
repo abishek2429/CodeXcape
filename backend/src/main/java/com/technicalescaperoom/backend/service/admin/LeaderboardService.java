@@ -36,12 +36,26 @@ public class LeaderboardService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found for ID " + eventId));
 
         List<Team> teams = teamRepository.findByEventId(eventId);
-        teams.sort(getTeamComparator());
+        if (teams.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> teamIds = teams.stream().map(Team::getId).collect(Collectors.toList());
+        List<TeamLevelProgress> allProgress = teamLevelProgressRepository.findByTeamIdIn(teamIds);
+        Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
+                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+
+        Map<Long, Integer> teamLevelMap = calculateTeamLevelMap(teams, progressByTeam);
+        teams.sort(getTeamComparator(teamLevelMap));
+
+        List<Player> allPlayers = playerRepository.findByTeamIdIn(teamIds);
+        Map<Long, List<Player>> playersByTeam = allPlayers.stream()
+                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
 
         List<LeaderboardEntryDto> result = new ArrayList<>();
         int rank = 1;
         for (Team team : teams) {
-            result.add(buildLeaderboardEntry(event, team, rank++));
+            result.add(buildLeaderboardEntryOptimized(event, team, rank++, teamLevelMap.getOrDefault(team.getId(), 1), playersByTeam.getOrDefault(team.getId(), Collections.emptyList())));
         }
 
         return result;
@@ -53,7 +67,15 @@ public class LeaderboardService {
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
         
         List<Team> allTeams = teamRepository.findByEventId(team.getEvent().getId());
-        allTeams.sort(getTeamComparator());
+        if (allTeams.isEmpty()) return null;
+
+        List<Long> teamIds = allTeams.stream().map(Team::getId).collect(Collectors.toList());
+        List<TeamLevelProgress> allProgress = teamLevelProgressRepository.findByTeamIdIn(teamIds);
+        Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
+                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+
+        Map<Long, Integer> teamLevelMap = calculateTeamLevelMap(allTeams, progressByTeam);
+        allTeams.sort(getTeamComparator(teamLevelMap));
         
         for (int i = 0; i < allTeams.size(); i++) {
             if (allTeams.get(i).getId().equals(teamId)) {
@@ -65,18 +87,42 @@ public class LeaderboardService {
 
     public void recalculateAndBroadcastRanks(Long eventId, com.technicalescaperoom.backend.service.GameWebSocketPublisher webSocketPublisher) {
         List<Team> allTeams = teamRepository.findByEventId(eventId);
-        allTeams.sort(getTeamComparator());
+        if (allTeams.isEmpty()) return;
+
+        List<Long> teamIds = allTeams.stream().map(Team::getId).collect(Collectors.toList());
+        List<TeamLevelProgress> allProgress = teamLevelProgressRepository.findByTeamIdIn(teamIds);
+        Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
+                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+
+        Map<Long, Integer> teamLevelMap = calculateTeamLevelMap(allTeams, progressByTeam);
+        allTeams.sort(getTeamComparator(teamLevelMap));
         
         for (int i = 0; i < allTeams.size(); i++) {
             Team team = allTeams.get(i);
             int newRank = i + 1;
-            // In a highly optimized system we would track prev rank and only notify if changed,
-            // but broadcasting to the team channel is lightweight enough.
             webSocketPublisher.notifyRankChanged(team.getId(), newRank);
         }
     }
 
-    private Comparator<Team> getTeamComparator() {
+    private Map<Long, Integer> calculateTeamLevelMap(List<Team> teams, Map<Long, List<TeamLevelProgress>> progressByTeam) {
+        Map<Long, Integer> levelMap = new HashMap<>();
+        for (Team team : teams) {
+            if (team.getGameState() == TeamGameState.COMPLETED || team.getGameState() == TeamGameState.FINAL_PASSKEY) {
+                levelMap.put(team.getId(), 6);
+            } else {
+                List<TeamLevelProgress> progressList = progressByTeam.getOrDefault(team.getId(), Collections.emptyList());
+                int lvl = progressList.stream()
+                        .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
+                        .map(p -> p.getLevel().getLevelNumber())
+                        .findFirst()
+                        .orElse(1);
+                levelMap.put(team.getId(), lvl);
+            }
+        }
+        return levelMap;
+    }
+
+    private Comparator<Team> getTeamComparator(Map<Long, Integer> teamLevelMap) {
         return (t1, t2) -> {
             boolean t1Completed = t1.getGameState() == TeamGameState.COMPLETED && t1.getCompletedAt() != null;
             boolean t2Completed = t2.getGameState() == TeamGameState.COMPLETED && t2.getCompletedAt() != null;
@@ -89,8 +135,8 @@ public class LeaderboardService {
             }
             
             // Both incomplete, sort by highest active level
-            int t1Level = getFastCurrentLevel(t1);
-            int t2Level = getFastCurrentLevel(t2);
+            int t1Level = teamLevelMap.getOrDefault(t1.getId(), 1);
+            int t2Level = teamLevelMap.getOrDefault(t2.getId(), 1);
             if (t1Level != t2Level) {
                 return Integer.compare(t2Level, t1Level); // Descending
             }
@@ -98,16 +144,6 @@ public class LeaderboardService {
             // If tied on level, maintain a stable sort by ID
             return t1.getId().compareTo(t2.getId());
         };
-    }
-
-    private int getFastCurrentLevel(Team team) {
-        if (team.getGameState() == TeamGameState.COMPLETED || team.getGameState() == TeamGameState.FINAL_PASSKEY) return 6;
-        List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
-        return progressList.stream()
-                .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
-                .map(p -> p.getLevel().getLevelNumber())
-                .findFirst()
-                .orElse(1);
     }
 
     @Transactional(readOnly = true)
@@ -140,6 +176,11 @@ public class LeaderboardService {
         Long fastestSeconds = durations.isEmpty() ? null : Collections.min(durations);
         Long averageSeconds = durations.isEmpty() ? null : (long) durations.stream().mapToLong(Long::longValue).average().orElse(0.0);
 
+        List<Long> teamIds = teams.stream().map(Team::getId).collect(Collectors.toList());
+        List<TeamLevelProgress> allProgress = teams.isEmpty() ? Collections.emptyList() : teamLevelProgressRepository.findByTeamIdIn(teamIds);
+        Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
+                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+
         // Level breakdown
         List<LevelStatisticsDto> levelBreakdown = new ArrayList<>();
         for (int lvl = 1; lvl <= 6; lvl++) {
@@ -149,7 +190,7 @@ public class LeaderboardService {
             long currentlyHere = 0;
 
             for (Team team : teams) {
-                List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
+                List<TeamLevelProgress> progressList = progressByTeam.getOrDefault(team.getId(), Collections.emptyList());
                 TeamLevelProgress lvlProgress = progressList.stream()
                         .filter(p -> p.getLevel().getLevelNumber() == currentLvl)
                         .findFirst()
@@ -236,6 +277,34 @@ public class LeaderboardService {
                 .eventStatus(event.getStatus().name())
                 .completedEntries(completedEntries)
                 .activeEntries(activeEntries)
+                .build();
+    }
+
+    private LeaderboardEntryDto buildLeaderboardEntryOptimized(Event event, Team team, Integer rank, int currentLevel, List<Player> players) {
+        Player p1 = players.stream().filter(p -> p.getPlayerNumber() == 1).findFirst().orElse(null);
+        Player p2 = players.stream().filter(p -> p.getPlayerNumber() == 2).findFirst().orElse(null);
+
+        Long durationSeconds = null;
+        String formattedDuration = "-";
+
+        if (team.getGameState() == TeamGameState.COMPLETED && team.getCompletedAt() != null) {
+            durationSeconds = calculateDurationSeconds(event, team);
+            formattedDuration = formatDuration(durationSeconds);
+        }
+
+        return LeaderboardEntryDto.builder()
+                .rank(team.getGameState() == TeamGameState.COMPLETED ? rank : null)
+                .teamId(team.getId())
+                .teamCode(team.getTeamCode())
+                .teamName(team.getTeamName())
+                .status(team.getStatus())
+                .gameState(team.getGameState())
+                .currentLevel(currentLevel)
+                .player1Name(p1 != null ? p1.getDisplayName() : "Player 1")
+                .player2Name(p2 != null ? p2.getDisplayName() : "Player 2")
+                .completedAt(team.getCompletedAt())
+                .durationSeconds(durationSeconds)
+                .formattedDuration(formattedDuration)
                 .build();
     }
 

@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface PlayerRepository extends JpaRepository<Player, Long> {
     List<Player> findByTeamId(Long teamId);
+    List<Player> findByTeamIdIn(List<Long> teamIds);
     Optional<Player> findByTeamIdAndPlayerNumber(Long teamId, Integer playerNumber);
     long countByTeamId(Long teamId);
     void deleteByTeamId(Long teamId);

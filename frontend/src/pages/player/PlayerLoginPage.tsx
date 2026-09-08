@@ -71,7 +71,7 @@ export const PlayerLoginPage: React.FC = () => {
           <div className="cyber-panel error-banner animate-glitch">
             <AlertOctagon size={16} />
             <div>
-              <p className="terminal-text text-error font-bold">SECURITY BREACH DETECTED</p>
+              <p className="terminal-text text-error font-bold">AUTHENTICATION FAILED</p>
               <p className="text-muted" style={{ fontSize: '12px', marginTop: '4px' }}>{errorMsg}</p>
             </div>
           </div>

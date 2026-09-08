@@ -12,6 +12,7 @@ export interface PlayerInfo {
   eventId: number;
   teamId: number;
   playerId: number;
+  isActive?: boolean;
   isReady?: boolean;
   gameState?: string;
   eventStatus?: string;

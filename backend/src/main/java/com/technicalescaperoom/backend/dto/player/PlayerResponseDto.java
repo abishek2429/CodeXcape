@@ -20,6 +20,7 @@ public class PlayerResponseDto {
     private Long eventId;
     private Long teamId;
     private Long playerId;
+    private Boolean isActive;
 
     // Team Lobby & Event Start Telemetry
     private Boolean isReady;

@@ -20,4 +20,5 @@ public class PlayerPrincipal implements Serializable {
     private String teamName;
     private String displayName;
     private String sessionToken;
+    private Boolean isActive;
 }

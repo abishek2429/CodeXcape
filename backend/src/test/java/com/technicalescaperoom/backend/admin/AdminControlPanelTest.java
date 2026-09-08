@@ -62,6 +62,9 @@ class AdminControlPanelTest {
     private GameSessionRepository gameSessionRepository;
 
     @Autowired
+    private com.technicalescaperoom.backend.repository.AdminSessionRepository adminSessionRepository;
+
+    @Autowired
     private AdminAuditLogRepository adminAuditLogRepository;
 
     @Autowired
@@ -153,11 +156,18 @@ class AdminControlPanelTest {
     }
 
     @Test
-    @DisplayName("2. Verify Organizer header accessing /api/admin/* receives 200 OK")
+    @DisplayName("2. Verify Authenticated Admin Session accessing /api/admin/* receives 200 OK")
     void testOrganizerAccessAllowed() throws Exception {
+        com.technicalescaperoom.backend.entity.AdminSession adminSession = adminSessionRepository.save(
+                com.technicalescaperoom.backend.entity.AdminSession.builder()
+                        .sessionToken(UUID.randomUUID().toString())
+                        .status(SessionStatus.ACTIVE)
+                        .lastActivityAt(Instant.now())
+                        .build()
+        );
+
         mockMvc.perform(get("/api/admin/events/" + event.getId() + "/dashboard")
-                        .header("X-Admin-Role", "ORGANIZER")
-                        .header("X-Admin-Username", "leadorganizer")
+                        .header("X-Admin-Session", adminSession.getSessionToken())
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }

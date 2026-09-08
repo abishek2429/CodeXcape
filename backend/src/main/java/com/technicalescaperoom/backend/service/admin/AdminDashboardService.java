@@ -50,13 +50,26 @@ public class AdminDashboardService {
             distribution.put(i, 0L);
         }
 
+        List<Long> teamIds = teams.stream().map(Team::getId).collect(Collectors.toList());
+        List<Player> allPlayers = teamIds.isEmpty() ? Collections.emptyList() : playerRepository.findByTeamIdIn(teamIds);
+        Map<Long, List<Player>> playersByTeam = allPlayers.stream()
+                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+
+        List<GameSession> allActiveSessions = teamIds.isEmpty() ? Collections.emptyList() : gameSessionRepository.findByTeamIdInAndStatus(teamIds, SessionStatus.ACTIVE);
+        Map<Long, GameSession> activeSessionByPlayerId = allActiveSessions.stream()
+                .collect(Collectors.toMap(s -> s.getPlayer().getId(), s -> s, (existing, replacement) -> existing));
+
+        List<TeamLevelProgress> allProgress = teamIds.isEmpty() ? Collections.emptyList() : teamLevelProgressRepository.findByTeamIdIn(teamIds);
+        Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
+                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+
         for (Team team : teams) {
-            List<Player> players = playerRepository.findByTeamId(team.getId());
+            List<Player> players = playersByTeam.getOrDefault(team.getId(), Collections.emptyList());
             Player p1 = players.stream().filter(p -> p.getPlayerNumber() == 1).findFirst().orElse(null);
             Player p2 = players.stream().filter(p -> p.getPlayerNumber() == 2).findFirst().orElse(null);
 
-            GameSession s1 = p1 != null ? gameSessionRepository.findByPlayerIdAndStatus(p1.getId(), SessionStatus.ACTIVE).orElse(null) : null;
-            GameSession s2 = p2 != null ? gameSessionRepository.findByPlayerIdAndStatus(p2.getId(), SessionStatus.ACTIVE).orElse(null) : null;
+            GameSession s1 = p1 != null ? activeSessionByPlayerId.get(p1.getId()) : null;
+            GameSession s2 = p2 != null ? activeSessionByPlayerId.get(p2.getId()) : null;
 
             boolean p1LoggedIn = s1 != null;
             boolean p2LoggedIn = s2 != null;
@@ -78,7 +91,7 @@ public class AdminDashboardService {
                 oneOffline++;
             }
 
-            List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
+            List<TeamLevelProgress> progressList = progressByTeam.getOrDefault(team.getId(), Collections.emptyList());
             TeamLevelProgress activeProgress = progressList.stream()
                     .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
                     .findFirst()
@@ -123,13 +136,24 @@ public class AdminDashboardService {
     public List<AdminActiveSessionDto> getActiveSessions(Long eventId) {
         List<Team> teams = teamRepository.findByEventId(eventId);
         List<AdminActiveSessionDto> sessionDtos = new ArrayList<>();
+        if (teams.isEmpty()) {
+            return sessionDtos;
+        }
+
+        List<Long> teamIds = teams.stream().map(Team::getId).collect(Collectors.toList());
+        List<Player> allPlayers = playerRepository.findByTeamIdIn(teamIds);
+        Map<Long, List<Player>> playersByTeam = allPlayers.stream()
+                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+
+        List<GameSession> allActiveSessions = gameSessionRepository.findByTeamIdInAndStatus(teamIds, SessionStatus.ACTIVE);
+        Map<Long, GameSession> activeSessionByPlayerId = allActiveSessions.stream()
+                .collect(Collectors.toMap(s -> s.getPlayer().getId(), s -> s, (existing, replacement) -> existing));
 
         for (Team team : teams) {
-            List<Player> players = playerRepository.findByTeamId(team.getId());
+            List<Player> players = playersByTeam.getOrDefault(team.getId(), Collections.emptyList());
             for (Player player : players) {
-                Optional<GameSession> activeSessionOpt = gameSessionRepository.findByPlayerIdAndStatus(player.getId(), SessionStatus.ACTIVE);
-                if (activeSessionOpt.isPresent()) {
-                    GameSession session = activeSessionOpt.get();
+                GameSession session = activeSessionByPlayerId.get(player.getId());
+                if (session != null) {
                     String token = session.getSessionToken();
                     String preview = token != null && token.length() > 8 ? token.substring(0, 8) + "..." : token;
 
@@ -168,14 +192,30 @@ public class AdminDashboardService {
     public List<AdminTeamProgressDto> getTeamsProgress(Long eventId, String search, Integer levelFilter, String statusFilter) {
         List<Team> teams = teamRepository.findByEventId(eventId);
         List<AdminTeamProgressDto> dtos = new ArrayList<>();
+        if (teams.isEmpty()) {
+            return dtos;
+        }
+
+        List<Long> teamIds = teams.stream().map(Team::getId).collect(Collectors.toList());
+        List<Player> allPlayers = playerRepository.findByTeamIdIn(teamIds);
+        Map<Long, List<Player>> playersByTeam = allPlayers.stream()
+                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+
+        List<GameSession> allActiveSessions = gameSessionRepository.findByTeamIdInAndStatus(teamIds, SessionStatus.ACTIVE);
+        Map<Long, GameSession> activeSessionByPlayerId = allActiveSessions.stream()
+                .collect(Collectors.toMap(s -> s.getPlayer().getId(), s -> s, (existing, replacement) -> existing));
+
+        List<TeamLevelProgress> allProgress = teamLevelProgressRepository.findByTeamIdIn(teamIds);
+        Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
+                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
 
         for (Team team : teams) {
-            List<Player> players = playerRepository.findByTeamId(team.getId());
+            List<Player> players = playersByTeam.getOrDefault(team.getId(), Collections.emptyList());
             Player p1 = players.stream().filter(p -> p.getPlayerNumber() == 1).findFirst().orElse(null);
             Player p2 = players.stream().filter(p -> p.getPlayerNumber() == 2).findFirst().orElse(null);
 
-            GameSession s1 = p1 != null ? gameSessionRepository.findByPlayerIdAndStatus(p1.getId(), SessionStatus.ACTIVE).orElse(null) : null;
-            GameSession s2 = p2 != null ? gameSessionRepository.findByPlayerIdAndStatus(p2.getId(), SessionStatus.ACTIVE).orElse(null) : null;
+            GameSession s1 = p1 != null ? activeSessionByPlayerId.get(p1.getId()) : null;
+            GameSession s2 = p2 != null ? activeSessionByPlayerId.get(p2.getId()) : null;
 
             boolean p1LoggedIn = s1 != null;
             boolean p2LoggedIn = s2 != null;
@@ -204,7 +244,7 @@ public class AdminDashboardService {
                 if (!matches) continue;
             }
 
-            List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
+            List<TeamLevelProgress> progressList = progressByTeam.getOrDefault(team.getId(), Collections.emptyList());
             TeamLevelProgress activeProgress = progressList.stream()
                     .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
                     .findFirst()
