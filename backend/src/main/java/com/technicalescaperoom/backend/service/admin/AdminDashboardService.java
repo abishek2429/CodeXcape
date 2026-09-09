@@ -50,58 +50,60 @@ public class AdminDashboardService {
             distribution.put(i, 0L);
         }
 
-        List<Long> teamIds = teams.stream().map(Team::getId).collect(Collectors.toList());
-        List<Player> allPlayers = teamIds.isEmpty() ? Collections.emptyList() : playerRepository.findByTeamIdIn(teamIds);
-        Map<Long, List<Player>> playersByTeam = allPlayers.stream()
-                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+        if (!teams.isEmpty()) {
+            List<Long> teamIds = teams.stream().map(Team::getId).toList();
+            List<Player> allPlayers = playerRepository.findByTeamIdIn(teamIds);
+            Map<Long, List<Player>> playersByTeam = allPlayers.stream()
+                    .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
 
-        List<GameSession> allActiveSessions = teamIds.isEmpty() ? Collections.emptyList() : gameSessionRepository.findByTeamIdInAndStatus(teamIds, SessionStatus.ACTIVE);
-        Map<Long, GameSession> activeSessionByPlayerId = allActiveSessions.stream()
-                .collect(Collectors.toMap(s -> s.getPlayer().getId(), s -> s, (existing, replacement) -> existing));
+            List<Long> playerIds = allPlayers.stream().map(Player::getId).toList();
+            Map<Long, GameSession> activeSessionsByPlayer = playerIds.isEmpty() ? Collections.emptyMap() :
+                    gameSessionRepository.findByPlayerIdInAndStatus(playerIds, SessionStatus.ACTIVE).stream()
+                            .collect(Collectors.toMap(s -> s.getPlayer().getId(), s -> s, (a, b) -> a));
 
-        List<TeamLevelProgress> allProgress = teamIds.isEmpty() ? Collections.emptyList() : teamLevelProgressRepository.findByTeamIdIn(teamIds);
-        Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
-                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+            Map<Long, List<TeamLevelProgress>> progressByTeam = teamLevelProgressRepository.findByTeamIdInOrderByLevelIdAsc(teamIds).stream()
+                    .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
 
-        for (Team team : teams) {
-            List<Player> players = playersByTeam.getOrDefault(team.getId(), Collections.emptyList());
-            Player p1 = players.stream().filter(p -> p.getPlayerNumber() == 1).findFirst().orElse(null);
-            Player p2 = players.stream().filter(p -> p.getPlayerNumber() == 2).findFirst().orElse(null);
+            for (Team team : teams) {
+                List<Player> players = playersByTeam.getOrDefault(team.getId(), Collections.emptyList());
+                Player p1 = players.stream().filter(p -> p.getPlayerNumber() == 1).findFirst().orElse(null);
+                Player p2 = players.stream().filter(p -> p.getPlayerNumber() == 2).findFirst().orElse(null);
 
-            GameSession s1 = p1 != null ? activeSessionByPlayerId.get(p1.getId()) : null;
-            GameSession s2 = p2 != null ? activeSessionByPlayerId.get(p2.getId()) : null;
+                GameSession s1 = p1 != null ? activeSessionsByPlayer.get(p1.getId()) : null;
+                GameSession s2 = p2 != null ? activeSessionsByPlayer.get(p2.getId()) : null;
 
-            boolean p1LoggedIn = s1 != null;
-            boolean p2LoggedIn = s2 != null;
-            if (p1LoggedIn) totalActiveSessions++;
-            if (p2LoggedIn) totalActiveSessions++;
-            if (p1LoggedIn || p2LoggedIn) totalLoggedInTeams++;
+                boolean p1LoggedIn = s1 != null;
+                boolean p2LoggedIn = s2 != null;
+                if (p1LoggedIn) totalActiveSessions++;
+                if (p2LoggedIn) totalActiveSessions++;
+                if (p1LoggedIn || p2LoggedIn) totalLoggedInTeams++;
 
-            boolean p1Connected = p1LoggedIn && Boolean.TRUE.equals(s1.getIsConnected());
-            boolean p2Connected = p2LoggedIn && Boolean.TRUE.equals(s2.getIsConnected());
+                boolean p1Connected = p1LoggedIn && Boolean.TRUE.equals(s1.getIsConnected());
+                boolean p2Connected = p2LoggedIn && Boolean.TRUE.equals(s2.getIsConnected());
 
-            if (p1 != null && !p1Connected) disconnectedCount++;
-            if (p2 != null && !p2Connected) disconnectedCount++;
+                if (p1 != null && !p1Connected) disconnectedCount++;
+                if (p2 != null && !p2Connected) disconnectedCount++;
 
-            if (p1Connected && p2Connected) {
-                bothOnline++;
-            } else if (!p1Connected && !p2Connected) {
-                bothOffline++;
-            } else {
-                oneOffline++;
-            }
+                if (p1Connected && p2Connected) {
+                    bothOnline++;
+                } else if (!p1Connected && !p2Connected) {
+                    bothOffline++;
+                } else {
+                    oneOffline++;
+                }
 
-            List<TeamLevelProgress> progressList = progressByTeam.getOrDefault(team.getId(), Collections.emptyList());
-            TeamLevelProgress activeProgress = progressList.stream()
-                    .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
-                    .findFirst()
-                    .orElse(null);
+                List<TeamLevelProgress> progressList = progressByTeam.getOrDefault(team.getId(), Collections.emptyList());
+                TeamLevelProgress activeProgress = progressList.stream()
+                        .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
+                        .findFirst()
+                        .orElse(null);
 
-            if (activeProgress != null) {
-                int levelNum = activeProgress.getLevel().getLevelNumber();
-                distribution.put(levelNum, distribution.getOrDefault(levelNum, 0L) + 1);
-            } else if (team.getGameState() == TeamGameState.FINAL_PASSKEY) {
-                distribution.put(6, distribution.getOrDefault(6, 0L) + 1);
+                if (activeProgress != null) {
+                    int levelNum = activeProgress.getLevel().getLevelNumber();
+                    distribution.put(levelNum, distribution.getOrDefault(levelNum, 0L) + 1);
+                } else if (team.getGameState() == TeamGameState.FINAL_PASSKEY) {
+                    distribution.put(6, distribution.getOrDefault(6, 0L) + 1);
+                }
             }
         }
 
@@ -135,24 +137,26 @@ public class AdminDashboardService {
     @Transactional(readOnly = true)
     public List<AdminActiveSessionDto> getActiveSessions(Long eventId) {
         List<Team> teams = teamRepository.findByEventId(eventId);
-        List<AdminActiveSessionDto> sessionDtos = new ArrayList<>();
         if (teams.isEmpty()) {
-            return sessionDtos;
+            return Collections.emptyList();
         }
 
-        List<Long> teamIds = teams.stream().map(Team::getId).collect(Collectors.toList());
+        List<Long> teamIds = teams.stream().map(Team::getId).toList();
         List<Player> allPlayers = playerRepository.findByTeamIdIn(teamIds);
         Map<Long, List<Player>> playersByTeam = allPlayers.stream()
                 .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
 
-        List<GameSession> allActiveSessions = gameSessionRepository.findByTeamIdInAndStatus(teamIds, SessionStatus.ACTIVE);
-        Map<Long, GameSession> activeSessionByPlayerId = allActiveSessions.stream()
-                .collect(Collectors.toMap(s -> s.getPlayer().getId(), s -> s, (existing, replacement) -> existing));
+        List<Long> playerIds = allPlayers.stream().map(Player::getId).toList();
+        Map<Long, GameSession> activeSessionsByPlayer = playerIds.isEmpty() ? Collections.emptyMap() :
+                gameSessionRepository.findByPlayerIdInAndStatus(playerIds, SessionStatus.ACTIVE).stream()
+                        .collect(Collectors.toMap(s -> s.getPlayer().getId(), s -> s, (a, b) -> a));
+
+        List<AdminActiveSessionDto> sessionDtos = new ArrayList<>();
 
         for (Team team : teams) {
             List<Player> players = playersByTeam.getOrDefault(team.getId(), Collections.emptyList());
             for (Player player : players) {
-                GameSession session = activeSessionByPlayerId.get(player.getId());
+                GameSession session = activeSessionsByPlayer.get(player.getId());
                 if (session != null) {
                     String token = session.getSessionToken();
                     String preview = token != null && token.length() > 8 ? token.substring(0, 8) + "..." : token;
@@ -191,31 +195,32 @@ public class AdminDashboardService {
     @Transactional(readOnly = true)
     public List<AdminTeamProgressDto> getTeamsProgress(Long eventId, String search, Integer levelFilter, String statusFilter) {
         List<Team> teams = teamRepository.findByEventId(eventId);
-        List<AdminTeamProgressDto> dtos = new ArrayList<>();
         if (teams.isEmpty()) {
-            return dtos;
+            return Collections.emptyList();
         }
 
-        List<Long> teamIds = teams.stream().map(Team::getId).collect(Collectors.toList());
+        List<Long> teamIds = teams.stream().map(Team::getId).toList();
         List<Player> allPlayers = playerRepository.findByTeamIdIn(teamIds);
         Map<Long, List<Player>> playersByTeam = allPlayers.stream()
                 .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
 
-        List<GameSession> allActiveSessions = gameSessionRepository.findByTeamIdInAndStatus(teamIds, SessionStatus.ACTIVE);
-        Map<Long, GameSession> activeSessionByPlayerId = allActiveSessions.stream()
-                .collect(Collectors.toMap(s -> s.getPlayer().getId(), s -> s, (existing, replacement) -> existing));
+        List<Long> playerIds = allPlayers.stream().map(Player::getId).toList();
+        Map<Long, GameSession> activeSessionsByPlayer = playerIds.isEmpty() ? Collections.emptyMap() :
+                gameSessionRepository.findByPlayerIdInAndStatus(playerIds, SessionStatus.ACTIVE).stream()
+                        .collect(Collectors.toMap(s -> s.getPlayer().getId(), s -> s, (a, b) -> a));
 
-        List<TeamLevelProgress> allProgress = teamLevelProgressRepository.findByTeamIdIn(teamIds);
-        Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
+        Map<Long, List<TeamLevelProgress>> progressByTeam = teamLevelProgressRepository.findByTeamIdInOrderByLevelIdAsc(teamIds).stream()
                 .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
+
+        List<AdminTeamProgressDto> dtos = new ArrayList<>();
 
         for (Team team : teams) {
             List<Player> players = playersByTeam.getOrDefault(team.getId(), Collections.emptyList());
             Player p1 = players.stream().filter(p -> p.getPlayerNumber() == 1).findFirst().orElse(null);
             Player p2 = players.stream().filter(p -> p.getPlayerNumber() == 2).findFirst().orElse(null);
 
-            GameSession s1 = p1 != null ? activeSessionByPlayerId.get(p1.getId()) : null;
-            GameSession s2 = p2 != null ? activeSessionByPlayerId.get(p2.getId()) : null;
+            GameSession s1 = p1 != null ? activeSessionsByPlayer.get(p1.getId()) : null;
+            GameSession s2 = p2 != null ? activeSessionsByPlayer.get(p2.getId()) : null;
 
             boolean p1LoggedIn = s1 != null;
             boolean p2LoggedIn = s2 != null;

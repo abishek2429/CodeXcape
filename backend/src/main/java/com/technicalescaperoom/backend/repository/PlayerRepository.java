@@ -10,7 +10,10 @@ import java.util.Optional;
 @Repository
 public interface PlayerRepository extends JpaRepository<Player, Long> {
     List<Player> findByTeamId(Long teamId);
-    List<Player> findByTeamIdIn(List<Long> teamIds);
+
+    @org.springframework.data.jpa.repository.Query("SELECT p FROM Player p WHERE p.team.id IN :teamIds")
+    List<Player> findByTeamIdIn(@org.springframework.data.repository.query.Param("teamIds") java.util.Collection<Long> teamIds);
+
     Optional<Player> findByTeamIdAndPlayerNumber(Long teamId, Integer playerNumber);
     long countByTeamId(Long teamId);
     void deleteByTeamId(Long teamId);

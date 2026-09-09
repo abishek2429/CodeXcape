@@ -125,6 +125,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         } catch (NumberFormatException e) {
                             throw new MessageDeliveryException("Invalid team channel destination");
                         }
+                    } else if (destination != null && destination.startsWith("/topic/admin")) {
+                        log.warn("Security Alert: Player {} attempted unauthorized subscription to /topic/admin", principal.getPlayerId());
+                        throw new MessageDeliveryException("Unauthorized subscription: Player cannot subscribe to admin channels.");
                     }
                 }
 

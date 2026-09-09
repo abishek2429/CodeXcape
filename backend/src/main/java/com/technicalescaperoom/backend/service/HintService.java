@@ -114,9 +114,15 @@ public class HintService {
         boolean alreadyUsed = hintUsageRepository.existsByTeamIdAndLevelIdAndStageNumberAndHintNumber(
             team.getId(), level.getId(), stageNumber, hintNumber);
         if (!alreadyUsed) {
-            hintUsageRepository.save(HintUsage.builder().team(team).level(level).stageNumber(stageNumber).hintNumber(hintNumber).build());
+            try {
+                hintUsageRepository.saveAndFlush(HintUsage.builder().team(team).level(level).stageNumber(stageNumber).hintNumber(hintNumber).build());
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                log.info("Concurrent hint usage detected for team {} level {} stage {} hint {}: safely treating as already used",
+                        team.getId(), level.getId(), stageNumber, hintNumber);
+                alreadyUsed = true;
+            }
         }
         return HintUseResponseDto.builder().levelNumber(levelNumber).stageNumber(stageNumber)
             .hintNumber(hintNumber).hintContent(hint.getHintContent()).alreadyUsed(alreadyUsed).build();
-        }
+    }
 }

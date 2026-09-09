@@ -18,8 +18,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
         ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .code("RESOURCE_NOT_FOUND")
                 .status(HttpStatus.NOT_FOUND.value())
                 .message(ex.getMessage())
                 .timestamp(Instant.now())
@@ -30,8 +28,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateLoginException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateLoginException(DuplicateLoginException ex) {
         ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .code("DUPLICATE_LOGIN")
                 .status(HttpStatus.CONFLICT.value())
                 .message(ex.getMessage())
                 .timestamp(Instant.now())
@@ -42,8 +38,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccountDisabledException.class)
     public ResponseEntity<ErrorResponse> handleAccountDisabledException(AccountDisabledException ex) {
         ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .code("ACCOUNT_DISABLED")
                 .status(HttpStatus.FORBIDDEN.value())
                 .message(ex.getMessage())
                 .timestamp(Instant.now())
@@ -54,8 +48,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EventUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleEventUnavailableException(EventUnavailableException ex) {
         ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .code("EVENT_UNAVAILABLE")
                 .status(HttpStatus.BAD_REQUEST.value())
                 .message(ex.getMessage())
                 .timestamp(Instant.now())
@@ -66,8 +58,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidLevelTransitionException.class)
     public ResponseEntity<ErrorResponse> handleInvalidLevelTransitionException(InvalidLevelTransitionException ex) {
         ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .code("INVALID_TRANSITION")
                 .status(HttpStatus.BAD_REQUEST.value())
                 .message(ex.getMessage())
                 .timestamp(Instant.now())
@@ -78,8 +68,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IncompleteLevelContentException.class)
     public ResponseEntity<ErrorResponse> handleIncompleteLevelContentException(IncompleteLevelContentException ex) {
         ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .code("INCOMPLETE_CONTENT")
                 .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
                 .message(ex.getMessage())
                 .timestamp(Instant.now())
@@ -90,8 +78,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
         ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .code("BAD_REQUEST")
                 .status(HttpStatus.BAD_REQUEST.value())
                 .message(ex.getMessage())
                 .timestamp(Instant.now())
@@ -102,8 +88,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
         ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .code("ILLEGAL_STATE")
                 .status(HttpStatus.BAD_REQUEST.value())
                 .message(ex.getMessage())
                 .timestamp(Instant.now())
@@ -119,8 +103,6 @@ public class GlobalExceptionHandler {
         }
 
         ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .code("VALIDATION_FAILED")
                 .status(HttpStatus.BAD_REQUEST.value())
                 .message("Validation failed")
                 .timestamp(Instant.now())
@@ -132,8 +114,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .code("INTERNAL_SERVER_ERROR")
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .message("An internal server error occurred")
                 .timestamp(Instant.now())

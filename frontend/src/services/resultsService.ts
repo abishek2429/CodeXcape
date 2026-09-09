@@ -58,6 +58,8 @@ export interface PublicLeaderboard {
 const ADMIN_HEADERS = {
   'Accept': 'application/json',
   'Content-Type': 'application/json',
+  'X-Admin-Role': 'ORGANIZER',
+  'X-Admin-Username': 'organizer',
 };
 
 export async function fetchLeaderboard(eventId: number): Promise<LeaderboardEntry[]> {

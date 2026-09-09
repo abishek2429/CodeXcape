@@ -13,8 +13,12 @@ import java.util.Optional;
 
 @Repository
 public interface TeamLevelProgressRepository extends JpaRepository<TeamLevelProgress, Long> {
-    List<TeamLevelProgress> findByTeamIdOrderByLevelIdAsc(Long teamId);
-    List<TeamLevelProgress> findByTeamIdIn(List<Long> teamIds);
+    @Query("SELECT tlp FROM TeamLevelProgress tlp JOIN FETCH tlp.level WHERE tlp.team.id = :teamId ORDER BY tlp.level.id ASC")
+    List<TeamLevelProgress> findByTeamIdOrderByLevelIdAsc(@Param("teamId") Long teamId);
+
+    @Query("SELECT tlp FROM TeamLevelProgress tlp JOIN FETCH tlp.level WHERE tlp.team.id IN :teamIds ORDER BY tlp.level.id ASC")
+    List<TeamLevelProgress> findByTeamIdInOrderByLevelIdAsc(@Param("teamIds") java.util.Collection<Long> teamIds);
+
     Optional<TeamLevelProgress> findByTeamIdAndLevelId(Long teamId, Long levelId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

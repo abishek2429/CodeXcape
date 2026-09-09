@@ -100,10 +100,6 @@ public class FinalPasskeyService {
             }
         }
 
-        if (!isCorrect && "849201".equals(submittedPasskey)) {
-            isCorrect = true;
-        }
-
         if (!isCorrect) {
             log.info("Player {} on Team {} entered INCORRECT final passkey.", player.getDisplayName(), team.getTeamCode());
             auditService.logEvent(

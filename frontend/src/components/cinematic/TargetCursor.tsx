@@ -6,22 +6,22 @@ interface TargetCursorProps {
 }
 
 export const TargetCursor: React.FC<TargetCursorProps> = ({ enabled = true }) => {
-  const [position, setPosition] = useState({ x: -100, y: -100 });
   const [isHovering, setIsHovering] = useState(false);
   const [isDanger, setIsDanger] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+
+  const cursorRef = useRef<HTMLDivElement | null>(null);
+  const pos = useRef({ x: -100, y: -100 });
   const targetPos = useRef({ x: -100, y: -100 });
   const animFrameId = useRef<number | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
 
-    // Fast pointer event listener
     const onMouseMove = (e: MouseEvent) => {
       targetPos.current = { x: e.clientX, y: e.clientY };
       if (!isVisible) setIsVisible(true);
 
-      // Inspect target element for interactive cues
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
@@ -46,16 +46,16 @@ export const TargetCursor: React.FC<TargetCursorProps> = ({ enabled = true }) =>
     document.addEventListener('mouseleave', onMouseLeave);
     document.addEventListener('mouseenter', onMouseEnter);
 
-    // Smooth lerp loop for physical inertia feel
+    // Smooth lerp loop using direct DOM transform (bypasses React reconciliation for 60/144fps)
     const loop = () => {
-      setPosition((prev) => {
-        const dx = targetPos.current.x - prev.x;
-        const dy = targetPos.current.y - prev.y;
-        return {
-          x: prev.x + dx * 0.35,
-          y: prev.y + dy * 0.35,
-        };
-      });
+      const dx = targetPos.current.x - pos.current.x;
+      const dy = targetPos.current.y - pos.current.y;
+      pos.current.x += dx * 0.35;
+      pos.current.y += dy * 0.35;
+
+      if (cursorRef.current) {
+        cursorRef.current.style.transform = `translate3d(${pos.current.x}px, ${pos.current.y}px, 0) translate(-50%, -50%)`;
+      }
       animFrameId.current = requestAnimationFrame(loop);
     };
 
@@ -74,9 +74,10 @@ export const TargetCursor: React.FC<TargetCursorProps> = ({ enabled = true }) =>
   return (
     <div className="target-cursor-container" aria-hidden="true">
       <div
+        ref={cursorRef}
         className={`target-cursor ${isHovering ? 'is-hovering' : ''} ${isDanger ? 'is-danger' : ''}`}
         style={{
-          transform: `translate3d(${position.x}px, ${position.y}px, 0) translate(-50%, -50%)`,
+          transform: `translate3d(${pos.current.x}px, ${pos.current.y}px, 0) translate(-50%, -50%)`,
         }}
       >
         <div className="target-cursor-hairline-x" />

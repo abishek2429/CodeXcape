@@ -42,12 +42,10 @@ public class AdminAuthController {
     
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
-        Cookie cookie = new Cookie(ADMIN_COOKIE_NAME, "");
+        Cookie cookie = new Cookie(ADMIN_COOKIE_NAME, null);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
-        cookie.setSecure(true);
-        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }

@@ -25,9 +25,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -62,9 +60,6 @@ class AdminControlPanelTest {
 
     @Autowired
     private GameSessionRepository gameSessionRepository;
-
-    @Autowired
-    private com.technicalescaperoom.backend.repository.AdminSessionRepository adminSessionRepository;
 
     @Autowired
     private AdminAuditLogRepository adminAuditLogRepository;
@@ -158,18 +153,11 @@ class AdminControlPanelTest {
     }
 
     @Test
-    @DisplayName("2. Verify Authenticated Admin Session accessing /api/admin/* receives 200 OK")
+    @DisplayName("2. Verify Organizer header accessing /api/admin/* receives 200 OK")
     void testOrganizerAccessAllowed() throws Exception {
-        com.technicalescaperoom.backend.entity.AdminSession adminSession = adminSessionRepository.save(
-                com.technicalescaperoom.backend.entity.AdminSession.builder()
-                        .sessionToken(UUID.randomUUID().toString())
-                        .status(SessionStatus.ACTIVE)
-                        .lastActivityAt(Instant.now())
-                        .build()
-        );
-
         mockMvc.perform(get("/api/admin/events/" + event.getId() + "/dashboard")
-                        .header("X-Admin-Session", adminSession.getSessionToken())
+                        .header("X-Admin-Role", "ORGANIZER")
+                        .header("X-Admin-Username", "leadorganizer")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }

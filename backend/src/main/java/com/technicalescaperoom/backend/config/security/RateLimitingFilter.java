@@ -25,9 +25,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     private final ObjectMapper objectMapper;
 
-    private static final int ANSWER_MAX_REQUESTS = 10;
-    private static final int PLAYER_LOGIN_MAX_REQUESTS = 25;
-    private static final int ADMIN_LOGIN_MAX_REQUESTS = 5;
+    private static final int MAX_REQUESTS = 10;
     private static final long WINDOW_SECONDS = 10;
 
     private final Map<String, RequestBucket> buckets = new ConcurrentHashMap<>();
@@ -36,16 +34,11 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        int maxAllowed = getMaxRequestsForEndpoint(request);
+        String uri = request.getRequestURI();
 
-        if (maxAllowed > 0) {
-            String clientKey = resolveClientKey(request, maxAllowed);
+        if (isRateLimitedEndpoint(request)) {
+            String clientKey = resolveClientKey(request);
             long now = Instant.now().getEpochSecond();
-
-            // Periodic cleanup of stale buckets when size grows
-            if (buckets.size() > 500) {
-                cleanupStaleBuckets(now);
-            }
 
             RequestBucket bucket = buckets.compute(clientKey, (key, existing) -> {
                 if (existing == null || (now - existing.windowStartEpoch) > WINDOW_SECONDS) {
@@ -56,8 +49,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                 }
             });
 
-            if (bucket.requestCount > maxAllowed) {
-                log.warn("Rate limit exceeded for client key {} on URI {}", clientKey, request.getRequestURI());
+            cleanupExpiredBuckets(now);
+
+            if (bucket.requestCount > MAX_REQUESTS) {
+                log.warn("Rate limit exceeded for client key {} on URI {}", clientKey, uri);
                 sendRateLimitError(response);
                 return;
             }
@@ -66,57 +61,48 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private int getMaxRequestsForEndpoint(HttpServletRequest request) {
+    private boolean isRateLimitedEndpoint(HttpServletRequest request) {
         String method = request.getMethod();
         String uri = request.getRequestURI();
-        if (!"POST".equalsIgnoreCase(method)) {
-            return 0;
-        }
-
-        if (uri.equals("/api/player/game/current/answer") || uri.equals("/api/player/game/final-passkey")) {
-            return ANSWER_MAX_REQUESTS;
-        }
-        if (uri.equals("/api/player/login")) {
-            return PLAYER_LOGIN_MAX_REQUESTS;
-        }
-        if (uri.equals("/api/admin/login")) {
-            return ADMIN_LOGIN_MAX_REQUESTS;
-        }
-        return 0;
+        return "POST".equalsIgnoreCase(method) &&
+                (uri.equals("/api/player/game/current/answer") || uri.equals("/api/player/game/final-passkey"));
     }
 
-    private void cleanupStaleBuckets(long now) {
-        buckets.entrySet().removeIf(entry -> (now - entry.getValue().windowStartEpoch) > (WINDOW_SECONDS * 2));
-    }
+    private String resolveClientKey(HttpServletRequest request) {
+        // 1. Check Header X-Player-Session
+        String sessionHeader = request.getHeader("X-Player-Session");
+        if (sessionHeader != null && !sessionHeader.isBlank()) {
+            return sessionHeader.trim();
+        }
 
-    private String resolveClientKey(HttpServletRequest request, int maxAllowed) {
-        // For answer submissions, prioritize player session so campus NAT doesn't throttle teammate
-        if (maxAllowed == ANSWER_MAX_REQUESTS) {
-            String sessionHeader = request.getHeader("X-Player-Session");
-            if (sessionHeader != null && !sessionHeader.isBlank()) {
-                return sessionHeader.trim();
-            }
+        // 2. Check Authorization Bearer Token
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7).trim();
+        }
 
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                return authHeader.substring(7).trim();
-            }
-
-            if (request.getCookies() != null) {
-                for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-                    if ("PLAYER_SESSION".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
-                        return cookie.getValue().trim();
-                    }
+        // 3. Check PLAYER_SESSION Cookie (Primary browser authentication)
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if ("PLAYER_SESSION".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                    return cookie.getValue().trim();
                 }
             }
         }
 
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim() + ":" + request.getRequestURI();
+        // 4. Fallback to client IP (aware of reverse proxy X-Forwarded-For)
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            return xForwardedFor.split(",")[0].trim();
         }
 
-        return request.getRemoteAddr() + ":" + request.getRequestURI();
+        return request.getRemoteAddr();
+    }
+
+    private void cleanupExpiredBuckets(long now) {
+        if (buckets.size() > 500) {
+            buckets.entrySet().removeIf(entry -> (now - entry.getValue().windowStartEpoch) > WINDOW_SECONDS * 2);
+        }
     }
 
     private void sendRateLimitError(HttpServletResponse response) throws IOException {

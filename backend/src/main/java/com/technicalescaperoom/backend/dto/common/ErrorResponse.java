@@ -13,9 +13,6 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ErrorResponse {
-    @Builder.Default
-    private boolean success = false;
-    private String code;
     private int status;
     private String message;
     private Instant timestamp;

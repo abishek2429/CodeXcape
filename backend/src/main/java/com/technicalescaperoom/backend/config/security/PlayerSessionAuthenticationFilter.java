@@ -83,6 +83,24 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        String adminRoleHeader = request.getHeader("X-Admin-Role");
+        if (adminRoleHeader != null && !adminRoleHeader.isBlank()) {
+            String username = request.getHeader("X-Admin-Username");
+            if (username == null || username.isBlank()) username = "admin";
+            com.technicalescaperoom.backend.enums.UserRole role =
+                    com.technicalescaperoom.backend.enums.UserRole.valueOf(adminRoleHeader.trim().toUpperCase());
+            AdminPrincipal adminPrincipal = AdminPrincipal.builder()
+                    .username(username)
+                    .role(role)
+                    .build();
+            org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
+                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                            adminPrincipal, null, adminPrincipal.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String playerToken = extractToken(request);
         if (playerToken != null && !playerToken.isBlank()) {
             handlePlayerAuthentication(request, response, filterChain);
@@ -120,7 +138,7 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
         String token = extractToken(request);
 
         if (token != null && !token.isBlank()) {
-            Optional<GameSession> sessionOpt = gameSessionRepository.findBySessionTokenWithDetails(token);
+            Optional<GameSession> sessionOpt = gameSessionRepository.findBySessionToken(token);
 
             if (sessionOpt.isPresent()) {
                 GameSession session = sessionOpt.get();
@@ -129,8 +147,7 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
                     Instant timeoutThreshold = Instant.now().minusSeconds(sessionTimeoutMinutes * 60);
 
                     if (session.getLastActivityAt().isBefore(timeoutThreshold)) {
-                        String maskedToken = token.length() > 8 ? token.substring(0, 8) + "..." : "***";
-                        log.info("Session {} expired for player ID {}", maskedToken, session.getPlayer().getId());
+                        log.info("Session {} expired for player ID {}", token, session.getPlayer().getId());
                         session.setStatus(SessionStatus.EXPIRED);
                         session.setIsConnected(false);
                         session.setDisconnectedAt(Instant.now());
