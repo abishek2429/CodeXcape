@@ -83,30 +83,6 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String adminRoleHeader = request.getHeader("X-Admin-Role");
-        if (adminRoleHeader != null && !adminRoleHeader.isBlank()) {
-            String username = request.getHeader("X-Admin-Username");
-            if (username == null || username.isBlank()) username = "admin";
-            com.technicalescaperoom.backend.enums.UserRole role =
-                    com.technicalescaperoom.backend.enums.UserRole.valueOf(adminRoleHeader.trim().toUpperCase());
-            AdminPrincipal adminPrincipal = AdminPrincipal.builder()
-                    .username(username)
-                    .role(role)
-                    .build();
-            org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
-                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                            adminPrincipal, null, adminPrincipal.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String playerToken = extractToken(request);
-        if (playerToken != null && !playerToken.isBlank()) {
-            handlePlayerAuthentication(request, response, filterChain);
-            return;
-        }
-
         String token = extractAdminToken(request);
         if (token != null && !token.isBlank()) {
             Optional<com.technicalescaperoom.backend.entity.AdminSession> sessionOpt = adminSessionRepository.findBySessionToken(token);
@@ -117,9 +93,22 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
                 session.setLastActivityAt(Instant.now());
                 adminSessionRepository.save(session);
 
+                String username = request.getHeader("X-Admin-Username");
+                if (username == null || username.isBlank()) {
+                    username = "admin";
+                }
+
+                com.technicalescaperoom.backend.enums.UserRole role = com.technicalescaperoom.backend.enums.UserRole.ADMIN;
+                String adminRoleHeader = request.getHeader("X-Admin-Role");
+                if (adminRoleHeader != null && !adminRoleHeader.isBlank()) {
+                    try {
+                        role = com.technicalescaperoom.backend.enums.UserRole.valueOf(adminRoleHeader.trim().toUpperCase());
+                    } catch (IllegalArgumentException ignored) {}
+                }
+
                 AdminPrincipal adminPrincipal = AdminPrincipal.builder()
-                        .username("admin")
-                        .role(com.technicalescaperoom.backend.enums.UserRole.ADMIN)
+                        .username(username)
+                        .role(role)
                         .build();
 
                 org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
@@ -131,6 +120,13 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
         }
+
+        String playerToken = extractToken(request);
+        if (playerToken != null && !playerToken.isBlank()) {
+            handlePlayerAuthentication(request, response, filterChain);
+            return;
+        }
+
         sendJsonError(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Admin authentication required.");
     }
 

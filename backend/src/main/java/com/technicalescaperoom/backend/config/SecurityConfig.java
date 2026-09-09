@@ -37,6 +37,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/player/**").authenticated()
                 .anyRequest().permitAll()
             )
+            .headers(headers -> headers
+                .contentTypeOptions(Customizer.withDefaults())
+                .frameOptions(frame -> frame.deny())
+                .referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                .permissionsPolicy(permissions -> permissions.policy("geolocation=(), microphone=(), camera=()"))
+            )
             .addFilterBefore(playerSessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(rateLimitingFilter, PlayerSessionAuthenticationFilter.class);
 

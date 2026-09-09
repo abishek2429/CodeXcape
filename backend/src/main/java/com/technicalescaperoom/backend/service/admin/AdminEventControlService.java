@@ -45,6 +45,13 @@ public class AdminEventControlService {
         }
 
         EventStatus oldStatus = event.getStatus();
+        if (oldStatus == newStatus) {
+            log.info("Event {} is already in status {}. Skipping idempotent status update.", eventId, newStatus);
+            return mapToResponse(event);
+        }
+
+        validateEventTransition(oldStatus, newStatus);
+
         event.setStatus(newStatus);
         if (newStatus == EventStatus.RUNNING && event.getStartTime() == null) {
             event.setStartTime(java.time.Instant.now());

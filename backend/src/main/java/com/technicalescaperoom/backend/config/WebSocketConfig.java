@@ -33,6 +33,7 @@ import java.util.List;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final GameSessionRepository gameSessionRepository;
+    private final com.technicalescaperoom.backend.repository.AdminSessionRepository adminSessionRepository;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,https://code-xcape.vercel.app,https://*.vercel.app}")
     private String allowedOrigins;
@@ -85,49 +86,84 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         throw new MessageDeliveryException("Unauthorized: Missing session token");
                     }
 
-                    GameSession session = gameSessionRepository.findBySessionToken(token)
-                            .filter(s -> s.getStatus() == SessionStatus.ACTIVE)
-                            .orElseThrow(() -> new MessageDeliveryException("Unauthorized: Invalid or expired session token"));
+                    // 1. Try Player GameSession
+                    java.util.Optional<GameSession> playerSessionOpt = gameSessionRepository.findBySessionToken(token)
+                            .filter(s -> s.getStatus() == SessionStatus.ACTIVE);
 
-                    Player player = session.getPlayer();
-                    PlayerPrincipal principal = PlayerPrincipal.builder()
-                            .playerId(player.getId())
-                            .teamId(player.getTeam().getId())
-                            .eventId(player.getTeam().getEvent().getId())
-                            .playerNumber(player.getPlayerNumber())
-                            .teamCode(player.getTeam().getTeamCode())
-                            .teamName(player.getTeam().getTeamName())
-                            .displayName(player.getDisplayName())
-                            .sessionToken(token)
-                            .build();
+                    if (playerSessionOpt.isPresent()) {
+                        GameSession session = playerSessionOpt.get();
+                        Player player = session.getPlayer();
+                        PlayerPrincipal principal = PlayerPrincipal.builder()
+                                .playerId(player.getId())
+                                .teamId(player.getTeam().getId())
+                                .eventId(player.getTeam().getEvent().getId())
+                                .playerNumber(player.getPlayerNumber())
+                                .teamCode(player.getTeam().getTeamCode())
+                                .teamName(player.getTeam().getTeamName())
+                                .displayName(player.getDisplayName())
+                                .sessionToken(token)
+                                .build();
 
-                    PlayerAuthenticationToken authentication = new PlayerAuthenticationToken(principal, token);
-                    accessor.setUser(authentication);
-                    log.info("WebSocket CONNECT authenticated for player {} (Team {})", player.getId(), player.getTeam().getTeamCode());
+                        PlayerAuthenticationToken authentication = new PlayerAuthenticationToken(principal, token);
+                        accessor.setUser(authentication);
+                        log.info("WebSocket CONNECT authenticated for player {} (Team {})", player.getId(), player.getTeam().getTeamCode());
+                    } else {
+                        // 2. Try AdminSession
+                        java.util.Optional<com.technicalescaperoom.backend.entity.AdminSession> adminSessionOpt = adminSessionRepository.findBySessionToken(token)
+                                .filter(s -> s.getStatus() == SessionStatus.ACTIVE);
+
+                        if (adminSessionOpt.isPresent()) {
+                            com.technicalescaperoom.backend.config.security.AdminPrincipal adminPrincipal =
+                                    com.technicalescaperoom.backend.config.security.AdminPrincipal.builder()
+                                            .username("admin")
+                                            .role(com.technicalescaperoom.backend.enums.UserRole.ADMIN)
+                                            .build();
+
+                            org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
+                                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                                            adminPrincipal, token, adminPrincipal.getAuthorities());
+                            accessor.setUser(auth);
+                            log.info("WebSocket CONNECT authenticated for admin session {}", token);
+                        } else {
+                            log.warn("WebSocket CONNECT rejected: Invalid or expired session token");
+                            throw new MessageDeliveryException("Unauthorized: Invalid or expired session token");
+                        }
+                    }
                 } else if (StompCommand.SUBSCRIBE.equals(command)) {
                     String destination = accessor.getDestination();
-                    PlayerAuthenticationToken user = (PlayerAuthenticationToken) accessor.getUser();
+                    java.security.Principal auth = accessor.getUser();
 
-                    if (user == null || !(user.getPrincipal() instanceof PlayerPrincipal principal)) {
+                    if (auth == null) {
                         log.warn("WebSocket SUBSCRIBE rejected: Unauthenticated session");
                         throw new MessageDeliveryException("Unauthorized: Subscription requires authentication");
                     }
 
-                    if (destination != null && destination.startsWith("/topic/team/")) {
-                        try {
-                            String teamIdStr = destination.substring("/topic/team/".length());
-                            Long requestedTeamId = Long.parseLong(teamIdStr);
+                    Object principal = (auth instanceof org.springframework.security.core.Authentication a) ? a.getPrincipal() : null;
 
-                            if (!principal.getTeamId().equals(requestedTeamId)) {
-                                log.warn("Security Alert: Player {} (Team {}) attempted unauthorized subscription to /topic/team/{}", principal.getPlayerId(), principal.getTeamId(), requestedTeamId);
-                                throw new MessageDeliveryException("Unauthorized subscription: You can only subscribe to your team's channel.");
-                            }
-                        } catch (NumberFormatException e) {
-                            throw new MessageDeliveryException("Invalid team channel destination");
+                    if (principal instanceof PlayerPrincipal playerPrincipal) {
+                        if (destination != null && destination.startsWith("/topic/admin")) {
+                            log.warn("Security Alert: Player {} attempted unauthorized subscription to /topic/admin", playerPrincipal.getPlayerId());
+                            throw new MessageDeliveryException("Unauthorized subscription: Player cannot subscribe to admin channels.");
                         }
-                    } else if (destination != null && destination.startsWith("/topic/admin")) {
-                        log.warn("Security Alert: Player {} attempted unauthorized subscription to /topic/admin", principal.getPlayerId());
-                        throw new MessageDeliveryException("Unauthorized subscription: Player cannot subscribe to admin channels.");
+
+                        if (destination != null && destination.startsWith("/topic/team/")) {
+                            try {
+                                String teamIdStr = destination.substring("/topic/team/".length());
+                                Long requestedTeamId = Long.parseLong(teamIdStr);
+
+                                if (!playerPrincipal.getTeamId().equals(requestedTeamId)) {
+                                    log.warn("Security Alert: Player {} (Team {}) attempted unauthorized subscription to /topic/team/{}",
+                                            playerPrincipal.getPlayerId(), playerPrincipal.getTeamId(), requestedTeamId);
+                                    throw new MessageDeliveryException("Unauthorized subscription: You can only subscribe to your team's channel.");
+                                }
+                            } catch (NumberFormatException e) {
+                                throw new MessageDeliveryException("Invalid team channel destination");
+                            }
+                        }
+                    } else if (principal instanceof com.technicalescaperoom.backend.config.security.AdminPrincipal) {
+                        // Admin authorized for monitoring channels
+                    } else {
+                        throw new MessageDeliveryException("Unauthorized: Invalid principal for subscription");
                     }
                 }
 
@@ -137,12 +173,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     private String extractSessionToken(StompHeaderAccessor accessor) {
-        // 1. Check STOMP headers: "token" or "sessionToken"
-        String token = accessor.getFirstNativeHeader("token");
-        if (token != null && !token.isBlank()) return token;
-
-        token = accessor.getFirstNativeHeader("sessionToken");
-        if (token != null && !token.isBlank()) return token;
+        // 1. Check STOMP headers: "token", "sessionToken", "adminToken", "X-Player-Session", "X-Admin-Session"
+        for (String headerName : Arrays.asList("sessionToken", "token", "adminToken", "X-Player-Session", "X-Admin-Session")) {
+            String token = accessor.getFirstNativeHeader(headerName);
+            if (token != null && !token.isBlank()) return token.trim();
+        }
 
         // 2. Check Cookie header if present
         List<String> cookieHeaders = accessor.getNativeHeader("cookie");
@@ -151,8 +186,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 String[] cookies = cookieHeader.split(";");
                 for (String cookie : cookies) {
                     String[] pair = cookie.trim().split("=");
-                    if (pair.length == 2 && "PLAYER_SESSION".equals(pair[0].trim())) {
-                        return pair[1].trim();
+                    if (pair.length == 2) {
+                        String cookieName = pair[0].trim();
+                        if ("PLAYER_SESSION".equals(cookieName) || "ADMIN_SESSION".equals(cookieName)) {
+                            return pair[1].trim();
+                        }
                     }
                 }
             }

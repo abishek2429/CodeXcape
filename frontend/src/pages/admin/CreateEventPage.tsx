@@ -139,7 +139,7 @@ export const CreateEventPage: React.FC = () => {
               type="text"
               value={passkey}
               onChange={(e) => setPasskey(e.target.value)}
-              placeholder="e.g. 849201"
+              placeholder="e.g. 6-digit numeric passkey"
               className=""
             />
           </div>

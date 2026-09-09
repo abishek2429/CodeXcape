@@ -85,6 +85,9 @@ class AdminControlPanelTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private AdminSessionRepository adminSessionRepository;
+
     private Event event;
     private Team teamA;
     private Player playerA1;
@@ -94,6 +97,7 @@ class AdminControlPanelTest {
     private Team teamB;
     private Player playerB1;
 
+    private AdminSession organizerSession;
     private AdminPrincipal adminPrincipal;
     private AdminPrincipal organizerPrincipal;
 
@@ -139,6 +143,11 @@ class AdminControlPanelTest {
         playerB1 = playerRepository.save(Player.builder().team(teamB).playerNumber(1).displayName("Admin P1B").build());
         gameStateService.initializeTeamGameState(teamB);
 
+        organizerSession = adminSessionRepository.save(AdminSession.builder()
+                .sessionToken("token-organizer-test-" + System.currentTimeMillis())
+                .status(SessionStatus.ACTIVE)
+                .build());
+
         adminPrincipal = AdminPrincipal.builder().username("superadmin").role(UserRole.ADMIN).build();
         organizerPrincipal = AdminPrincipal.builder().username("leadorganizer").role(UserRole.ORGANIZER).build();
     }
@@ -153,13 +162,24 @@ class AdminControlPanelTest {
     }
 
     @Test
-    @DisplayName("2. Verify Organizer header accessing /api/admin/* receives 200 OK")
+    @DisplayName("2. Verify Authenticated Organizer accessing /api/admin/* receives 200 OK")
     void testOrganizerAccessAllowed() throws Exception {
         mockMvc.perform(get("/api/admin/events/" + event.getId() + "/dashboard")
+                        .header("X-Admin-Session", organizerSession.getSessionToken())
                         .header("X-Admin-Role", "ORGANIZER")
                         .header("X-Admin-Username", "leadorganizer")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("2b. Verify spoofed X-Admin-Role without valid AdminSession receives 401 UNAUTHORIZED")
+    void testSpoofedAdminHeaderWithoutSessionReceivesUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/admin/events/" + event.getId() + "/dashboard")
+                        .header("X-Admin-Role", "ORGANIZER")
+                        .header("X-Admin-Username", "leadorganizer")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

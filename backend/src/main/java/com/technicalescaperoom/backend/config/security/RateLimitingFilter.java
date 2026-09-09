@@ -25,8 +25,11 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     private final ObjectMapper objectMapper;
 
-    private static final int MAX_REQUESTS = 10;
-    private static final long WINDOW_SECONDS = 10;
+    @org.springframework.beans.factory.annotation.Value("${app.rate-limiting.max-requests:10}")
+    private int maxRequests = 10;
+
+    @org.springframework.beans.factory.annotation.Value("${app.rate-limiting.window-seconds:10}")
+    private long windowSeconds = 10;
 
     private final Map<String, RequestBucket> buckets = new ConcurrentHashMap<>();
 
@@ -41,7 +44,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             long now = Instant.now().getEpochSecond();
 
             RequestBucket bucket = buckets.compute(clientKey, (key, existing) -> {
-                if (existing == null || (now - existing.windowStartEpoch) > WINDOW_SECONDS) {
+                if (existing == null || (now - existing.windowStartEpoch) > windowSeconds) {
                     return new RequestBucket(now, 1);
                 } else {
                     existing.requestCount++;
@@ -51,7 +54,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
             cleanupExpiredBuckets(now);
 
-            if (bucket.requestCount > MAX_REQUESTS) {
+            if (bucket.requestCount > maxRequests) {
                 log.warn("Rate limit exceeded for client key {} on URI {}", clientKey, uri);
                 sendRateLimitError(response);
                 return;
@@ -65,7 +68,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String method = request.getMethod();
         String uri = request.getRequestURI();
         return "POST".equalsIgnoreCase(method) &&
-                (uri.equals("/api/player/game/current/answer") || uri.equals("/api/player/game/final-passkey"));
+                (uri.equals("/api/player/game/current/answer") ||
+                 uri.equals("/api/player/game/final-passkey"));
     }
 
     private String resolveClientKey(HttpServletRequest request) {
@@ -75,22 +79,29 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             return sessionHeader.trim();
         }
 
-        // 2. Check Authorization Bearer Token
+        // 2. Check Header X-Admin-Session
+        String adminHeader = request.getHeader("X-Admin-Session");
+        if (adminHeader != null && !adminHeader.isBlank()) {
+            return adminHeader.trim();
+        }
+
+        // 3. Check Authorization Bearer Token
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7).trim();
         }
 
-        // 3. Check PLAYER_SESSION Cookie (Primary browser authentication)
+        // 4. Check Cookies (PLAYER_SESSION or ADMIN_SESSION)
         if (request.getCookies() != null) {
             for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-                if ("PLAYER_SESSION".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                if (("PLAYER_SESSION".equals(cookie.getName()) || "ADMIN_SESSION".equals(cookie.getName()))
+                        && cookie.getValue() != null && !cookie.getValue().isBlank()) {
                     return cookie.getValue().trim();
                 }
             }
         }
 
-        // 4. Fallback to client IP (aware of reverse proxy X-Forwarded-For)
+        // 5. Fallback to client IP (aware of reverse proxy X-Forwarded-For)
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isBlank()) {
             return xForwardedFor.split(",")[0].trim();
@@ -101,7 +112,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     private void cleanupExpiredBuckets(long now) {
         if (buckets.size() > 500) {
-            buckets.entrySet().removeIf(entry -> (now - entry.getValue().windowStartEpoch) > WINDOW_SECONDS * 2);
+            buckets.entrySet().removeIf(entry -> (now - entry.getValue().windowStartEpoch) > windowSeconds * 2);
         }
     }
 

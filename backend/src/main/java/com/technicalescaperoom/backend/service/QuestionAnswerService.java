@@ -404,8 +404,8 @@ public class QuestionAnswerService {
             if (normSubmitted.equals(normExpected)) return true;
         }
 
-        if ("849201".equals(normExpected) || "FINAL PROTOCOL VERIFIED".equalsIgnoreCase(normExpected)) {
-            if ("849201".equals(normSubmitted.replaceAll("[\\s,]", "")) || "FINAL PROTOCOL VERIFIED".equalsIgnoreCase(normSubmitted)) {
+        if ("FINAL PROTOCOL VERIFIED".equalsIgnoreCase(normExpected)) {
+            if ("FINAL PROTOCOL VERIFIED".equalsIgnoreCase(normSubmitted)) {
                 return true;
             }
         }
