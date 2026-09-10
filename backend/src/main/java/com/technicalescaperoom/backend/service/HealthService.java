@@ -33,11 +33,12 @@ public class HealthService {
             if (connection.isValid(2)) {
                 return "UP";
             } else {
-                return "DOWN (Invalid Connection)";
+                log.warn("Database health check: connection invalid");
+                return "DOWN";
             }
         } catch (Exception e) {
             log.error("Database health check failed: {}", e.getMessage());
-            return "DOWN (" + e.getMessage() + ")";
+            return "DOWN";
         }
     }
 }

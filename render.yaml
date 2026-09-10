@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: codexcape-backend
+    runtime: docker
+    dockerfilePath: docker/backend/Dockerfile
+    dockerContext: .
+    plan: starter
+    region: singapore
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /api/health
+    buildFilter:
+      paths:
+        - backend/**
+        - docker/backend/**
+        - pom.xml
+        - render.yaml
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://code-xcape.vercel.app,https://*.vercel.app
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: PORT
+        value: 8080

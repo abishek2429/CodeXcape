@@ -110,8 +110,8 @@ public class QuestionAnswerService {
                 .questionId(question.getId())
                 .puzzleContext(question.getPuzzleContext())
                 .evidence(question.getEvidence())
-                .instructions(question.getInstructions())
-                .puzzleMetadata(question.getPuzzleMetadata())
+                .instructions(sanitizeInstructions(question.getInstructions()))
+                .puzzleMetadata(sanitizePuzzleMetadata(question.getPuzzleMetadata()))
                 .answerType(question.getAnswerType())
                 .isCompleted(isCompleted)
                 .attemptCount((int) attemptCount)
@@ -468,5 +468,17 @@ public class QuestionAnswerService {
             return order.group(1).equals(normalized.replace(',', '|'));
         }
         return true;
+    }
+
+    private String sanitizePuzzleMetadata(String metadata) {
+        if (metadata == null || metadata.isBlank()) return metadata;
+        String clean = metadata.replaceAll(",\\s*\"discovery\"\\s*:\\s*\"[^\"]*\"", "");
+        clean = clean.replaceAll("\"discovery\"\\s*:\\s*\"[^\"]*\",?", "");
+        return clean;
+    }
+
+    private String sanitizeInstructions(String instructions) {
+        if (instructions == null || instructions.isBlank()) return instructions;
+        return instructions.replace("849201", "[REDACTED-COOPERATIVE-PASSKEY]");
     }
 }

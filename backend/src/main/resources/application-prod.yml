@@ -2,6 +2,8 @@ spring:
   config:
     activate:
       on-profile: prod
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/codexcape_prod}
     username: ${SPRING_DATASOURCE_USERNAME:codexcape_admin}
@@ -15,6 +17,7 @@ spring:
       max-lifetime: 1800000
       leak-detection-threshold: 15000
       data-source-properties:
+        prepareThreshold: 0
         cachePrepStmts: true
         prepStmtCacheSize: 250
         prepStmtCacheSqlLimit: 2048
@@ -24,7 +27,7 @@ spring:
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -39,6 +42,7 @@ spring:
 
 server:
   port: ${PORT:8080}
+  shutdown: graceful
   compression:
     enabled: true
     mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json

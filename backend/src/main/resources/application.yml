@@ -1,5 +1,6 @@
 server:
   port: ${PORT:8080}
+  shutdown: graceful
   servlet:
     context-path: /
 
@@ -7,13 +8,16 @@ spring:
   application:
     name: technical-escape-room-backend
 
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true}
     username: ${SPRING_DATASOURCE_USERNAME:postgres.cwlccoixkgbbafxujper}
-    password: ${SPRING_DATASOURCE_PASSWORD:AbiSiva25mx}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20

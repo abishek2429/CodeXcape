@@ -206,6 +206,44 @@ class ProductionReadinessAndSecurityTest {
         String dtoStr = questionDto.toString();
         assertFalse(dtoStr.contains(rawPasskey), "Raw passkey must NEVER be present in player question DTO.");
         assertFalse(dtoStr.contains(event.getPasskeyHash()), "Passkey hash must NEVER be present in player question DTO.");
+        if (questionDto.getPuzzleMetadata() != null) {
+            assertFalse(questionDto.getPuzzleMetadata().contains("\"discovery\""), "puzzleMetadata must NEVER expose discovery/answer field.");
+        }
+    }
+
+    @Test
+    @DisplayName("6. Final Passkey & Metadata Sanitization: No question DTO leaks raw passkey or discovery keys")
+    void testPasskeyAndMetadataSanitizationAcrossAllQuestions() {
+        Level l6 = levelRepository.findByLevelNumber(6).orElseThrow();
+        Question q6p2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(l6.getId(), 3, QuestionPlayer.PLAYER_2).orElseThrow();
+
+        PlayerPrincipal p2A = createPrincipal(playerA2, teamA);
+        // Ensure instructions do not leak the passkey
+        assertFalse(q6p2.getInstructions().contains(rawPasskey), "DB instructions for L6S3P2 must not contain raw passkey 849201.");
+        if (q6p2.getPuzzleMetadata() != null) {
+            assertFalse(q6p2.getPuzzleMetadata().contains(rawPasskey), "DB puzzleMetadata for L6S3P2 must not contain raw passkey 849201.");
+            assertFalse(q6p2.getPuzzleMetadata().contains("\"discovery\""), "DB puzzleMetadata must not contain discovery key.");
+        }
+    }
+
+    @Test
+    @DisplayName("7. Cooperative Evidence Isolation: Player 1 and Player 2 receive strictly partitioned evidence")
+    void testCooperativeEvidencePartitioning() {
+        PlayerPrincipal p1A = createPrincipal(playerA1, teamA);
+        PlayerPrincipal p2A = createPrincipal(playerA2, teamA);
+
+        PlayerQuestionDto q1 = questionAnswerService.getCurrentQuestionForPlayer(p1A);
+        PlayerQuestionDto q2 = questionAnswerService.getCurrentQuestionForPlayer(p2A);
+
+        assertNotNull(q1);
+        assertNotNull(q2);
+        assertNotEquals(q1.getQuestionId(), q2.getQuestionId(), "Player 1 and Player 2 must receive different questions.");
+        assertNotEquals(q1.getEvidence(), q2.getEvidence(), "Player 1 and Player 2 evidence must be partitioned.");
+        // Player 1 evidence has LOG STREAM; Player 2 evidence has COMPONENT TOPOLOGY
+        assertTrue(q1.getEvidence().contains("LOG STREAM"), "Player 1 must receive Log Stream evidence.");
+        assertTrue(q2.getEvidence().contains("COMPONENT TOPOLOGY"), "Player 2 must receive Component Topology evidence.");
+        assertFalse(q1.getEvidence().contains("COMPONENT TOPOLOGY"), "Player 1 must NOT receive Player 2 evidence.");
+        assertFalse(q2.getEvidence().contains("LOG STREAM"), "Player 2 must NOT receive Player 1 evidence.");
     }
 
     private PlayerPrincipal createPrincipal(Player player, Team team) {

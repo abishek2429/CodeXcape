@@ -17,6 +17,10 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+render.env
+*.env.prod
+*.env.production
+!render.env.example
 
 # IDEs & Editors
 .idea/
