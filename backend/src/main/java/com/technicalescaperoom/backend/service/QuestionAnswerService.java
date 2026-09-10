@@ -68,6 +68,14 @@ public class QuestionAnswerService {
             throw new EventUnavailableException("The event has not been started by your team yet. Please enter the team lobby.");
         }
 
+        if (team.getGameState() == TeamGameState.FINAL_PASSKEY) {
+            throw new EventUnavailableException("All 6 levels completed. Master terminal override active. Proceed to the final passkey terminal.");
+        }
+
+        if (team.getGameState() == TeamGameState.COMPLETED) {
+            throw new EventUnavailableException("CodeXcape has already been completed by your team.");
+        }
+
         // Find active level progress for team
         List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
         TeamLevelProgress activeProgress = progressList.stream()
@@ -141,6 +149,14 @@ public class QuestionAnswerService {
             throw new EventUnavailableException("The event has not been started by your team yet. Please enter the team lobby.");
         }
 
+        if (team.getGameState() == TeamGameState.FINAL_PASSKEY) {
+            throw new EventUnavailableException("All 6 levels completed. Master terminal override active. Please submit the final passkey at the final terminal.");
+        }
+
+        if (team.getGameState() == TeamGameState.COMPLETED) {
+            throw new EventUnavailableException("CodeXcape has already been completed by your team.");
+        }
+
         // Server-Authoritative Active Level and major-stage derivation
         List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
         TeamLevelProgress activeProgress = progressList.stream()
@@ -170,12 +186,20 @@ public class QuestionAnswerService {
             .existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
                 team.getId(), player.getId(), currentLevel.getId(), question.getId());
         if (alreadyCompleted || progressToUpdate.getLevelStatus() == LevelStatus.COMPLETED) {
+            boolean bothCompleted = stageCompletedForBoth(team, currentLevel, currentStage);
+            boolean finalStage = currentStage >= getTotalStages(currentLevel);
+            boolean isLevelCompleted = progressToUpdate.getLevelStatus() == LevelStatus.COMPLETED || (finalStage && bothCompleted);
             return AnswerSubmissionResponseDto.builder()
                     .correct(true)
                     .isCompleted(true)
-                    .stageCompleted(true)
+                    .stageCompleted(bothCompleted)
                     .stageNumber(currentStage)
-                    .message("Your challenge for this level is already completed.")
+                    .nextStageNumber(bothCompleted && !finalStage ? currentStage + 1 : null)
+                    .message(isLevelCompleted
+                            ? "Level completed. Both players solved the final stage."
+                            : bothCompleted
+                            ? "Stage completed. The next cooperative stage is now available."
+                            : "Your challenge for this level is already completed.")
                     .build();
         }
 
@@ -311,7 +335,7 @@ public class QuestionAnswerService {
                     .filter(sp -> !(Boolean.TRUE.equals(sp.getPlayer1Completed()) && Boolean.TRUE.equals(sp.getPlayer2Completed())))
                     .map(TeamStageProgress::getStageNumber)
                     .findFirst()
-                    .orElse(1);
+                    .orElse(stageProgressList.get(stageProgressList.size() - 1).getStageNumber());
         }
         List<Question> stages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
                 .filter(question -> !stageCompletedForBoth(teamId, level, question.getStageNumber()))

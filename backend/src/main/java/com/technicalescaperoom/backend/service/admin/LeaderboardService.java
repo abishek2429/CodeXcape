@@ -334,7 +334,8 @@ public class LeaderboardService {
     }
 
     private long calculateDurationSeconds(Event event, Team team) {
-        Instant startTime = (event.getStartTime() != null) ? event.getStartTime() : team.getCreatedAt();
+        Instant startTime = (team.getStartedAt() != null) ? team.getStartedAt()
+                : ((event.getStartTime() != null) ? event.getStartTime() : team.getCreatedAt());
         if (startTime == null) startTime = team.getCreatedAt();
         Instant endTime = (team.getCompletedAt() != null) ? team.getCompletedAt() : Instant.now();
 

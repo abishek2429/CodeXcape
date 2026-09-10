@@ -40,6 +40,7 @@ public class HintService {
     private final HintRepository hintRepository;
     private final HintUsageRepository hintUsageRepository;
     private final TeamStageProgressRepository teamStageProgressRepository;
+    private final GameWebSocketPublisher webSocketPublisher;
 
     @Transactional(readOnly = true)
     public PlayerHintsResponseDto getHintsForPlayer(PlayerPrincipal principal) {
@@ -108,7 +109,11 @@ public class HintService {
             throw new ResourceNotFoundException("Request earlier hints before requesting this hint.");
         }
 
-        Hint hint = hintRepository.findByLevelIdAndStageNumberOrderByDisplayOrderAsc(level.getId(), stageNumber).stream()
+        List<Hint> hints = hintRepository.findByLevelIdAndStageNumberOrderByDisplayOrderAsc(level.getId(), stageNumber);
+        if (hints.isEmpty()) {
+            hints = hintRepository.findByLevelIdOrderByDisplayOrderAsc(level.getId());
+        }
+        Hint hint = hints.stream()
             .filter(item -> item.getDisplayOrder().equals(hintNumber) && Boolean.TRUE.equals(item.getIsActive()))
             .findFirst().orElseThrow(() -> new ResourceNotFoundException("Hint not configured."));
         boolean alreadyUsed = hintUsageRepository.existsByTeamIdAndLevelIdAndStageNumberAndHintNumber(
@@ -121,6 +126,7 @@ public class HintService {
                         team.getId(), level.getId(), stageNumber, hintNumber);
                 alreadyUsed = true;
             }
+            webSocketPublisher.notifyHintUnlocked(team.getId(), levelNumber, hintNumber);
         }
         return HintUseResponseDto.builder().levelNumber(levelNumber).stageNumber(stageNumber)
             .hintNumber(hintNumber).hintContent(hint.getHintContent()).alreadyUsed(alreadyUsed).build();

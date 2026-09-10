@@ -271,8 +271,14 @@ public class GameStateService {
             throw new InvalidLevelTransitionException("Exactly 6 active game levels must be configured before gameplay can start.");
         }
 
+        if (event.getStatus() == EventStatus.COMPLETED) {
+            throw new IllegalStateException("Cannot start an event that has already completed. Event lifecycle is terminal.");
+        }
+
         event.setStatus(EventStatus.RUNNING);
-        event.setStartTime(Instant.now());
+        if (event.getStartTime() == null) {
+            event.setStartTime(Instant.now());
+        }
         eventRepository.save(event);
 
         List<Team> teams = teamRepository.findByEventId(eventId);

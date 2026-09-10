@@ -14,7 +14,7 @@ import { FinalTerminal } from '../../components/game/FinalTerminal';
 import { GameStatus } from '../../components/game/GameStatus';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { GameErrorState } from '../../components/game/GameErrorState';
-import { Shield, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy, RotateCcw } from 'lucide-react';
+import { Shield, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy } from 'lucide-react';
 import { GameSessionState, ChallengeData } from '../../types/game';
 
 import { fetchPlayerHints, usePlayerHint } from '../../services/hintService';
@@ -280,23 +280,6 @@ export const PlayerGamePage: React.FC = () => {
     }
   };
 
-  const handleResetTestTeam = async () => {
-    if (!window.confirm('RESET CODEXCAPE-TEST PROGRESS BACK TO LEVEL 1?')) return;
-    try {
-      setIsLoadingData(true);
-      await fetch(`${import.meta.env.VITE_API_URL || ''}/api/player/reset-test-team`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      await loadData();
-    } catch (err: any) {
-      setFeedbackIsError(true);
-      setFeedbackMsg('FAILED TO RESET TEST SESSION.');
-    } finally {
-      setIsLoadingData(false);
-    }
-  };
-
   if (serverState && serverState.gameStatus === 'NOT_STARTED') {
     return <GameLoadingState message="REDIRECTING TO OPERATOR LOBBY..." />;
   }
@@ -386,17 +369,6 @@ export const PlayerGamePage: React.FC = () => {
               >
                 REPLAY RESTORATION SEQUENCE
               </button>
-              {player.teamCode === 'CODEXCAPE-TEST' && (
-                <button
-                  type="button"
-                  onClick={handleResetTestTeam}
-                  className="btn btn-secondary"
-                  style={{ borderColor: 'var(--accent-warning)', color: 'var(--accent-warning)', fontSize: '12px' }}
-                >
-                  <RotateCcw size={14} style={{ marginRight: '6px' }} />
-                  RESTART TEST ESCAPE ROOM (LEVEL 1)
-                </button>
-              )}
             </div>
           </div>
         </main>
@@ -526,20 +498,6 @@ export const PlayerGamePage: React.FC = () => {
                 </div>
                 <span className="text-muted" style={{ fontSize: '11px' }}>{player.playerNumber === 2 ? player.playerName : 'PARTNER'}</span>
               </div>
-
-              {player.teamCode === 'CODEXCAPE-TEST' && (
-                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed var(--border-dim)' }}>
-                  <button
-                    type="button"
-                    onClick={handleResetTestTeam}
-                    className="btn btn-secondary"
-                    style={{ width: '100%', borderColor: 'var(--accent-warning)', color: 'var(--accent-warning)', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <RotateCcw size={12} style={{ marginRight: '6px' }} />
-                    <span>RESET TEST STATE (L1 S1)</span>
-                  </button>
-                </div>
-              )}
             </SpotlightCard>
 
             <InvestigationDossier

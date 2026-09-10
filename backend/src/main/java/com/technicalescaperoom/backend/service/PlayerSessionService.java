@@ -577,42 +577,6 @@ public class PlayerSessionService {
                 principal != null ? principal.getUsername() : "SYSTEM", team.getTeamCode(), teamId);
     }
 
-    @Transactional
-    public void resetTestTeam() {
-        Optional<Team> testTeamOpt = teamRepository.findByTeamCode("CODEXCAPE-TEST");
-        if (testTeamOpt.isEmpty()) {
-            return;
-        }
-        Team team = testTeamOpt.get();
-        Long teamId = team.getId();
-
-        entityManager.createQuery("DELETE FROM AnswerAttempt a WHERE a.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
-        entityManager.createQuery("DELETE FROM DiscoverySubmission d WHERE d.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
-        entityManager.createQuery("DELETE FROM TeamStageProgress s WHERE s.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
-        entityManager.createQuery("DELETE FROM TeamLevelProgress l WHERE l.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
-        entityManager.createQuery("DELETE FROM HintUsage h WHERE h.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
-
-        for (GameSession session : gameSessionRepository.findByTeamId(teamId)) {
-            session.setStatus(SessionStatus.TERMINATED);
-            session.setIsConnected(false);
-            session.setDisconnectedAt(Instant.now());
-            gameSessionRepository.save(session);
-        }
-
-        for (Player player : playerRepository.findByTeamId(teamId)) {
-            player.setStatus(PlayerStatus.INACTIVE);
-            player.setIsReady(false);
-            playerRepository.save(player);
-        }
-
-        team.setGameState(TeamGameState.NOT_STARTED);
-        team.setStartedAt(null);
-        team.setCompletedAt(null);
-        teamRepository.saveAndFlush(team);
-
-        log.info("Reset CODEXCAPE-TEST team game state, progress, and sessions to initial state.");
-    }
-
     private void setSessionCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie(COOKIE_NAME, token);
         cookie.setHttpOnly(true);

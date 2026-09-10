@@ -109,7 +109,7 @@ All legacy teams have been purged. Exclusively two verified teams are establishe
 
 | Team Code | Player 1 Passcode | Player 2 Passcode | Access Role | Reusable / Auto-Reset |
 | :--- | :--- | :--- | :--- | :--- |
-| **`CODEXCAPE-TEST`** | `TEST-P1-9021` | `TEST-P2-9021` | Test Sandbox | **Yes**: Auto-overrides active sessions on login. Can be reset to Level 1 anytime via `/api/player/reset-test-team` or the in-game **Reset Test Team** button. |
+| **`CODEXCAPE-TEST`** | `TEST-P1-9021` | `TEST-P2-9021` | Test Sandbox | **Yes**: Auto-overrides active sessions on login. Can be reset to Level 1 anytime via Organizer/Admin Control (`/api/admin/teams/{id}/reset`). |
 | **`TEAM-ALPHA`** | `ALPHA-P1-4411` | `ALPHA-P2-4411` | Primary Demo Team | Standard competition session enforcement. |
 
 ### Admin Console Access

@@ -146,6 +146,22 @@ public class AdminEventControlService {
         return mapToResponse(saved);
     }
 
+    private void validateEventTransition(EventStatus from, EventStatus to) {
+        if (from == EventStatus.COMPLETED) {
+            throw new IllegalStateException("Cannot change status of a completed event. Event lifecycle is terminal.");
+        }
+        boolean valid = switch (from) {
+            case DRAFT -> to == EventStatus.READY || to == EventStatus.RUNNING;
+            case READY -> to == EventStatus.RUNNING || to == EventStatus.DRAFT;
+            case RUNNING -> to == EventStatus.PAUSED || to == EventStatus.COMPLETED;
+            case PAUSED -> to == EventStatus.RUNNING || to == EventStatus.COMPLETED;
+            case COMPLETED -> false;
+        };
+        if (!valid) {
+            throw new IllegalStateException(String.format("Invalid event transition from %s to %s.", from, to));
+        }
+    }
+
     private void validateAdminRole(AdminPrincipal principal) {
         if (principal == null || (principal.getRole() != UserRole.ADMIN && principal.getRole() != UserRole.ORGANIZER)) {
             throw new org.springframework.security.access.AccessDeniedException("Unauthorized administrative access.");
