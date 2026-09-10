@@ -52,7 +52,7 @@ export const PlayerGamePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [feedbackIsError, setFeedbackIsError] = useState(false);
-  const [clockNow, setClockNow] = useState(() => Date.now());
+  const [liveRank, setLiveRank] = useState<number | undefined>(undefined);
   const [isBriefingOpen, setIsBriefingOpen] = useState(false);
   const [isCoreEntryOpen, setIsCoreEntryOpen] = useState(false);
   const [isRestorationOpen, setIsRestorationOpen] = useState(false);
@@ -63,11 +63,6 @@ export const PlayerGamePage: React.FC = () => {
     fragmentTitle: string;
   } | null>(null);
   const prevLevelRef = React.useRef<number | null>(null);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   const loadData = async () => {
     try {
@@ -103,6 +98,9 @@ export const PlayerGamePage: React.FC = () => {
 
       setServerState(stateData);
       setStoryline(storyData);
+      if (stateData.currentRank !== undefined) {
+        setLiveRank(stateData.currentRank);
+      }
 
       // Trigger briefing modal on first session load if not seen
       if (!sessionStorage.getItem('codexcape_briefing_seen')) {
@@ -143,6 +141,7 @@ export const PlayerGamePage: React.FC = () => {
     teamId: player?.teamId,
     playerNumber: player?.playerNumber,
     onRefreshData: loadData,
+    onRankChanged: (newRank) => setLiveRank(newRank),
   });
 
   useEffect(() => {
@@ -233,15 +232,15 @@ export const PlayerGamePage: React.FC = () => {
         ? 'SYSTEM BREACHED. CODEXCAPE PROTOCOL SUCCESSFUL.'
         : `TIER 0${serverState.currentLevel} ACTIVE.`
       : null,
-    currentRank: serverState?.currentRank,
+    currentRank: liveRank !== undefined ? liveRank : serverState?.currentRank,
   };
-  const serverOffset = serverState.serverTime ? new Date(serverState.serverTime).getTime() - clockNow : 0;
-  const remainingSeconds = serverState.deadline
-    ? Math.max(0, Math.ceil((new Date(serverState.deadline).getTime() - (clockNow + serverOffset)) / 1000))
+  const serverOffset = serverState?.serverTime ? new Date(serverState.serverTime).getTime() - Date.now() : 0;
+  const remainingSecs = serverState?.deadline
+    ? Math.max(0, Math.ceil((new Date(serverState.deadline).getTime() - (Date.now() + serverOffset)) / 1000))
     : null;
-  const formattedRemaining = remainingSeconds === null
+  const formattedRemaining = remainingSecs === null
     ? '--:--:--'
-    : `${String(Math.floor(remainingSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`;
+    : `${String(Math.floor(remainingSecs / 3600)).padStart(2, '0')}:${String(Math.floor((remainingSecs % 3600) / 60)).padStart(2, '0')}:${String(remainingSecs % 60).padStart(2, '0')}`;
 
   const handleAnswerSubmit = async (answer: string, interactionPayload?: string) => {
     if (isSubmitting || isChallengeCompleted) return;
@@ -394,8 +393,9 @@ export const PlayerGamePage: React.FC = () => {
         totalLevels={gameState.totalLevels}
         currentStage={liveQuestion?.stageNumber || 1}
         totalStages={liveQuestion?.totalStages || 1}
+        deadline={serverState?.deadline}
+        serverTime={serverState?.serverTime}
         formattedRemaining={formattedRemaining}
-        remainingSeconds={remainingSeconds}
         currentRank={gameState.currentRank}
         connectionStatus={gameState.connectionStatus}
         partnerStatus={partnerStatus}

@@ -18,7 +18,7 @@ export const CodeXcapeBackground: React.FC<CodeXcapeBackgroundProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let animId: number;
+    let animId: number = 0;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
@@ -28,6 +28,8 @@ export const CodeXcapeBackground: React.FC<CodeXcapeBackgroundProps> = ({
       height = canvas.height = window.innerHeight;
     };
     window.addEventListener('resize', onResize);
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // Node count scaled by screen size, kept lightweight
     const nodeCount = intensity === 'minimal' ? 20 : intensity === 'cinematic' ? 45 : 32;
@@ -72,13 +74,15 @@ export const CodeXcapeBackground: React.FC<CodeXcapeBackgroundProps> = ({
       const maxDist = intensity === 'cinematic' ? 140 : 110;
       for (let i = 0; i < nodes.length; i++) {
         const n1 = nodes[i];
-        n1.x += n1.vx;
-        n1.y += n1.vy;
+        if (!prefersReducedMotion) {
+          n1.x += n1.vx;
+          n1.y += n1.vy;
 
-        if (n1.x < 0) n1.x = width;
-        if (n1.x > width) n1.x = 0;
-        if (n1.y < 0) n1.y = height;
-        if (n1.y > height) n1.y = 0;
+          if (n1.x < 0) n1.x = width;
+          if (n1.x > width) n1.x = 0;
+          if (n1.y < 0) n1.y = height;
+          if (n1.y > height) n1.y = 0;
+        }
 
         for (let j = i + 1; j < nodes.length; j++) {
           const n2 = nodes[j];
@@ -123,13 +127,27 @@ export const CodeXcapeBackground: React.FC<CodeXcapeBackgroundProps> = ({
         ctx.shadowBlur = 0; // reset
       }
 
-      animId = requestAnimationFrame(render);
+      if (!prefersReducedMotion && !document.hidden) {
+        animId = requestAnimationFrame(render);
+      }
     };
 
-    animId = requestAnimationFrame(render);
+    const onVisibilityChange = () => {
+      if (!document.hidden && !prefersReducedMotion) {
+        cancelAnimationFrame(animId);
+        animId = requestAnimationFrame(render);
+      } else {
+        cancelAnimationFrame(animId);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // Initial render
+    render();
 
     return () => {
       window.removeEventListener('resize', onResize);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       cancelAnimationFrame(animId);
     };
   }, [showAnomalyNode, intensity]);

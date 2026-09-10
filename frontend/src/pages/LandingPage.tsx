@@ -32,7 +32,7 @@ export const LandingPage: React.FC = () => {
             onClick={handleLoginClick}
             className="minimal-login-btn"
           >
-            <span>PLAYER LOGIN</span>
+            <span>GO TO PLAYER LOGIN</span>
           </CinematicButton>
         </div>
       </div>

@@ -15,12 +15,52 @@ export const TargetCursor: React.FC<TargetCursorProps> = ({ enabled = true }) =>
   const targetPos = useRef({ x: -100, y: -100 });
   const animFrameId = useRef<number | null>(null);
 
+  const isVisibleRef = useRef(false);
+
   useEffect(() => {
-    if (!enabled) return;
+    // Disable custom reticle on touch / coarse pointer devices
+    const isFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+    if (!enabled || !isFinePointer) return;
+
+    let isRunning = false;
+
+    const startLoop = () => {
+      if (!isRunning) {
+        isRunning = true;
+        animFrameId.current = requestAnimationFrame(loop);
+      }
+    };
+
+    const loop = () => {
+      const dx = targetPos.current.x - pos.current.x;
+      const dy = targetPos.current.y - pos.current.y;
+
+      if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
+        pos.current.x = targetPos.current.x;
+        pos.current.y = targetPos.current.y;
+        if (cursorRef.current) {
+          cursorRef.current.style.transform = `translate3d(${pos.current.x}px, ${pos.current.y}px, 0) translate(-50%, -50%)`;
+        }
+        isRunning = false;
+        return; // Idle when mouse position has settled
+      }
+
+      pos.current.x += dx * 0.35;
+      pos.current.y += dy * 0.35;
+
+      if (cursorRef.current) {
+        cursorRef.current.style.transform = `translate3d(${pos.current.x}px, ${pos.current.y}px, 0) translate(-50%, -50%)`;
+      }
+      animFrameId.current = requestAnimationFrame(loop);
+    };
 
     const onMouseMove = (e: MouseEvent) => {
       targetPos.current = { x: e.clientX, y: e.clientY };
-      if (!isVisible) setIsVisible(true);
+      if (!isVisibleRef.current) {
+        isVisibleRef.current = true;
+        setIsVisible(true);
+      }
+      startLoop();
 
       const target = e.target as HTMLElement | null;
       if (!target) return;
@@ -35,31 +75,21 @@ export const TargetCursor: React.FC<TargetCursorProps> = ({ enabled = true }) =>
     };
 
     const onMouseLeave = () => {
+      isVisibleRef.current = false;
       setIsVisible(false);
+      isRunning = false;
+      if (animFrameId.current) cancelAnimationFrame(animFrameId.current);
     };
 
     const onMouseEnter = () => {
+      isVisibleRef.current = true;
       setIsVisible(true);
+      startLoop();
     };
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
     document.addEventListener('mouseleave', onMouseLeave);
     document.addEventListener('mouseenter', onMouseEnter);
-
-    // Smooth lerp loop using direct DOM transform (bypasses React reconciliation for 60/144fps)
-    const loop = () => {
-      const dx = targetPos.current.x - pos.current.x;
-      const dy = targetPos.current.y - pos.current.y;
-      pos.current.x += dx * 0.35;
-      pos.current.y += dy * 0.35;
-
-      if (cursorRef.current) {
-        cursorRef.current.style.transform = `translate3d(${pos.current.x}px, ${pos.current.y}px, 0) translate(-50%, -50%)`;
-      }
-      animFrameId.current = requestAnimationFrame(loop);
-    };
-
-    animFrameId.current = requestAnimationFrame(loop);
 
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
@@ -67,7 +97,7 @@ export const TargetCursor: React.FC<TargetCursorProps> = ({ enabled = true }) =>
       document.removeEventListener('mouseenter', onMouseEnter);
       if (animFrameId.current) cancelAnimationFrame(animFrameId.current);
     };
-  }, [enabled, isVisible]);
+  }, [enabled]);
 
   if (!enabled || !isVisible) return null;
 

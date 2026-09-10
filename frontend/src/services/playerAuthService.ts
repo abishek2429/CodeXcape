@@ -142,6 +142,9 @@ export async function startTeamEvent(): Promise<PlayerInfo> {
 
 export async function logoutPlayer(): Promise<void> {
   sessionStorage.removeItem('codexcape_session');
+  sessionStorage.removeItem('codexcape_briefing_seen');
+  sessionStorage.removeItem('codexcape_core_seen');
+  sessionStorage.removeItem('codexcape_restoration_seen');
   try {
     await fetch(`${API_BASE}/logout`, {
       method: 'POST',

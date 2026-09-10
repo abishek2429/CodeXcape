@@ -6,6 +6,7 @@ import { StatusDot } from '../ui/StatusDot';
 import { RankDisplay } from '../ui/RankDisplay';
 import { CinematicButton } from '../cinematic/CinematicButton';
 import { soundService } from '../../services/soundService';
+import { GameCountdownTimer } from './GameCountdownTimer';
 
 const LEVEL_NAMES: Record<number, string> = {
   1: 'SYSTEM RECONSTRUCTION',
@@ -22,6 +23,8 @@ interface GameHeaderProps {
   totalLevels: number;
   currentStage?: number;
   totalStages?: number;
+  deadline?: string | null;
+  serverTime?: string | null;
   formattedRemaining?: string;
   remainingSeconds?: number | null;
   currentRank?: number;
@@ -29,14 +32,17 @@ interface GameHeaderProps {
   partnerStatus?: string;
   onLogout: () => void;
   onOpenBriefing?: () => void;
+  onTimerExpire?: () => void;
 }
 
-export const GameHeader: React.FC<GameHeaderProps> = ({
+export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
   player,
   currentLevel,
   totalLevels,
   currentStage = 1,
   totalStages = 1,
+  deadline,
+  serverTime,
   formattedRemaining,
   remainingSeconds,
   currentRank,
@@ -44,6 +50,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
   partnerStatus = 'CONNECTED',
   onLogout,
   onOpenBriefing,
+  onTimerExpire,
 }) => {
   const isPlayer1 = player.playerNumber === 1;
   const [isMuted, setIsMuted] = useState<boolean>(soundService.isMuted());
@@ -138,7 +145,13 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
       {/* Center: Authoritative Remaining Timer & Masked Position */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
         {/* Authoritative Timer */}
-        {formattedRemaining && (
+        {deadline ? (
+          <GameCountdownTimer
+            deadline={deadline}
+            serverTime={serverTime}
+            onExpire={onTimerExpire}
+          />
+        ) : formattedRemaining ? (
           <div
             style={{
               display: 'flex',
@@ -160,7 +173,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
             <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>TIME REMAINING:</span>
             <span>{formattedRemaining}</span>
           </div>
-        )}
+        ) : null}
 
         {/* Player Masked Position with CountUp */}
         {currentRank !== undefined && (
@@ -266,4 +279,4 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
       </div>
     </header>
   );
-};
+});

@@ -128,17 +128,32 @@ export const AdminDashboardPage: React.FC = () => {
     loadData();
     const interval = setInterval(loadData, 15000);
 
+    let refreshDebounceTimer: any = null;
+    const triggerCoalescedAdminRefresh = () => {
+      if (refreshDebounceTimer) {
+        clearTimeout(refreshDebounceTimer);
+      }
+      refreshDebounceTimer = setTimeout(() => {
+        refreshDebounceTimer = null;
+        loadData();
+      }, 300);
+    };
+
     webSocketService.connectAdmin();
-    const unsubState = webSocketService.subscribe('GAME_STATE_UPDATED', () => loadData());
-    const unsubLevel = webSocketService.subscribe('LEVEL_COMPLETED', () => loadData());
-    const unsubStage = webSocketService.subscribe('STAGE_COMPLETED', () => loadData());
-    const unsubGame = webSocketService.subscribe('GAME_COMPLETED', () => loadData());
-    const unsubRank = webSocketService.subscribe('RANK_CHANGED', () => loadData());
-    const unsubConn = webSocketService.subscribe('PLAYER_CONNECTED', () => loadData());
-    const unsubDisc = webSocketService.subscribe('PLAYER_DISCONNECTED', () => loadData());
+    const unsubState = webSocketService.subscribe('GAME_STATE_UPDATED', triggerCoalescedAdminRefresh);
+    const unsubLevel = webSocketService.subscribe('LEVEL_COMPLETED', triggerCoalescedAdminRefresh);
+    const unsubStage = webSocketService.subscribe('STAGE_COMPLETED', triggerCoalescedAdminRefresh);
+    const unsubGame = webSocketService.subscribe('GAME_COMPLETED', triggerCoalescedAdminRefresh);
+    const unsubRank = webSocketService.subscribe('RANK_CHANGED', triggerCoalescedAdminRefresh);
+    const unsubConn = webSocketService.subscribe('PLAYER_CONNECTED', triggerCoalescedAdminRefresh);
+    const unsubDisc = webSocketService.subscribe('PLAYER_DISCONNECTED', triggerCoalescedAdminRefresh);
 
     return () => {
       clearInterval(interval);
+      if (refreshDebounceTimer) {
+        clearTimeout(refreshDebounceTimer);
+        refreshDebounceTimer = null;
+      }
       unsubState();
       unsubLevel();
       unsubStage();

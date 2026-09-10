@@ -3,15 +3,17 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { LandingPage } from './pages/LandingPage';
 import { PlayerLoginPage } from './pages/player/PlayerLoginPage';
-import { PlayerLobbyPage } from './pages/player/PlayerLobbyPage';
-import { PlayerGamePage } from './pages/player/PlayerGamePage';
-import { PlayerWaitingPage } from './pages/player/PlayerWaitingPage';
 import { PlayerProtectedRoute } from './components/PlayerProtectedRoute';
 import { PlayerAuthProvider } from './context/PlayerAuthContext';
-import { PublicLeaderboardPage } from './pages/public/PublicLeaderboardPage';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 import { TargetCursor } from './components/cinematic/TargetCursor';
+
+// Lazy-loaded player gameplay suite (isolated from initial entry bundle)
+const PlayerLobbyPage = lazy(() => import('./pages/player/PlayerLobbyPage').then(m => ({ default: m.PlayerLobbyPage })));
+const PlayerGamePage = lazy(() => import('./pages/player/PlayerGamePage').then(m => ({ default: m.PlayerGamePage })));
+const PlayerWaitingPage = lazy(() => import('./pages/player/PlayerWaitingPage').then(m => ({ default: m.PlayerWaitingPage })));
+const PublicLeaderboardPage = lazy(() => import('./pages/public/PublicLeaderboardPage').then(m => ({ default: m.PublicLeaderboardPage })));
 
 // Lazy-loaded administrative pages (isolated from player bundle)
 const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage').then(m => ({ default: m.AdminLoginPage })));
@@ -23,10 +25,10 @@ const TeamListPage = lazy(() => import('./pages/admin/TeamListPage').then(m => (
 const CreateTeamPage = lazy(() => import('./pages/admin/CreateTeamPage').then(m => ({ default: m.CreateTeamPage })));
 const TeamDetailsPage = lazy(() => import('./pages/admin/TeamDetailsPage').then(m => ({ default: m.TeamDetailsPage })));
 
-const AdminSuspenseFallback = () => (
+const SystemSuspenseFallback = () => (
   <div className="flex items-center justify-center min-h-[60vh]">
-    <div className="terminal-text text-accent font-mono text-sm animate-pulse">
-      &gt; INITIALIZING SECURITY CONSOLE...
+    <div className="terminal-text font-mono text-sm animate-pulse" style={{ color: 'var(--accent-cyan)' }}>
+      &gt; SYNCHRONIZING NODE CONSOLE...
     </div>
   </div>
 );
@@ -46,7 +48,7 @@ export const App: React.FC = () => {
             <Header />
 
             <main className="h-full relative z-10">
-              <Suspense fallback={<AdminSuspenseFallback />}>
+              <Suspense fallback={<SystemSuspenseFallback />}>
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/login" element={<Navigate to="/player/login" replace />} />
