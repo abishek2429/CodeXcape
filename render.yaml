@@ -29,4 +29,4 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
       - key: PORT
-        value: 8080
+        value: 10000

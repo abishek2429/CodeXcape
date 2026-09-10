@@ -41,7 +41,7 @@ spring:
     ignore-migration-patterns: "*:missing"
 
 server:
-  port: ${PORT:8080}
+  port: ${PORT:10000}
   shutdown: graceful
   compression:
     enabled: true

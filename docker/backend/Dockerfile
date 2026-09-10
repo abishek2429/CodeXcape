@@ -15,6 +15,6 @@ USER codexcape:codexcape
 
 COPY --from=builder --chown=codexcape:codexcape /app/backend/target/*.jar app.jar
 
-EXPOSE 8080
+EXPOSE 10000
 
 ENTRYPOINT ["java", "-Xmx350m", "-Xms200m", "-XX:+UseG1GC", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]
