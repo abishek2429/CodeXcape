@@ -1,7 +1,7 @@
 import urllib.request
 import json
 
-url = 'https://codexcape-stl1.onrender.com//api/admin/login'
+url = 'https://codexcape-stl1.onrender.com/api/admin/login'
 headers = {
     'Origin': 'https://code-xcape.vercel.app',
     'Content-Type': 'application/json'
