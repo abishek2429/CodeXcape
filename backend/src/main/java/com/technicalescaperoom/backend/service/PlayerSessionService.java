@@ -336,7 +336,7 @@ public class PlayerSessionService {
                 p.setIsReady(true);
                 playerRepository.save(p);
             } else {
-                Optional<GameSession> teammateSession = gameSessionRepository.findByPlayerIdAndStatus(p.getId(), SessionStatus.ACTIVE);
+                Optional<GameSession> teammateSession = gameSessionRepository.findFirstByPlayerIdAndStatusOrderByCreatedAtDesc(p.getId(), SessionStatus.ACTIVE);
                 if (teammateSession.isEmpty()) {
                     throw new IllegalStateException("OPERATOR 0" + p.getPlayerNumber() + " IS NOT LOGGED IN. BOTH OPERATORS MUST BE PRESENT.");
                 }
@@ -632,7 +632,7 @@ public class PlayerSessionService {
             Player teammate = teammateOpt.get();
             teammateName = teammate.getDisplayName() != null ? teammate.getDisplayName() : "Player " + teammateNumber;
             teammateReady = Boolean.TRUE.equals(teammate.getIsReady());
-            teammateLoggedIn = gameSessionRepository.findByPlayerIdAndStatus(teammate.getId(), SessionStatus.ACTIVE).isPresent();
+            teammateLoggedIn = gameSessionRepository.existsByPlayerIdAndStatus(teammate.getId(), SessionStatus.ACTIVE);
         }
 
         return PlayerResponseDto.builder()
@@ -642,7 +642,7 @@ public class PlayerSessionService {
                 .playerNumber(player.getPlayerNumber())
                 .playerName(player.getDisplayName() != null ? player.getDisplayName() : "Player " + player.getPlayerNumber())
                 .status(player.getStatus().name())
-                .eventId(team.getEvent().getId())
+                .eventId(team.getEvent() != null ? team.getEvent().getId() : null)
                 .teamId(team.getId())
                 .playerId(player.getId())
                 .isActive(player.getIsActive())

@@ -542,4 +542,107 @@ public class PlayerSessionControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("The event is not currently accepting players")));
     }
+
+    @Test
+    @DisplayName("16. Two-player lobby state and readiness flow with WebSocket and isolation")
+    void testTwoPlayerLobbyAndReadinessFlow() throws Exception {
+        // Step 1: Player 1 logs in
+        PlayerLoginRequest reqP1 = PlayerLoginRequest.builder().teamCode("TEAM-017").playerNumber(1).build();
+        var resP1 = mockMvc.perform(post("/api/player/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqP1)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String tokenP1 = objectMapper.readTree(resP1.getResponse().getContentAsString()).get("sessionToken").asText();
+
+        // Step 2: Player 1 opens lobby (Player 2 is not logged in yet)
+        mockMvc.perform(get("/api/player/lobby")
+                        .header("X-Player-Session", tokenP1)
+                        .header("Authorization", "Bearer " + tokenP1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teamCode", is("TEAM-017")))
+                .andExpect(jsonPath("$.playerNumber", is(1)))
+                .andExpect(jsonPath("$.isReady", is(false)))
+                .andExpect(jsonPath("$.teammateLoggedIn", is(false)))
+                .andExpect(jsonPath("$.teammateReady", is(false)));
+
+        // Step 3: Player 1 clicks READY
+        mockMvc.perform(post("/api/player/ready")
+                        .header("X-Player-Session", tokenP1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("ready", true))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isReady", is(true)));
+
+        // Step 4: Player 2 logs in
+        PlayerLoginRequest reqP2 = PlayerLoginRequest.builder().teamCode("TEAM-017").playerNumber(2).build();
+        var resP2 = mockMvc.perform(post("/api/player/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqP2)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String tokenP2 = objectMapper.readTree(resP2.getResponse().getContentAsString()).get("sessionToken").asText();
+
+        // Step 5: Player 2 opens lobby (Observes Player 1 is logged in and READY)
+        mockMvc.perform(get("/api/player/lobby")
+                        .header("X-Player-Session", tokenP2)
+                        .header("Authorization", "Bearer " + tokenP2))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teamCode", is("TEAM-017")))
+                .andExpect(jsonPath("$.playerNumber", is(2)))
+                .andExpect(jsonPath("$.isReady", is(false)))
+                .andExpect(jsonPath("$.teammateLoggedIn", is(true)))
+                .andExpect(jsonPath("$.teammateReady", is(true)));
+
+        // Step 6: Player 2 clicks READY
+        mockMvc.perform(post("/api/player/ready")
+                        .header("X-Player-Session", tokenP2)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("ready", true))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isReady", is(true)))
+                .andExpect(jsonPath("$.teammateReady", is(true)));
+
+        // Step 7: Player 1 refreshes lobby and observes both operators READY
+        mockMvc.perform(get("/api/player/lobby")
+                        .header("X-Player-Session", tokenP1)
+                        .header("Authorization", "Bearer " + tokenP1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isReady", is(true)))
+                .andExpect(jsonPath("$.teammateLoggedIn", is(true)))
+                .andExpect(jsonPath("$.teammateReady", is(true)));
+
+        // Step 8: Team Isolation - Team 18 Player cannot see Team 17 lobby
+        PlayerLoginRequest reqP18 = PlayerLoginRequest.builder().teamCode("TEAM-018").playerNumber(1).build();
+        var resP18 = mockMvc.perform(post("/api/player/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqP18)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String tokenP18 = objectMapper.readTree(resP18.getResponse().getContentAsString()).get("sessionToken").asText();
+
+        mockMvc.perform(get("/api/player/lobby")
+                        .header("X-Player-Session", tokenP18))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teamCode", is("TEAM-018")))
+                .andExpect(jsonPath("$.playerNumber", is(1)))
+                .andExpect(jsonPath("$.isReady", is(false)));
+
+        // Step 9: Relogin test - Player 1 logs out and logs in again
+        mockMvc.perform(post("/api/player/logout").header("X-Player-Session", tokenP1))
+                .andExpect(status().isOk());
+
+        var resP1Relogin = mockMvc.perform(post("/api/player/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqP1)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String tokenP1Relogged = objectMapper.readTree(resP1Relogin.getResponse().getContentAsString()).get("sessionToken").asText();
+
+        mockMvc.perform(get("/api/player/lobby").header("X-Player-Session", tokenP1Relogged))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teamCode", is("TEAM-017")))
+                .andExpect(jsonPath("$.playerNumber", is(1)))
+                .andExpect(jsonPath("$.isActive", is(true)));
+    }
 }

@@ -50,6 +50,7 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
       if (payload.playerNumber && payload.playerNumber !== playerNumber) {
         setPartnerStatus('CONNECTED');
         setLatestNotification(`Teammate (Player ${payload.playerNumber}) connected.`);
+        triggerCoalescedRefresh();
       }
     });
 
@@ -57,6 +58,7 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
       if (payload.playerNumber && payload.playerNumber !== playerNumber) {
         setPartnerStatus('DISCONNECTED');
         setLatestNotification(`Teammate (Player ${payload.playerNumber}) disconnected.`);
+        triggerCoalescedRefresh();
       }
     });
 

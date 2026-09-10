@@ -134,7 +134,7 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
         String token = extractToken(request);
 
         if (token != null && !token.isBlank()) {
-            Optional<GameSession> sessionOpt = gameSessionRepository.findBySessionToken(token);
+            Optional<GameSession> sessionOpt = gameSessionRepository.findBySessionTokenWithDetails(token);
 
             if (sessionOpt.isPresent()) {
                 GameSession session = sessionOpt.get();
