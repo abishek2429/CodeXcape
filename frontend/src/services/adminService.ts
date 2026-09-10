@@ -11,6 +11,7 @@ export interface AdminDashboardStats {
   bothPlayersOfflineTeams: number;
   totalLoggedInTeams?: number;
   totalActiveSessions?: number;
+  activeWebSocketConnections?: number;
   serverStatus: string;
   eventDurationSeconds?: number;
   startTime?: string;

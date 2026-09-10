@@ -59,6 +59,7 @@ import {
 } from '../../services/adminService';
 import { AdminMissionHeader } from '../../components/admin/AdminMissionHeader';
 import { AdminSystemHealth } from '../../components/admin/AdminSystemHealth';
+import { webSocketService } from '../../services/websocketService';
 
 export const AdminDashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'teams' | 'sessions' | 'controls' | 'results' | 'audit'>('dashboard');
@@ -125,8 +126,28 @@ export const AdminDashboardPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
+    const interval = setInterval(loadData, 15000);
+
+    webSocketService.connectAdmin();
+    const unsubState = webSocketService.subscribe('GAME_STATE_UPDATED', () => loadData());
+    const unsubLevel = webSocketService.subscribe('LEVEL_COMPLETED', () => loadData());
+    const unsubStage = webSocketService.subscribe('STAGE_COMPLETED', () => loadData());
+    const unsubGame = webSocketService.subscribe('GAME_COMPLETED', () => loadData());
+    const unsubRank = webSocketService.subscribe('RANK_CHANGED', () => loadData());
+    const unsubConn = webSocketService.subscribe('PLAYER_CONNECTED', () => loadData());
+    const unsubDisc = webSocketService.subscribe('PLAYER_DISCONNECTED', () => loadData());
+
+    return () => {
+      clearInterval(interval);
+      unsubState();
+      unsubLevel();
+      unsubStage();
+      unsubGame();
+      unsubRank();
+      unsubConn();
+      unsubDisc();
+      webSocketService.disconnect();
+    };
   }, [searchTerm, levelFilter, statusFilter]);
 
   useEffect(() => {
@@ -410,7 +431,7 @@ export const AdminDashboardPage: React.FC = () => {
         databaseOnline={true}
         websocketOnline={true}
         eventStatus={stats?.eventStatus || 'STANDBY'}
-        activeConnections={stats?.bothPlayersOnlineTeams || 0}
+        activeConnections={stats?.activeWebSocketConnections ?? stats?.totalActiveSessions ?? 0}
       />
 
       {/* Action Telemetry Alert Banner */}

@@ -38,9 +38,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,https://code-xcape.vercel.app,https://*.vercel.app}")
     private String allowedOrigins;
 
+    @org.springframework.context.annotation.Bean
+    public org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler stompHeartbeatTaskScheduler() {
+        org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler scheduler = new org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(1);
+        scheduler.setThreadNamePrefix("stomp-heartbeat-");
+        scheduler.initialize();
+        return scheduler;
+    }
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic");
+        registry.enableSimpleBroker("/topic")
+                .setTaskScheduler(stompHeartbeatTaskScheduler())
+                .setHeartbeatValue(new long[]{10000, 10000});
         registry.setApplicationDestinationPrefixes("/app");
     }
 

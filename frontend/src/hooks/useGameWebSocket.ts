@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { webSocketService, ConnectionStatus, WebSocketEventPayload } from '../services/websocketService';
 
 interface UseGameWebSocketProps {
@@ -12,6 +12,23 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData }: UseGam
   const [wsConnectionStatus, setWsConnectionStatus] = useState<ConnectionStatus>('DISCONNECTED');
   const [latestNotification, setLatestNotification] = useState<string | null>(null);
 
+  const onRefreshRef = useRef(onRefreshData);
+  onRefreshRef.current = onRefreshData;
+
+  const refreshTimerRef = useRef<any>(null);
+
+  const triggerCoalescedRefresh = () => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+    }
+    refreshTimerRef.current = setTimeout(() => {
+      refreshTimerRef.current = null;
+      if (onRefreshRef.current) {
+        onRefreshRef.current();
+      }
+    }, 100);
+  };
+
   useEffect(() => {
     if (!teamId) return;
 
@@ -19,9 +36,9 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData }: UseGam
 
     const unsubStatus = webSocketService.onStatusChange((status) => {
       setWsConnectionStatus(status);
-      if (status === 'CONNECTED' && onRefreshData) {
+      if (status === 'CONNECTED') {
         // Re-fetch authoritative state after successful reconnection
-        onRefreshData();
+        triggerCoalescedRefresh();
       }
     });
 
@@ -42,50 +59,60 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData }: UseGam
     const unsubPartnerComplete = webSocketService.subscribe('PARTNER_CHALLENGE_COMPLETED', (payload: WebSocketEventPayload) => {
       if (payload.playerNumber && payload.playerNumber !== playerNumber) {
         setLatestNotification(payload.message || 'Your teammate has completed their challenge ✓');
-        if (onRefreshData) onRefreshData();
+        triggerCoalescedRefresh();
       }
+    });
+
+    const unsubStageComplete = webSocketService.subscribe('STAGE_COMPLETED', (payload: WebSocketEventPayload) => {
+      setLatestNotification(payload.message || `Stage ${payload.stageNumber} completed by both players! ✓`);
+      triggerCoalescedRefresh();
     });
 
     const unsubLevelComplete = webSocketService.subscribe('LEVEL_COMPLETED', (payload: WebSocketEventPayload) => {
       setLatestNotification(`Level ${payload.levelNumber} Completed by both players! ✓`);
-      if (onRefreshData) onRefreshData();
+      triggerCoalescedRefresh();
     });
 
     const unsubNextLevel = webSocketService.subscribe('NEXT_LEVEL_UNLOCKED', (payload: WebSocketEventPayload) => {
       setLatestNotification(`Level ${payload.nextLevelNumber} unlocked!`);
-      if (onRefreshData) onRefreshData();
+      triggerCoalescedRefresh();
     });
 
     const unsubHintUnlocked = webSocketService.subscribe('HINT_UNLOCKED', (payload: WebSocketEventPayload) => {
       setLatestNotification(payload.message || `Hint ${payload.levelNumber} unlocked!`);
-      if (onRefreshData) onRefreshData();
+      triggerCoalescedRefresh();
     });
 
     const unsubGameCompleted = webSocketService.subscribe('GAME_COMPLETED', (payload: WebSocketEventPayload) => {
       setLatestNotification(payload.message || '🎉 CODEXCAPE COMPLETED! Your team escaped!');
-      if (onRefreshData) onRefreshData();
+      triggerCoalescedRefresh();
     });
 
     const unsubRankChanged = webSocketService.subscribe('RANK_CHANGED', (payload: WebSocketEventPayload) => {
       if (payload.newRank) {
         setLatestNotification(`Leaderboard updated! Your team is now rank #${payload.newRank}`);
       }
-      if (onRefreshData) onRefreshData();
+      triggerCoalescedRefresh();
     });
 
     const unsubReadyChanged = webSocketService.subscribe('PLAYER_READY_CHANGED', () => {
-      if (onRefreshData) onRefreshData();
+      triggerCoalescedRefresh();
     });
 
     const unsubEventStarted = webSocketService.subscribe('EVENT_STARTED', () => {
-      if (onRefreshData) onRefreshData();
+      triggerCoalescedRefresh();
     });
 
     return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
       unsubStatus();
       unsubConnected();
       unsubDisconnected();
       unsubPartnerComplete();
+      unsubStageComplete();
       unsubLevelComplete();
       unsubNextLevel();
       unsubHintUnlocked();

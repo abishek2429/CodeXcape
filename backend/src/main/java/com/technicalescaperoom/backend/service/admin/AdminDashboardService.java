@@ -27,6 +27,7 @@ public class AdminDashboardService {
     private final PlayerRepository playerRepository;
     private final TeamLevelProgressRepository teamLevelProgressRepository;
     private final GameSessionRepository gameSessionRepository;
+    private final com.technicalescaperoom.backend.config.websocket.WebSocketSessionRegistry webSocketSessionRegistry;
 
     @Transactional(readOnly = true)
     public AdminDashboardResponseDto getDashboardStats(Long eventId) {
@@ -126,6 +127,7 @@ public class AdminDashboardService {
                 .bothPlayersOfflineTeams(bothOffline)
                 .totalLoggedInTeams(totalLoggedInTeams)
                 .totalActiveSessions(totalActiveSessions)
+                .activeWebSocketConnections(webSocketSessionRegistry.getActiveConnectionCount())
                 .serverStatus("ONLINE")
                 .eventDurationSeconds(durationSeconds)
                 .startTime(event.getStartTime())

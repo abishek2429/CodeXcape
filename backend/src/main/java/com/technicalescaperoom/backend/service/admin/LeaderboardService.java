@@ -95,6 +95,21 @@ public class LeaderboardService {
     }
 
     public void recalculateAndBroadcastRanks(Long eventId, com.technicalescaperoom.backend.service.GameWebSocketPublisher webSocketPublisher) {
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        executeRecalculation(eventId, webSocketPublisher);
+                    }
+                }
+            );
+        } else {
+            executeRecalculation(eventId, webSocketPublisher);
+        }
+    }
+
+    private synchronized void executeRecalculation(Long eventId, com.technicalescaperoom.backend.service.GameWebSocketPublisher webSocketPublisher) {
         List<Team> allTeams = teamRepository.findByEventId(eventId);
         if (allTeams.isEmpty()) {
             return;

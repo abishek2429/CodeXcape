@@ -26,23 +26,29 @@ export const PublicLeaderboardPage: React.FC = () => {
     loadData();
     const interval = setInterval(loadData, 5000);
 
-    const teamId = 0; // Public subscription fallback
-    webSocketService.connect(teamId);
+    const token = sessionStorage.getItem('codexcape_session');
+    let unsubCompleted: (() => void) | null = null;
+    let unsubLevel: (() => void) | null = null;
 
-    const unsubCompleted = webSocketService.subscribe('GAME_COMPLETED', (payload: WebSocketEventPayload) => {
-      setLatestEventMsg(payload.message || '🎉 A team has escaped CodeXcape!');
-      loadData();
-    });
+    if (token) {
+      const teamId = 0;
+      webSocketService.connect(teamId);
 
-    const unsubLevel = webSocketService.subscribe('LEVEL_COMPLETED', () => {
-      loadData();
-    });
+      unsubCompleted = webSocketService.subscribe('GAME_COMPLETED', (payload: WebSocketEventPayload) => {
+        setLatestEventMsg(payload.message || '🎉 A team has escaped CodeXcape!');
+        loadData();
+      });
+
+      unsubLevel = webSocketService.subscribe('LEVEL_COMPLETED', () => {
+        loadData();
+      });
+    }
 
     return () => {
       clearInterval(interval);
-      unsubCompleted();
-      unsubLevel();
-      webSocketService.disconnect();
+      if (unsubCompleted) unsubCompleted();
+      if (unsubLevel) unsubLevel();
+      if (token) webSocketService.disconnect();
     };
   }, []);
 

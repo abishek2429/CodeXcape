@@ -283,6 +283,9 @@ public class QuestionAnswerService {
                 }
                 teamLevelProgressRepository.saveAndFlush(progressToUpdate);
             }
+            if (bothCompleted && !finalStage) {
+                webSocketPublisher.notifyStageCompleted(team.getId(), currentLevel.getLevelNumber(), currentStage, currentStage + 1);
+            }
             if (bothCompleted && finalStage) {
                 progressToUpdate.setPlayer1Completed(true);
                 progressToUpdate.setPlayer2Completed(true);

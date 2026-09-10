@@ -25,6 +25,7 @@ public class AdminDashboardResponseDto {
     private Long bothPlayersOfflineTeams;
     private Long totalLoggedInTeams;
     private Long totalActiveSessions;
+    private Integer activeWebSocketConnections;
     private String serverStatus;
     private Long eventDurationSeconds;
     private java.time.Instant startTime;

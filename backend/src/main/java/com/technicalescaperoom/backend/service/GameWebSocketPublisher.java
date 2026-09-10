@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import java.time.Instant;
 
 @Slf4j
@@ -19,14 +22,28 @@ public class GameWebSocketPublisher {
     public void broadcastToTeam(Long teamId, WebSocketEventDto event) {
         if (teamId == null || event == null) return;
         String destination = "/topic/team/" + teamId;
-        log.debug("Publishing WebSocket event {} to {}", event.getType(), destination);
-        messagingTemplate.convertAndSend(destination, event);
+        publishEvent(destination, event);
         broadcastToAdmin(event);
     }
 
     public void broadcastToAdmin(WebSocketEventDto event) {
         if (event == null) return;
-        messagingTemplate.convertAndSend("/topic/admin", event);
+        publishEvent("/topic/admin", event);
+    }
+
+    private void publishEvent(String destination, WebSocketEventDto event) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    log.debug("Publishing WebSocket event {} to {} (after commit)", event.getType(), destination);
+                    messagingTemplate.convertAndSend(destination, event);
+                }
+            });
+        } else {
+            log.debug("Publishing WebSocket event {} to {} (immediate)", event.getType(), destination);
+            messagingTemplate.convertAndSend(destination, event);
+        }
     }
 
     public void notifyPlayerConnection(Long teamId, Long playerId, Integer playerNumber, String displayName, boolean connected) {
@@ -54,6 +71,20 @@ public class GameWebSocketPublisher {
                 .stageNumber(stageNumber)
                 .playerNumber(completedPlayerNumber)
                 .message("Your teammate (Player " + completedPlayerNumber + ") completed their challenge ✓")
+                .timestamp(Instant.now())
+                .serverTime(Instant.now())
+                .build();
+        broadcastToTeam(teamId, event);
+    }
+
+    public void notifyStageCompleted(Long teamId, Integer levelNumber, Integer stageNumber, Integer nextStageNumber) {
+        WebSocketEventDto event = WebSocketEventDto.builder()
+                .type(WebSocketEventType.STAGE_COMPLETED)
+                .teamId(teamId)
+                .levelNumber(levelNumber)
+                .stageNumber(stageNumber)
+                .nextStageNumber(nextStageNumber)
+                .message("Stage " + stageNumber + " completed by both players ✓")
                 .timestamp(Instant.now())
                 .serverTime(Instant.now())
                 .build();
