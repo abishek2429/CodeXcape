@@ -25,6 +25,7 @@ export const PlayerLobbyPage: React.FC = () => {
     try {
       const data = await fetchLobbyState();
       setLobbyData(data);
+      setErrorMsg(null);
 
       // If team has already started, transition to gameplay
       if (data.gameState && data.gameState !== 'NOT_STARTED') {
@@ -46,6 +47,13 @@ export const PlayerLobbyPage: React.FC = () => {
     teamId: player?.teamId,
     playerNumber: player?.playerNumber,
     onRefreshData: loadData,
+    onEventStarted: () => {
+      soundService.playLevelUnlock();
+      setTransitioning(true);
+      setTimeout(() => {
+        navigate('/player/game', { replace: true });
+      }, 1200);
+    },
   });
 
   const isOperator1 = player?.playerNumber === 1;
@@ -59,8 +67,8 @@ export const PlayerLobbyPage: React.FC = () => {
     if (isSubmitting) return;
     setErrorMsg(null);
 
-    // If teammate is ready and self is ready, trigger start confirmation
-    if (isTeammateLoggedIn && isTeammateReady) {
+    // If both operators are already verified ready, trigger start confirmation
+    if (isSelfReady && isTeammateLoggedIn && isTeammateReady) {
       soundService.playClick();
       setShowConfirmModal(true);
       return;
@@ -73,10 +81,16 @@ export const PlayerLobbyPage: React.FC = () => {
       const updated = await setPlayerReady(!isSelfReady);
       setLobbyData(updated);
 
-      if (!isTeammateLoggedIn) {
-        setErrorMsg(`OPERATOR 0${teammateNum} IS NOT LOGGED IN. BOTH OPERATORS MUST BE PRESENT.`);
-      } else if (!isTeammateReady) {
-        setErrorMsg(`YOU ARE READY. WAITING FOR OPERATOR 0${teammateNum} TO CONFIRM READINESS.`);
+      // If event has already started, transition to gameplay immediately
+      if (updated.gameState && updated.gameState !== 'NOT_STARTED') {
+        navigate('/player/game', { replace: true });
+        return;
+      }
+
+      // If this action completed mutual readiness, trigger start prompt
+      if (updated.isReady && updated.teammateReady && updated.teammateLoggedIn) {
+        soundService.playLevelUnlock();
+        setShowConfirmModal(true);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to update readiness.');
@@ -101,7 +115,7 @@ export const PlayerLobbyPage: React.FC = () => {
       // Brief transition before game entry
       setTimeout(() => {
         navigate('/player/game', { replace: true });
-      }, 1500);
+      }, 1200);
     } catch (err: any) {
       setTransitioning(false);
       setErrorMsg(err.message || 'Failed to start event.');

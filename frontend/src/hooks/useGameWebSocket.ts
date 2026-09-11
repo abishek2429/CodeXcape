@@ -6,9 +6,10 @@ interface UseGameWebSocketProps {
   playerNumber?: number;
   onRefreshData?: () => void;
   onRankChanged?: (newRank: number) => void;
+  onEventStarted?: (payload: WebSocketEventPayload) => void;
 }
 
-export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankChanged }: UseGameWebSocketProps) {
+export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankChanged, onEventStarted }: UseGameWebSocketProps) {
   const [partnerStatus, setPartnerStatus] = useState<ConnectionStatus>('DISCONNECTED');
   const [wsConnectionStatus, setWsConnectionStatus] = useState<ConnectionStatus>('DISCONNECTED');
   const [latestNotification, setLatestNotification] = useState<string | null>(null);
@@ -18,6 +19,9 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
 
   const onRankRef = useRef(onRankChanged);
   onRankRef.current = onRankChanged;
+
+  const onEventStartedRef = useRef(onEventStarted);
+  onEventStartedRef.current = onEventStarted;
 
   const refreshTimerRef = useRef<any>(null);
 
@@ -107,7 +111,10 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
       triggerCoalescedRefresh();
     });
 
-    const unsubEventStarted = webSocketService.subscribe('EVENT_STARTED', () => {
+    const unsubEventStarted = webSocketService.subscribe('EVENT_STARTED', (payload: WebSocketEventPayload) => {
+      if (onEventStartedRef.current) {
+        onEventStartedRef.current(payload);
+      }
       triggerCoalescedRefresh();
     });
 

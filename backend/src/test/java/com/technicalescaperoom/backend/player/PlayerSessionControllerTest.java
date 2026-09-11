@@ -645,4 +645,98 @@ public class PlayerSessionControllerTest {
                 .andExpect(jsonPath("$.playerNumber", is(1)))
                 .andExpect(jsonPath("$.isActive", is(true)));
     }
+
+    @Test
+    @DisplayName("19. Full Two-Player Start Synchronization & Stale Readiness Handling")
+    void testTwoPlayerEventStartSynchronizationAndStaleHandling() throws Exception {
+        // Step 1: P1 logs in and confirms ready
+        PlayerLoginRequest reqP1 = PlayerLoginRequest.builder().teamCode("TEAM-017").playerNumber(1).build();
+        var resP1 = mockMvc.perform(post("/api/player/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqP1)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String tokenP1 = objectMapper.readTree(resP1.getResponse().getContentAsString()).get("sessionToken").asText();
+
+        mockMvc.perform(post("/api/player/ready")
+                        .header("X-Player-Session", tokenP1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("ready", true))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isReady", is(true)))
+                .andExpect(jsonPath("$.teammateReady", is(false)))
+                .andExpect(jsonPath("$.gameState", is("NOT_STARTED")));
+
+        // Step 2: P2 logs in and confirms ready
+        PlayerLoginRequest reqP2 = PlayerLoginRequest.builder().teamCode("TEAM-017").playerNumber(2).build();
+        var resP2 = mockMvc.perform(post("/api/player/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqP2)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String tokenP2 = objectMapper.readTree(resP2.getResponse().getContentAsString()).get("sessionToken").asText();
+
+        mockMvc.perform(post("/api/player/ready")
+                        .header("X-Player-Session", tokenP2)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("ready", true))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isReady", is(true)))
+                .andExpect(jsonPath("$.teammateReady", is(true)))
+                .andExpect(jsonPath("$.gameState", is("NOT_STARTED")));
+
+        // Step 3: P2 starts the event
+        var startRes = mockMvc.perform(post("/api/player/event/start")
+                        .header("X-Player-Session", tokenP2))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameState", is("IN_PROGRESS")))
+                .andExpect(jsonPath("$.currentLevel", is(1)))
+                .andExpect(jsonPath("$.eventStartedAt", notNullValue()))
+                .andReturn();
+
+        String p2StartedAt = objectMapper.readTree(startRes.getResponse().getContentAsString()).get("eventStartedAt").asText();
+
+        // Step 4: P1 refreshes lobby -> receives authoritative IN_PROGRESS state
+        mockMvc.perform(get("/api/player/lobby")
+                        .header("X-Player-Session", tokenP1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameState", is("IN_PROGRESS")))
+                .andExpect(jsonPath("$.eventStartedAt", is(p2StartedAt)))
+                .andExpect(jsonPath("$.currentLevel", is(1)));
+
+        // Step 5: Stale P1 client clicks ready again -> returns current authoritative state, NO 500 error!
+        mockMvc.perform(post("/api/player/ready")
+                        .header("X-Player-Session", tokenP1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("ready", true))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameState", is("IN_PROGRESS")))
+                .andExpect(jsonPath("$.eventStartedAt", is(p2StartedAt)));
+
+        // Step 6: P2 clicks start again -> idempotent, returns current state, same timestamp
+        mockMvc.perform(post("/api/player/event/start")
+                        .header("X-Player-Session", tokenP2))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameState", is("IN_PROGRESS")))
+                .andExpect(jsonPath("$.eventStartedAt", is(p2StartedAt)));
+
+        // Step 7: Authoritative timer check via getGameStateForPlayer
+        var gameResP1 = mockMvc.perform(get("/api/player/game")
+                        .header("X-Player-Session", tokenP1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameStatus", is("IN_PROGRESS")))
+                .andExpect(jsonPath("$.deadline", notNullValue()))
+                .andReturn();
+
+        var gameResP2 = mockMvc.perform(get("/api/player/game")
+                        .header("X-Player-Session", tokenP2))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameStatus", is("IN_PROGRESS")))
+                .andExpect(jsonPath("$.deadline", notNullValue()))
+                .andReturn();
+
+        String deadlineP1 = objectMapper.readTree(gameResP1.getResponse().getContentAsString()).get("deadline").asText();
+        String deadlineP2 = objectMapper.readTree(gameResP2.getResponse().getContentAsString()).get("deadline").asText();
+        assertEquals(deadlineP1, deadlineP2, "Both players must share the exact same authoritative deadline");
+    }
 }

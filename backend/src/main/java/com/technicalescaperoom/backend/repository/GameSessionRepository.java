@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface GameSessionRepository extends JpaRepository<GameSession, Long> {
     Optional<GameSession> findBySessionToken(String sessionToken);
 
-    @org.springframework.data.jpa.repository.Query("SELECT gs FROM GameSession gs JOIN FETCH gs.player p JOIN FETCH gs.team t JOIN FETCH t.event e WHERE gs.sessionToken = :sessionToken")
+    @org.springframework.data.jpa.repository.Query("SELECT gs FROM GameSession gs JOIN FETCH gs.player p JOIN FETCH gs.team t LEFT JOIN FETCH t.event e WHERE gs.sessionToken = :sessionToken")
     Optional<GameSession> findBySessionTokenWithDetails(@org.springframework.data.repository.query.Param("sessionToken") String sessionToken);
 
     Optional<GameSession> findByPlayerIdAndStatus(Long playerId, SessionStatus status);

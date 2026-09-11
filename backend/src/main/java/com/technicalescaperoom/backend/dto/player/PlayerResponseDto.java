@@ -27,6 +27,8 @@ public class PlayerResponseDto {
     private String gameState;
     private String eventStatus;
     private Instant eventStartedAt;
+    private Integer currentLevel;
+    private Integer currentStage;
 
     // Teammate Telemetry
     private String teammateName;

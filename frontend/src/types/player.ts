@@ -21,6 +21,8 @@ export interface PlayerInfo {
   teammateNumber?: number | null;
   teammateLoggedIn?: boolean;
   teammateReady?: boolean;
+  currentLevel?: number;
+  currentStage?: number;
 
   // Authentication token fallback
   sessionToken?: string;

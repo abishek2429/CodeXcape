@@ -106,7 +106,8 @@ public class GameStateService {
 
         Event event = team.getEvent();
         Instant serverTime = Instant.now();
-        Instant deadline = event.getStartTime() == null ? null : event.getStartTime().plusSeconds(90 * 60L);
+        Instant teamStartTime = team.getStartedAt() != null ? team.getStartedAt() : (event != null ? event.getStartTime() : null);
+        Instant deadline = teamStartTime == null ? null : teamStartTime.plusSeconds(90 * 60L);
 
         if (team.getGameState() == TeamGameState.NOT_STARTED) {
             return PlayerGameStateDto.builder()

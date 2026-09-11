@@ -26,6 +26,10 @@ public class WebSocketEventDto {
     private String discoveryKey;
     private Instant serverTime;
     private String message;
+    private String gameState;
+    private String eventStatus;
+    private Boolean isReady;
+    private Boolean allReady;
     
     @Builder.Default
     private Instant timestamp = Instant.now();

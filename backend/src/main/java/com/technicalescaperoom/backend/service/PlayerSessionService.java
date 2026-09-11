@@ -44,6 +44,7 @@ public class PlayerSessionService {
     private final jakarta.persistence.EntityManager entityManager;
     private final GameWebSocketPublisher webSocketPublisher;
     private final GameStateService gameStateService;
+    private final com.technicalescaperoom.backend.repository.TeamLevelProgressRepository teamLevelProgressRepository;
 
     @Value("${app.player.session-timeout-minutes:60}")
     private long sessionTimeoutMinutes;
@@ -278,11 +279,16 @@ public class PlayerSessionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
 
         if (team.getGameState() != TeamGameState.NOT_STARTED) {
-            throw new IllegalStateException("Event has already started.");
+            log.info("Player {} submitted ready state but team {} event is already started ({}) - returning current authoritative state",
+                    player.getId(), team.getId(), team.getGameState());
+            return mapToResponse(team, player, principal.getSessionToken());
         }
 
         player.setIsReady(isReady);
         playerRepository.save(player);
+
+        List<Player> teamPlayers = playerRepository.findByTeamId(team.getId());
+        boolean allReady = teamPlayers.size() >= 2 && teamPlayers.stream().allMatch(p -> Boolean.TRUE.equals(p.getIsReady()));
 
         // Broadcast readiness change over WebSocket
         WebSocketEventDto readyEvent = WebSocketEventDto.builder()
@@ -291,7 +297,12 @@ public class PlayerSessionService {
                 .playerId(player.getId())
                 .playerNumber(player.getPlayerNumber())
                 .displayName(player.getDisplayName())
-                .message("Player " + player.getPlayerNumber() + (isReady ? " is READY" : " is WAITING"))
+                .isReady(isReady)
+                .allReady(allReady)
+                .gameState(team.getGameState().name())
+                .message(allReady
+                        ? "BOTH PLAYERS READY: TEAM BRIEFING AUTHORIZED"
+                        : "Player " + player.getPlayerNumber() + (isReady ? " is READY" : " is WAITING"))
                 .timestamp(Instant.now())
                 .build();
         webSocketPublisher.broadcastToTeam(team.getId(), readyEvent);
@@ -350,6 +361,7 @@ public class PlayerSessionService {
         Instant serverStartTime = Instant.now();
         team.setStartedAt(serverStartTime);
         team.setGameState(TeamGameState.IN_PROGRESS);
+        team.setStatus(TeamStatus.ACTIVE);
         teamRepository.save(team);
 
         // Initialize Level 1 and stage progress
@@ -368,6 +380,10 @@ public class PlayerSessionService {
         WebSocketEventDto startEvent = WebSocketEventDto.builder()
                 .type(WebSocketEventType.EVENT_STARTED)
                 .teamId(team.getId())
+                .gameState(TeamGameState.IN_PROGRESS.name())
+                .eventStatus(event.getStatus().name())
+                .levelNumber(1)
+                .stageNumber(1)
                 .message("TEAM VERIFIED: EVENT OFFICIALLY STARTED")
                 .serverTime(serverStartTime)
                 .timestamp(serverStartTime)
@@ -635,6 +651,17 @@ public class PlayerSessionService {
             teammateLoggedIn = gameSessionRepository.existsByPlayerIdAndStatus(teammate.getId(), SessionStatus.ACTIVE);
         }
 
+        Integer currentLevel = 1;
+        Integer currentStage = 1;
+        if (team.getGameState() != TeamGameState.NOT_STARTED && teamLevelProgressRepository != null) {
+            var activeProgress = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId()).stream()
+                    .filter(p -> p.getLevelStatus() == com.technicalescaperoom.backend.enums.LevelStatus.AVAILABLE || p.getLevelStatus() == com.technicalescaperoom.backend.enums.LevelStatus.IN_PROGRESS)
+                    .findFirst();
+            if (activeProgress.isPresent()) {
+                currentLevel = activeProgress.get().getLevel().getLevelNumber();
+            }
+        }
+
         return PlayerResponseDto.builder()
                 .sessionToken(sessionToken)
                 .teamCode(team.getTeamCode())
@@ -650,6 +677,8 @@ public class PlayerSessionService {
                 .gameState(team.getGameState().name())
                 .eventStatus(team.getEvent() != null ? team.getEvent().getStatus().name() : "UNKNOWN")
                 .eventStartedAt(team.getStartedAt())
+                .currentLevel(currentLevel)
+                .currentStage(currentStage)
                 .teammateName(teammateName)
                 .teammateNumber(teammateNumber)
                 .teammateLoggedIn(teammateLoggedIn)

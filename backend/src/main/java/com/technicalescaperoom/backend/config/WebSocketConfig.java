@@ -98,26 +98,28 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     }
 
                     // 1. Try Player GameSession
-                    java.util.Optional<GameSession> playerSessionOpt = gameSessionRepository.findBySessionToken(token)
+                    java.util.Optional<GameSession> playerSessionOpt = gameSessionRepository.findBySessionTokenWithDetails(token)
                             .filter(s -> s.getStatus() == SessionStatus.ACTIVE);
 
                     if (playerSessionOpt.isPresent()) {
                         GameSession session = playerSessionOpt.get();
                         Player player = session.getPlayer();
+                        com.technicalescaperoom.backend.entity.Team team = session.getTeam();
+                        Long eventId = (team != null && team.getEvent() != null) ? team.getEvent().getId() : null;
                         PlayerPrincipal principal = PlayerPrincipal.builder()
                                 .playerId(player.getId())
-                                .teamId(player.getTeam().getId())
-                                .eventId(player.getTeam().getEvent().getId())
+                                .teamId(team != null ? team.getId() : null)
+                                .eventId(eventId)
                                 .playerNumber(player.getPlayerNumber())
-                                .teamCode(player.getTeam().getTeamCode())
-                                .teamName(player.getTeam().getTeamName())
+                                .teamCode(team != null ? team.getTeamCode() : null)
+                                .teamName(team != null ? team.getTeamName() : null)
                                 .displayName(player.getDisplayName())
                                 .sessionToken(token)
                                 .build();
 
                         PlayerAuthenticationToken authentication = new PlayerAuthenticationToken(principal, token);
                         accessor.setUser(authentication);
-                        log.info("WebSocket CONNECT authenticated for player {} (Team {})", player.getId(), player.getTeam().getTeamCode());
+                        log.info("WebSocket CONNECT authenticated for player {} (Team {})", player.getId(), team != null ? team.getTeamCode() : "N/A");
                     } else {
                         // 2. Try AdminSession
                         java.util.Optional<com.technicalescaperoom.backend.entity.AdminSession> adminSessionOpt = adminSessionRepository.findBySessionToken(token)
