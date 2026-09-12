@@ -5,10 +5,6 @@ ALTER TABLE teams ADD COLUMN IF NOT EXISTS started_at TIMESTAMP;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS is_ready BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
 
--- Advance sequence past hardcoded legacy IDs (1000, 10001, 10002)
-ALTER TABLE teams ALTER COLUMN id RESTART WITH 10000;
-ALTER TABLE players ALTER COLUMN id RESTART WITH 20000;
-
 -- 2. Terminate and clean all existing active/stale game sessions
 UPDATE game_sessions
 SET status = 'TERMINATED',
