@@ -1,0 +1,16 @@
+.git
+.gitignore
+.vscode
+node_modules
+frontend
+backups
+docs
+*.md
+*.bat
+*.ps1
+*.sh
+cookies.txt
+body.json
+check.py
+test.py
+backend/target

@@ -1,9 +1,15 @@
 # Build Stage
 FROM maven:3.9-eclipse-temurin-21-alpine AS builder
-WORKDIR /app
-COPY . .
 WORKDIR /app/backend
-RUN mvn clean package -DskipTests
+
+# 1. Cache Maven dependencies layer
+COPY backend/pom.xml .
+RUN mvn dependency:go-offline -B || true
+
+# 2. Build backend source
+COPY backend/src ./src
+RUN mvn clean package -DskipTests -B
+
 
 # Runtime Stage
 FROM eclipse-temurin:21-jre-alpine
