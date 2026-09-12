@@ -35,7 +35,7 @@ export const PublicLeaderboardPage: React.FC = () => {
       webSocketService.connect(teamId);
 
       unsubCompleted = webSocketService.subscribe('GAME_COMPLETED', (payload: WebSocketEventPayload) => {
-        setLatestEventMsg(payload.message || '🎉 A team has escaped CodeXcape!');
+        setLatestEventMsg(payload.message || '⚠️ Escape confirmed: A team has breached all tiers!');
         loadData();
       });
 
@@ -53,169 +53,215 @@ export const PublicLeaderboardPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-cyber-bg text-slate-100 font-mono flex flex-col p-4 sm:p-8 max-w-7xl mx-auto">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-void)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', padding: '24px 20px', maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
+      {/* Background ambient red glow */}
+      <div style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', width: '800px', height: '400px', background: 'radial-gradient(circle, rgba(225, 6, 19, 0.08) 0%, transparent 70%)', filter: 'blur(90px)', pointerEvents: 'none', zIndex: 0 }} aria-hidden="true" />
+
       {/* Top Banner Header */}
-      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800 pb-6 mb-8 gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.2)] animate-pulse-glow">
-            <Trophy className="w-7 h-7" />
+      <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-crimson)', paddingBottom: '20px', marginBottom: '28px', gap: '16px', position: 'relative', zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '4px', backgroundColor: 'rgba(214, 168, 75, 0.12)', border: '1.5px solid var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-gold)', boxShadow: '0 0 20px rgba(214, 168, 75, 0.2)' }}>
+            <Trophy size={26} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black font-heading tracking-widest text-white uppercase">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h1 style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-sans)', letterSpacing: '0.12em', color: 'var(--text-cold-white)', margin: 0 }}>
                 CODEXCAPE
               </h1>
-              <span className="text-[11px] text-cyan-300 font-bold px-2.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40">
-                LIVE ARENA
+              <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--accent-crimson-bright)', padding: '2px 8px', borderRadius: '2px', backgroundColor: 'rgba(225, 6, 19, 0.12)', border: '1px solid var(--border-crimson)' }}>
+                GLOBAL LEADERBOARD
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider font-mono">
-              REAL-TIME GLOBAL LEADERBOARD & ESCAPE TIMINGS
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              TACTICAL SCOREBOARD & AUTHORITATIVE COMPLETION TELEMETRY
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5 bg-slate-950/90 border border-slate-800/90 px-4 py-2 rounded-xl shadow-inner">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 radar-ping text-emerald-400"></span>
-            <span className="text-xs text-slate-300 uppercase font-bold tracking-wider">STOMP LIVE SYNC</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(8, 8, 10, 0.8)', border: '1px solid var(--border-dim)', padding: '8px 14px', borderRadius: '2px' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: 'var(--status-success)', boxShadow: '0 0 6px var(--status-success)' }}></span>
+            <span style={{ fontSize: '11px', color: 'var(--text-primary)', fontWeight: 700, letterSpacing: '0.06em' }}>STOMP SYNC: ACTIVE</span>
           </div>
 
           <Link
             to="/player/login"
-            className="px-4 py-2 rounded-xl cyber-btn-primary font-mono text-xs font-bold tracking-wider flex items-center gap-1.5"
+            style={{ textDecoration: 'none' }}
           >
-            <span>JOIN ARENA</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '11px', letterSpacing: '0.1em' }}>
+              <span>JOIN ESCAPE RUN</span>
+              <ArrowRight size={14} />
+            </button>
           </Link>
         </div>
       </header>
 
-      {/* Live Event Notification Alert */}
+      {/* Live Event Alert Banner */}
       {latestEventMsg && (
-        <div className="mb-6 p-4 rounded-2xl bg-cyan-950/80 border border-cyan-500/50 text-cyan-200 text-xs font-mono flex items-center gap-3 shadow-[0_0_20px_rgba(0,240,255,0.2)] animate-slide-up">
-          <Trophy className="w-5 h-5 text-amber-400 shrink-0" />
+        <div style={{ marginBottom: '24px', padding: '14px 18px', borderRadius: '2px', backgroundColor: 'rgba(225, 6, 19, 0.14)', border: '1px solid var(--accent-crimson)', color: '#FFFFFF', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 0 16px rgba(225, 6, 19, 0.3)', position: 'relative', zIndex: 10 }}>
+          <Trophy size={18} color="var(--accent-gold)" style={{ flexShrink: 0 }} />
           <span>{latestEventMsg}</span>
         </div>
       )}
 
       {/* Main Leaderboard Content */}
       {loading ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-500 text-sm gap-3">
-          <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-          <span>Synchronizing live scoreboard telemetry...</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', color: 'var(--text-secondary)', fontSize: '13px', gap: '16px', position: 'relative', zIndex: 10 }}>
+          <div style={{ width: '32px', height: '32px', border: '2px solid var(--accent-crimson)', borderTopColor: 'transparent', borderRadius: '50%' }} className="animate-spin" />
+          <span>SYNCHRONIZING TACTICAL SCOREBOARD...</span>
         </div>
       ) : !data ? (
-        <div className="text-center text-slate-500 py-16 cyber-panel rounded-2xl border border-slate-800">
+        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '60px 20px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-crimson)', borderRadius: '2px', position: 'relative', zIndex: 10 }}>
           Leaderboard telemetry currently unavailable.
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1">
-          
-          {/* Completed Escapes (2 Columns) */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold font-heading text-amber-300 uppercase tracking-widest flex items-center gap-2">
-                <Award className="w-5 h-5 text-amber-400" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '28px', position: 'relative', zIndex: 10 }}>
+          {/* Confirmed Escapes (2 Columns on large screens) */}
+          <div style={{ gridColumn: 'span 2' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '14px', fontWeight: 900, fontFamily: 'var(--font-sans)', color: 'var(--text-cold-white)', letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <Award size={18} color="var(--accent-gold)" />
                 <span>CONFIRMED ESCAPES ({data.completedEntries.length})</span>
               </h2>
-              <span className="text-[11px] text-slate-500">SORTED BY SERVER DURATION</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>ORDERED BY DURATION</span>
             </div>
 
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {data.completedEntries.length === 0 ? (
-                <div className="p-10 rounded-2xl cyber-panel border border-slate-800 text-center text-slate-400 text-xs">
-                  <Flame className="w-8 h-8 text-amber-500/40 mx-auto mb-2 animate-pulse" />
-                  <p className="font-bold uppercase tracking-wider text-slate-300">NO TEAMS HAVE ESCAPED YET</p>
-                  <p className="text-slate-500 text-[11px] mt-1">The race to breach all 6 security tiers is currently active.</p>
+                <div style={{ padding: '40px 20px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-dim)', borderRadius: '2px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                  <Flame size={28} color="rgba(225, 6, 19, 0.5)" style={{ margin: '0 auto 10px auto' }} />
+                  <p style={{ fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>NO TEAMS HAVE BREACHED ALL TIERS YET</p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>The escape network is active. First breach claims #1 rank.</p>
                 </div>
               ) : (
-                data.completedEntries.map((entry) => (
-                  <div
-                    key={entry.rank}
-                    className={`p-4 sm:p-5 rounded-2xl border flex items-center justify-between transition-all duration-300 shadow-xl ${
-                      entry.rank === 1
-                        ? 'bg-gradient-to-r from-amber-950/40 via-cyber-surface to-cyber-bg border-amber-500/60 shadow-[0_0_25px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30'
-                        : entry.rank === 2
-                        ? 'bg-gradient-to-r from-slate-800/40 via-cyber-surface to-cyber-bg border-slate-400/50 shadow-[0_0_20px_rgba(148,163,184,0.1)]'
-                        : entry.rank === 3
-                        ? 'bg-gradient-to-r from-amber-900/25 via-cyber-surface to-cyber-bg border-amber-700/50 shadow-[0_0_20px_rgba(180,83,9,0.1)]'
-                        : 'cyber-panel border-slate-800/90'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`w-11 h-11 rounded-xl flex items-center justify-center font-black font-heading text-lg ${
-                          entry.rank === 1
-                            ? 'bg-amber-400 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.5)]'
-                            : entry.rank === 2
-                            ? 'bg-slate-300 text-slate-950 shadow-[0_0_15px_rgba(203,213,225,0.3)]'
-                            : entry.rank === 3
-                            ? 'bg-amber-700 text-white shadow-[0_0_15px_rgba(180,83,9,0.3)]'
-                            : 'bg-slate-900 border border-slate-800 text-slate-400'
-                        }`}
-                      >
-                        #{entry.rank}
+                data.completedEntries.map((entry) => {
+                  const isFirst = entry.rank === 1;
+                  const isSecond = entry.rank === 2;
+                  const isThird = entry.rank === 3;
+
+                  return (
+                    <div
+                      key={entry.rank}
+                      style={{
+                        padding: '16px 20px',
+                        borderRadius: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        backgroundColor: isFirst
+                          ? 'rgba(214, 168, 75, 0.08)'
+                          : 'var(--bg-panel-elevated)',
+                        border: '1px solid',
+                        borderColor: isFirst
+                          ? 'var(--accent-gold)'
+                          : isSecond || isThird
+                          ? 'var(--border-crimson)'
+                          : 'var(--border-dim)',
+                        boxShadow: isFirst
+                          ? '0 0 24px rgba(214, 168, 75, 0.2), inset 0 0 16px rgba(214, 168, 75, 0.05)'
+                          : '0 4px 16px rgba(0, 0, 0, 0.6)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        {/* Rank Badge */}
+                        <div
+                          style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 900,
+                            fontFamily: 'var(--font-sans)',
+                            fontSize: '16px',
+                            backgroundColor: isFirst
+                              ? 'var(--accent-gold)'
+                              : isSecond
+                              ? '#999999'
+                              : isThird
+                              ? 'var(--accent-crimson)'
+                              : 'rgba(255, 255, 255, 0.05)',
+                            color: isFirst || isSecond ? '#050505' : '#FFFFFF',
+                            boxShadow: isFirst ? '0 0 14px rgba(214, 168, 75, 0.5)' : 'none',
+                          }}
+                        >
+                          #{entry.rank}
+                        </div>
+
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', margin: 0 }}>
+                              {entry.teamName}
+                            </h3>
+                            {isFirst && (
+                              <span style={{ fontSize: '9px', fontWeight: 800, color: '#050505', backgroundColor: 'var(--accent-gold)', padding: '1px 6px', borderRadius: '2px', letterSpacing: '0.05em' }}>
+                                1ST PLACE GOLD
+                              </span>
+                            )}
+                          </div>
+                          <p style={{ fontSize: '11px', color: 'var(--status-success)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '5px', letterSpacing: '0.04em' }}>
+                            <CheckCircle2 size={12} />
+                            <span>ALL TIERS BREACHED</span>
+                          </p>
+                        </div>
                       </div>
 
-                      <div>
-                        <h3 className="text-base font-bold text-white font-heading tracking-wide flex items-center gap-2">
-                          {entry.teamName}
-                          {entry.rank === 1 && (
-                            <span className="text-[9px] text-amber-300 bg-amber-950/80 px-2 py-0.2 rounded-full border border-amber-500/40 font-bold uppercase">
-                              1ST PLACE
-                            </span>
-                          )}
-                        </h3>
-                        <p className="text-[11px] text-emerald-400 font-mono font-semibold uppercase mt-0.5 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>ALL 6 TIERS BREACHED</span>
-                        </p>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isFirst ? 'var(--accent-gold)' : 'var(--accent-crimson-bright)', fontWeight: 800, fontSize: '15px', justifyContent: 'flex-end' }}>
+                          <Clock size={14} />
+                          <span>{entry.formattedDuration}</span>
+                        </div>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>ELAPSED TIME</span>
                       </div>
                     </div>
-
-                    <div className="text-right">
-                      <div className="flex items-center gap-1.5 text-cyan-300 font-mono font-bold text-base justify-end">
-                        <Clock className="w-4 h-4 text-cyan-400" />
-                        <span>{entry.formattedDuration}</span>
-                      </div>
-                      <span className="text-[10px] text-slate-500 uppercase tracking-wider">ELAPSED TIME</span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
 
-          {/* Active Teams In Progress (1 Column) */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold font-heading text-cyan-300 uppercase tracking-widest flex items-center gap-2">
-                <Activity className="w-5 h-5 text-cyan-400" />
-                <span>ACTIVE TEAMS ({data.activeEntries.length})</span>
+          {/* Active Teams In Progress */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '14px', fontWeight: 900, fontFamily: 'var(--font-sans)', color: 'var(--accent-crimson-bright)', letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <Activity size={18} color="var(--accent-crimson)" />
+                <span>ACTIVE RUNS ({data.activeEntries.length})</span>
               </h2>
-              <span className="text-[11px] text-slate-500">LIVE TELEMETRY</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>LIVE NODES</span>
             </div>
 
-            <div className="space-y-2.5">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {data.activeEntries.length === 0 ? (
-                <div className="p-8 rounded-2xl cyber-panel border border-slate-800 text-center text-slate-500 text-xs">
+                <div style={{ padding: '32px 16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-dim)', borderRadius: '2px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px' }}>
                   No active teams currently in session.
                 </div>
               ) : (
                 data.activeEntries.map((entry, idx) => (
                   <div
                     key={idx}
-                    className="p-4 rounded-xl cyber-panel border border-slate-800/90 flex items-center justify-between hover:border-cyan-500/30 transition-all"
+                    style={{
+                      padding: '14px 16px',
+                      backgroundColor: 'var(--bg-panel-elevated)',
+                      border: '1px solid var(--border-dim)',
+                      borderRadius: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'border-color 0.2s ease',
+                    }}
                   >
                     <div>
-                      <p className="text-sm font-bold text-slate-200 font-heading">{entry.teamName}</p>
-                      <p className="text-[10px] text-cyan-400/80 uppercase font-mono mt-0.5">
+                      <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                        {entry.teamName}
+                      </p>
+                      <p style={{ fontSize: '10px', color: 'var(--accent-crimson-bright)', marginTop: '2px', letterSpacing: '0.06em' }}>
                         STATUS: {entry.status}
                       </p>
                     </div>
 
-                    <span className="px-3 py-1 rounded-lg bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold shadow-[0_0_10px_rgba(0,240,255,0.15)]">
+                    <span style={{ padding: '3px 8px', borderRadius: '2px', backgroundColor: 'rgba(225, 6, 19, 0.12)', border: '1px solid var(--border-crimson)', color: 'var(--accent-crimson-bright)', fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em' }}>
                       TIER 0{entry.currentLevel}
                     </span>
                   </div>
@@ -223,10 +269,8 @@ export const PublicLeaderboardPage: React.FC = () => {
               )}
             </div>
           </div>
-
         </div>
       )}
     </div>
   );
 };
-

@@ -13,8 +13,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   transform: translate(-50%, -50%);
   pointer-events: none;
   transition: width 0.18s cubic-bezier(0.16, 1, 0.3, 1),
@@ -27,7 +27,7 @@
 .target-cursor-reticle {
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(0, 217, 255, 0.45);
+  border: 1px solid rgba(225, 6, 19, 0.5);
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
@@ -38,9 +38,9 @@
   left: 50%;
   width: 3px;
   height: 3px;
-  background-color: var(--accent-cyan);
+  background-color: var(--accent-crimson);
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 6px var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-crimson);
   border-radius: 50%;
 }
 
@@ -48,7 +48,7 @@
 .target-cursor-hairline-x,
 .target-cursor-hairline-y {
   position: absolute;
-  background-color: rgba(0, 217, 255, 0.25);
+  background-color: rgba(225, 6, 19, 0.3);
 }
 
 .target-cursor-hairline-x {
@@ -69,13 +69,13 @@
 
 /* Active Hover State on Interactive Elements */
 .target-cursor.is-hovering {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
 }
 
 .target-cursor.is-hovering .target-cursor-reticle {
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 10px rgba(0, 217, 255, 0.35);
+  border-color: var(--accent-crimson-bright);
+  box-shadow: 0 0 12px rgba(255, 36, 70, 0.45);
 }
 
 .target-cursor.is-hovering .target-cursor-pip {
@@ -85,13 +85,13 @@
 
 /* Danger / Anomaly Hover State */
 .target-cursor.is-danger .target-cursor-reticle {
-  border-color: var(--accent-crimson);
-  box-shadow: 0 0 12px rgba(225, 29, 72, 0.5);
+  border-color: #FF2446;
+  box-shadow: 0 0 16px rgba(255, 36, 70, 0.7);
 }
 
 .target-cursor.is-danger .target-cursor-pip {
-  background-color: var(--accent-crimson);
-  box-shadow: 0 0 8px var(--accent-crimson);
+  background-color: #FF2446;
+  box-shadow: 0 0 10px #FF2446;
 }
 
 /* Hide on Touch Devices and when reduced motion is preferred */

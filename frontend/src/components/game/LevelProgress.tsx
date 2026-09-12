@@ -14,10 +14,10 @@ export const LevelProgress: React.FC<LevelProgressProps> = ({ levels }) => {
       style={{
         padding: '16px 20px',
         marginBottom: '20px',
-        backgroundColor: 'var(--bg-panel)',
-        border: '1px solid var(--border-dim)',
+        backgroundColor: 'var(--bg-panel-elevated)',
+        border: '1px solid var(--border-crimson)',
         borderRadius: 'var(--radius-sm)',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.7)',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.75)',
         fontFamily: 'var(--font-mono)',
       }}
     >
@@ -37,8 +37,8 @@ export const LevelProgress: React.FC<LevelProgressProps> = ({ levels }) => {
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              backgroundColor: 'var(--accent-cyan)',
-              boxShadow: '0 0 6px var(--accent-cyan)',
+              backgroundColor: 'var(--accent-crimson)',
+              boxShadow: '0 0 6px var(--accent-crimson)',
             }}
           />
           <h2
@@ -58,12 +58,13 @@ export const LevelProgress: React.FC<LevelProgressProps> = ({ levels }) => {
         <span
           style={{
             fontSize: '10px',
-            color: 'var(--accent-cyan)',
-            backgroundColor: 'rgba(0, 217, 255, 0.08)',
+            color: 'var(--accent-crimson-bright)',
+            backgroundColor: 'rgba(225, 6, 19, 0.1)',
             padding: '2px 8px',
             borderRadius: 'var(--radius-xs)',
-            border: '1px solid var(--border-cyan)',
+            border: '1px solid var(--border-crimson)',
             letterSpacing: '0.08em',
+            fontWeight: 700,
           }}
         >
           6 COOPERATIVE TIERS
@@ -80,7 +81,7 @@ export const LevelProgress: React.FC<LevelProgressProps> = ({ levels }) => {
           return (
             <SpotlightCard
               key={lvl.levelNumber}
-              variant={isLevel6Active ? 'danger' : isCompleted ? 'cyan' : isCurrent ? 'cyan' : 'obsidian'}
+              variant={isLevel6Active || isCurrent ? 'danger' : 'obsidian'}
               showCorners={true}
               style={{
                 display: 'flex',
@@ -89,89 +90,81 @@ export const LevelProgress: React.FC<LevelProgressProps> = ({ levels }) => {
                 borderRadius: 'var(--radius-xs)',
                 border: '1px solid',
                 borderColor: isLevel6Active
-                  ? 'var(--accent-crimson)'
+                  ? 'var(--accent-crimson-bright)'
                   : isCompleted
                   ? 'rgba(16, 185, 129, 0.4)'
                   : isCurrent
-                  ? 'var(--accent-cyan)'
+                  ? 'var(--accent-crimson)'
                   : 'var(--border-dim)',
                 backgroundColor: isLevel6Active
-                  ? 'rgba(225, 29, 72, 0.12)'
+                  ? 'rgba(225, 6, 19, 0.2)'
                   : isCompleted
                   ? 'rgba(16, 185, 129, 0.06)'
                   : isCurrent
-                  ? 'rgba(0, 217, 255, 0.08)'
-                  : 'rgba(4, 5, 7, 0.6)',
+                  ? 'rgba(225, 6, 19, 0.12)'
+                  : 'rgba(8, 8, 10, 0.6)',
                 color: isLevel6Active
-                  ? 'var(--accent-crimson)'
+                  ? 'var(--accent-crimson-bright)'
                   : isCompleted
                   ? 'var(--status-success)'
                   : isCurrent
                   ? 'var(--text-cold-white)'
                   : 'var(--text-muted)',
                 boxShadow: isLevel6Active
-                  ? '0 0 20px rgba(225, 29, 72, 0.35)'
+                  ? '0 0 20px rgba(225, 6, 19, 0.4)'
                   : isCurrent
-                  ? '0 0 16px rgba(0, 217, 255, 0.2)'
+                  ? '0 0 16px rgba(225, 6, 19, 0.25)'
                   : 'none',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em' }}>
-                  {isLevel6Active ? 'TIER 06 // CORE' : `TIER 0${lvl.levelNumber}`}
+                  TIER 0{lvl.levelNumber}
                 </span>
-
-                {isCompleted && <CheckCircle2 size={13} color="var(--status-success)" />}
-                {isLevel6Active && <Radio size={13} color="var(--accent-crimson)" className="animate-pulse" />}
-                {isCurrent && !isLevel6Active && <Radio size={13} color="var(--accent-cyan)" className="animate-pulse" />}
-                {isLocked && <Lock size={12} color="var(--text-muted)" />}
+                {isCompleted ? (
+                  <CheckCircle2 size={13} color="var(--status-success)" />
+                ) : isCurrent ? (
+                  <Radio size={13} color="var(--accent-crimson-bright)" className="animate-pulse" />
+                ) : (
+                  <Lock size={13} color="var(--text-muted)" />
+                )}
               </div>
 
-              <p
+              <span
                 style={{
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-sans)',
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
+                  fontSize: '9px',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  opacity: isLocked ? 0.5 : 0.85,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  color: isLevel6Active ? 'var(--accent-crimson)' : isLocked ? 'var(--text-muted)' : 'var(--text-primary)',
-                  margin: '2px 0 8px 0',
+                  whiteSpace: 'nowrap',
                 }}
-                title={lvl.name}
               >
-                {lvl.name.replace(/^Level \d+: /, '')}
-              </p>
+                {lvl.name}
+              </span>
 
-              {/* Progress track */}
+              {/* Progress bar inside tile */}
               <div
                 style={{
-                  width: '100%',
-                  backgroundColor: 'var(--bg-void)',
+                  marginTop: '8px',
                   height: '3px',
+                  width: '100%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
                   borderRadius: '1px',
                   overflow: 'hidden',
-                  border: '1px solid var(--border-dim)',
                 }}
               >
                 <div
                   style={{
                     height: '100%',
-                    width: isCompleted ? '100%' : isCurrent ? '50%' : '0%',
+                    width: isCompleted ? '100%' : isCurrent ? '45%' : '0%',
                     backgroundColor: isCompleted
                       ? 'var(--status-success)'
                       : isLevel6Active
-                      ? 'var(--accent-crimson)'
-                      : isCurrent
-                      ? 'var(--accent-cyan)'
-                      : 'transparent',
-                    boxShadow: isCompleted
-                      ? '0 0 6px var(--status-success)'
-                      : isLevel6Active
-                      ? '0 0 8px var(--accent-crimson)'
-                      : isCurrent
-                      ? '0 0 6px var(--accent-cyan)'
-                      : 'none',
+                      ? 'var(--accent-crimson-bright)'
+                      : 'var(--accent-crimson)',
+                    boxShadow: isCurrent ? '0 0 6px var(--accent-crimson)' : 'none',
                     transition: 'width 0.4s ease',
                   }}
                 />

@@ -1,4 +1,4 @@
-/* Admin Dashboard Styles */
+/* Admin Dashboard Styles — Crimson Protocol */
 
 .admin-dashboard {
   background-color: var(--bg-void);
@@ -8,12 +8,12 @@
 }
 
 .admin-panel {
-  background-color: rgba(15, 23, 42, 0.8); /* slate-900 */
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-crimson);
+  border-radius: var(--radius-sm);
   padding: var(--space-m);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
 }
 
 .admin-panel-lg {
@@ -21,14 +21,14 @@
 }
 
 /* Typography Utilities */
-.text-accent { color: var(--accent-cyan); }
+.text-accent { color: var(--accent-crimson-bright); }
 .text-success { color: var(--status-success); }
-.text-danger { color: var(--status-error); }
+.text-danger { color: var(--status-error-bright); }
 .text-warning { color: var(--status-warning); }
 .text-secondary { color: var(--text-secondary); }
 .text-primary { color: var(--text-primary); }
 
-/* Layout Utilities (Some overlap with components.css, but just in case) */
+/* Layout Utilities */
 .flex { display: flex; }
 .items-center { align-items: center; }
 .justify-between { justify-content: space-between; }
@@ -63,38 +63,41 @@
 }
 
 .admin-btn-primary {
-  background-color: var(--accent-cyan);
-  color: var(--bg-void);
-  box-shadow: 0 0 10px rgba(0, 217, 255, 0.2);
+  background-color: var(--accent-crimson);
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(225, 6, 19, 0.4);
 }
+
 .admin-btn-primary:hover {
-  background-color: #33e1ff;
-  box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
+  background-color: var(--accent-crimson-bright);
+  box-shadow: 0 0 22px rgba(255, 36, 70, 0.6);
 }
 
 .admin-btn-secondary {
   background-color: transparent;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-dim);
   color: var(--text-primary);
 }
+
 .admin-btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
   border-color: var(--text-secondary);
 }
 
 .admin-btn-danger {
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
+  background-color: rgba(225, 6, 19, 0.15);
+  border: 1px solid var(--accent-crimson);
+  color: #ff99a4;
 }
+
 .admin-btn-danger:hover {
-  background-color: rgba(239, 68, 68, 0.2);
+  background-color: rgba(225, 6, 19, 0.3);
 }
 
 /* Inputs */
 .admin-input {
-  background-color: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border-color);
+  background-color: rgba(8, 8, 10, 0.8);
+  border: 1px solid var(--border-dim);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   padding: 10px 14px;
@@ -103,16 +106,17 @@
   width: 100%;
   transition: all 0.2s;
 }
+
 .admin-input:focus {
-  border-color: var(--accent-cyan);
+  border-color: var(--accent-crimson);
   outline: none;
-  box-shadow: inset 0 0 0 1px var(--accent-cyan);
+  box-shadow: 0 0 10px var(--accent-crimson-dim);
 }
 
-/* Specific elements that lost their massive tailwind styles */
+/* Sidebar */
 .admin-sidebar {
-  background-color: rgba(10, 15, 25, 0.95);
-  border-right: 1px solid var(--border-color);
+  background-color: var(--bg-panel);
+  border-right: 1px solid var(--border-crimson);
   width: 250px;
   height: 100vh;
   position: fixed;
@@ -145,14 +149,14 @@
 }
 
 .admin-nav-item:hover {
-  background-color: rgba(0, 217, 255, 0.1);
+  background-color: var(--accent-crimson-faded);
   color: var(--text-primary);
 }
 
 .admin-nav-item.active {
-  background-color: rgba(0, 217, 255, 0.15);
-  color: var(--accent-cyan);
-  border-left: 3px solid var(--accent-cyan);
+  background-color: rgba(225, 6, 19, 0.15);
+  color: var(--accent-crimson-bright);
+  border-left: 3px solid var(--accent-crimson);
 }
 
 .admin-main-content {
@@ -168,27 +172,29 @@
   font-family: var(--font-sans);
   font-size: 14px;
 }
+
 .admin-table th {
   text-align: left;
   padding: 12px 16px;
   color: var(--text-secondary);
   font-weight: 600;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-crimson);
   font-family: var(--font-mono);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
 .admin-table td {
   padding: 16px;
-  border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
 }
+
 .admin-table tr:hover td {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: rgba(225, 6, 19, 0.04);
 }
 
-/* Animations that we kept from tailwind */
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

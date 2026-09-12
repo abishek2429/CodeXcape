@@ -134,7 +134,7 @@ export const PlayerLobbyPage: React.FC = () => {
     return (
       <div className="lobby-transition-overlay">
         <div className="lobby-transition-panel animate-fade-in">
-          <CheckCircle2 size={48} color="var(--status-success)" className="animate-pulse-glow" />
+          <CheckCircle2 size={48} color="var(--accent-crimson-bright)" className="animate-pulse-glow" />
           <h1 className="transition-title">TEAM VERIFIED</h1>
           <div className="transition-sub">
             &gt; OPERATOR 01 ... READY<br />
@@ -157,10 +157,10 @@ export const PlayerLobbyPage: React.FC = () => {
       {/* Top Telemetry Strip */}
       <header className="lobby-top-strip">
         <div className="lobby-brand">
-          <Shield size={16} color="var(--accent-cyan)" />
+          <Shield size={16} color="var(--accent-crimson)" />
           <span>CODEXCAPE</span>
-          <span style={{ color: 'var(--accent-cyan)' }}>//</span>
-          <span style={{ color: 'var(--text-muted)' }}>TEAM LOBBY</span>
+          <span style={{ color: 'var(--accent-crimson)' }}>//</span>
+          <span style={{ color: 'var(--text-secondary)' }}>COMMAND ROOM LOBBY</span>
         </div>
 
         <button onClick={handleLogout} className="lobby-logout-btn" title="Exit to Login">
@@ -171,16 +171,16 @@ export const PlayerLobbyPage: React.FC = () => {
 
       {/* Main Center Console */}
       <main className="lobby-main-container">
-        <SpotlightCard variant="cyan" className="lobby-profile-card animate-slide-up">
+        <SpotlightCard variant="danger" className="lobby-profile-card animate-slide-up">
           {/* Header */}
           <div className="profile-header">
             <div>
               <div className="profile-super">CLEARANCE LEVEL: OPERATOR</div>
-              <h1 className="profile-title">OPERATOR PROFILE</h1>
+              <h1 className="profile-title">TACTICAL HUD</h1>
             </div>
             <div className="badge-event-status">
               <span className="dot-pulse" />
-              <span>EVENT: NOT STARTED</span>
+              <span>STATUS: AWAITING START</span>
             </div>
           </div>
 
@@ -197,11 +197,11 @@ export const PlayerLobbyPage: React.FC = () => {
                   loadData();
                 }}
                 style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.4)',
-                  color: '#fca5a5',
+                  background: 'rgba(225, 6, 19, 0.2)',
+                  border: '1px solid var(--accent-crimson)',
+                  color: '#ff99a4',
                   padding: '2px 8px',
-                  borderRadius: '4px',
+                  borderRadius: '2px',
                   fontSize: '11px',
                   fontFamily: 'monospace',
                   cursor: 'pointer',
@@ -216,7 +216,7 @@ export const PlayerLobbyPage: React.FC = () => {
           {/* Section 1: Self Operator */}
           <div className="profile-section">
             <div className="section-title">
-              <Terminal size={14} color="var(--accent-cyan)" />
+              <Terminal size={14} color="var(--accent-crimson)" />
               <span>OPERATOR IDENTIFIER</span>
             </div>
             <div className="section-grid">
@@ -226,12 +226,12 @@ export const PlayerLobbyPage: React.FC = () => {
               </div>
               <div className="data-field">
                 <span className="field-label">NODE ASSIGNMENT</span>
-                <span className="field-value text-cyan font-bold">OPERATOR 0{player?.playerNumber}</span>
+                <span className="field-value text-crimson font-bold">OPERATOR 0{player?.playerNumber}</span>
               </div>
               <div className="data-field">
                 <span className="field-label">LOCAL STATUS</span>
                 <span className="field-value status-online">
-                  <span className="indicator-dot-green" /> LOGGED IN
+                  <span className="indicator-dot-red" /> LOGGED IN
                 </span>
               </div>
               <div className="data-field">
@@ -246,7 +246,7 @@ export const PlayerLobbyPage: React.FC = () => {
           {/* Section 2: Team */}
           <div className="profile-section">
             <div className="section-title">
-              <Users size={14} color="var(--accent-cyan)" />
+              <Users size={14} color="var(--accent-crimson)" />
               <span>TEAM IDENTIFICATION</span>
             </div>
             <div className="section-grid">
@@ -256,7 +256,7 @@ export const PlayerLobbyPage: React.FC = () => {
               </div>
               <div className="data-field">
                 <span className="field-label">TEAM CODE</span>
-                <span className="field-value text-cyan font-mono font-bold">{player?.teamCode}</span>
+                <span className="field-value text-crimson font-mono font-bold">{player?.teamCode}</span>
               </div>
             </div>
           </div>
@@ -264,7 +264,7 @@ export const PlayerLobbyPage: React.FC = () => {
           {/* Section 3: Teammate Live Telemetry */}
           <div className="profile-section">
             <div className="section-title">
-              <Cpu size={14} color="var(--accent-cyan)" />
+              <Cpu size={14} color="var(--accent-crimson)" />
               <span>COOPERATIVE PARTNER NODE (LIVE)</span>
             </div>
             <div className="section-grid">
@@ -274,14 +274,14 @@ export const PlayerLobbyPage: React.FC = () => {
               </div>
               <div className="data-field">
                 <span className="field-label">NODE</span>
-                <span className="field-value text-muted font-bold">OPERATOR 0{teammateNum}</span>
+                <span className="field-value text-secondary font-bold">OPERATOR 0{teammateNum}</span>
               </div>
               <div className="data-field">
                 <span className="field-label">CONNECTION STATUS</span>
                 <span className={`field-value ${isTeammateLoggedIn ? 'status-online' : 'status-offline'}`}>
                   {isTeammateLoggedIn ? (
                     <>
-                      <span className="indicator-dot-green" /> LOGGED IN
+                      <span className="indicator-dot-red" /> LOGGED IN
                     </>
                   ) : (
                     <>
@@ -303,16 +303,16 @@ export const PlayerLobbyPage: React.FC = () => {
           <div className="lobby-action-zone">
             <div className="status-summary-text">
               {!isTeammateLoggedIn ? (
-                <span style={{ color: 'var(--text-muted)' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>
                   &gt; WAITING FOR OPERATOR 0{teammateNum} TO AUTHENTICATE_
                 </span>
               ) : !isTeammateReady ? (
-                <span style={{ color: 'var(--status-warning)' }}>
+                <span style={{ color: 'var(--accent-gold)' }}>
                   &gt; OPERATOR 0{teammateNum} LOGGED IN. AWAITING MUTUAL READINESS_
                 </span>
               ) : (
-                <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>
-                  &gt; BOTH OPERATORS READY. AUTHORIZED TO BEGIN EVENT_
+                <span style={{ color: 'var(--accent-crimson-bright)', fontWeight: 800 }}>
+                  &gt; BOTH OPERATORS READY. AUTHORIZED TO BEGIN MISSION_
                 </span>
               )}
             </div>
@@ -325,7 +325,7 @@ export const PlayerLobbyPage: React.FC = () => {
                 className="lobby-start-btn"
               >
                 {isSelfReady && isTeammateReady ? (
-                  <span>START EVENT</span>
+                  <span>START MISSION</span>
                 ) : isSelfReady ? (
                   <span>MARK WAITING (TOGGLE READY)</span>
                 ) : (
@@ -342,18 +342,18 @@ export const PlayerLobbyPage: React.FC = () => {
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="confirm-modal-content animate-slide-up">
             <div className="modal-header">
-              <AlertOctagon size={24} color="var(--accent-cyan)" />
-              <h2>START EVENT CONFIRMATION</h2>
+              <AlertOctagon size={24} color="var(--accent-crimson-bright)" />
+              <h2>START MISSION CONFIRMATION</h2>
             </div>
 
             <p className="modal-body-text">
-              Once the event officially begins:
+              Once the mission officially begins:
             </p>
 
             <ul className="modal-rules-list">
               <li>The authoritative server timer will start (90-minute limit).</li>
               <li>Both operators will transition into <strong>Level 01: System Reconstruction</strong>.</li>
-              <li>Your team will be recorded as officially attending the event.</li>
+              <li>Your team will be recorded as officially active in the escape network.</li>
             </ul>
 
             <div className="modal-actions">

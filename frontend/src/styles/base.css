@@ -9,6 +9,10 @@ html, body {
   width: 100%;
   overflow-x: hidden;
   background-color: var(--bg-void);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(225, 6, 19, 0.08), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 50% 120%, rgba(94, 0, 8, 0.15), transparent 70%);
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-body);
   line-height: 1.6;
@@ -28,7 +32,7 @@ code, pre, .font-mono, [data-mono="true"] {
   font-family: var(--font-mono);
 }
 
-/* Custom Tactical Scrollbar */
+/* Custom Crimson Tactical Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -38,22 +42,23 @@ code, pre, .font-mono, [data-mono="true"] {
   border-left: 1px solid var(--border-dim);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 217, 255, 0.2);
+  background: rgba(225, 6, 19, 0.25);
   border-radius: var(--radius-none);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-cyan);
+  background: var(--accent-crimson);
+  box-shadow: 0 0 8px var(--accent-crimson);
 }
 
 /* Tactical Selection */
 ::selection {
-  background-color: var(--accent-cyan-dim);
+  background-color: var(--accent-crimson-dim);
   color: #ffffff;
 }
 
-/* Focus Outline for Accessibility (High Contrast Cyan) */
+/* Focus Outline for Accessibility (High Contrast Crimson Glow) */
 *:focus-visible {
-  outline: 2px solid var(--accent-cyan);
+  outline: 2px solid var(--accent-crimson);
   outline-offset: 2px;
 }
 
@@ -70,7 +75,7 @@ code, pre, .font-mono, [data-mono="true"] {
   border-width: 0;
 }
 
-/* Global Subtle Scanline Layer */
+/* Global Crimson Scanline Layer */
 .scanline-overlay {
   position: fixed;
   inset: 0;
@@ -78,15 +83,15 @@ code, pre, .font-mono, [data-mono="true"] {
   z-index: 998;
   background: linear-gradient(
     rgba(18, 16, 16, 0) 50%,
-    rgba(0, 0, 0, 0.25) 50%
+    rgba(0, 0, 0, 0.3) 50%
   ), linear-gradient(
     90deg,
-    rgba(255, 0, 0, 0.015),
-    rgba(0, 255, 0, 0.01),
-    rgba(0, 0, 255, 0.015)
+    rgba(225, 6, 19, 0.015),
+    rgba(0, 0, 0, 0),
+    rgba(225, 6, 19, 0.015)
   );
   background-size: 100% 3px, 6px 100%;
-  opacity: 0.45;
+  opacity: 0.55;
 }
 
 /* Reduced Motion Overrides */

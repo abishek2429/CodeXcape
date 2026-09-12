@@ -52,47 +52,46 @@ export const AdminLoginPage: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', backgroundColor: 'var(--bg-void)' }}>
-      <div style={{ maxWidth: '450px', width: '100%' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', backgroundColor: 'var(--bg-void)', position: 'relative' }}>
+      <div style={{ maxWidth: '450px', width: '100%', position: 'relative', zIndex: 10 }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(0, 217, 255, 0.1)', border: '1px solid rgba(0, 217, 255, 0.3)', marginBottom: '24px', boxShadow: '0 0 30px rgba(0, 217, 255, 0.15)', position: 'relative' }}>
-            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(0, 217, 255, 0.2)' }} className=""></div>
-            <ShieldAlert size={40} color="var(--accent-cyan)" />
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '74px', height: '74px', borderRadius: '4px', backgroundColor: 'rgba(225, 6, 19, 0.12)', border: '1px solid var(--accent-crimson)', marginBottom: '20px', boxShadow: '0 0 25px rgba(225, 6, 19, 0.25)', position: 'relative' }}>
+            <ShieldAlert size={36} color="var(--accent-crimson-bright)" />
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '0.05em' }}>
+          <h1 style={{ fontSize: '30px', fontWeight: 900, fontFamily: 'var(--font-sans)', color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '0.08em' }}>
             MISSION CONTROL
           </h1>
-          <p style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontSize: '12px', letterSpacing: '0.1em', fontWeight: 600 }}>
-            ADMINISTRATIVE ACCESS ONLY
+          <p style={{ color: 'var(--accent-crimson-bright)', fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.14em', fontWeight: 700 }}>
+            ADMINISTRATIVE CLEARANCE REQUIRED
           </p>
         </div>
 
         {/* Login Form */}
-        <Card style={{ padding: '32px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: 'linear-gradient(to right, transparent, var(--accent-cyan), transparent)', opacity: 0.8 }}></div>
+        <Card style={{ padding: '32px', position: 'relative', overflow: 'hidden', backgroundColor: 'var(--bg-panel-elevated)', border: '1px solid var(--border-crimson)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(225, 6, 19, 0.15)' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: 'linear-gradient(to right, transparent, var(--accent-crimson), transparent)', opacity: 0.8 }}></div>
           
           <form onSubmit={handleLogin} style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {error && (
-              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fda4af', padding: '16px', borderRadius: '12px', fontSize: '12px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <ShieldAlert size={20} color="var(--status-error)" style={{ marginTop: '2px', flexShrink: 0 }} />
+              <div style={{ backgroundColor: 'rgba(225, 6, 19, 0.12)', border: '1px solid var(--accent-crimson)', color: '#ff99a4', padding: '14px', borderRadius: '4px', fontSize: '12px', display: 'flex', alignItems: 'flex-start', gap: '12px', boxShadow: '0 0 12px rgba(225, 6, 19, 0.2)' }}>
+                <ShieldAlert size={18} color="var(--accent-crimson-bright)" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <p>{error}</p>
               </div>
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginLeft: '4px', fontFamily: 'var(--font-mono)' }}>Authorization Key</label>
+              <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent-crimson-bright)', letterSpacing: '0.08em', marginLeft: '2px', fontFamily: 'var(--font-mono)' }}>AUTHORIZATION KEY</label>
               <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-                  <Lock size={20} color="rgba(0, 217, 255, 0.5)" />
+                <div style={{ position: 'absolute', top: '50%', left: '14px', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                  <Lock size={18} color="var(--accent-crimson)" />
                 </div>
                 <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter admin password"
+                  placeholder="> INPUT MASTER KEY_"
                   required
-                  style={{ paddingLeft: '48px', paddingRight: '16px', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
+                  style={{ paddingLeft: '44px', paddingRight: '16px', backgroundColor: 'rgba(8, 8, 10, 0.8)', border: '1px solid var(--border-dim)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
                 />
               </div>
             </div>
@@ -100,13 +99,13 @@ export const AdminLoginPage: React.FC = () => {
             <Button
               type="submit"
               disabled={isLoading}
-              style={{ width: '100%', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', letterSpacing: '0.05em' }}
+              style={{ width: '100%', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', letterSpacing: '0.12em', fontWeight: 800 }}
             >
               {isLoading ? (
-                <div style={{ width: '24px', height: '24px', border: '2px solid rgba(255, 255, 255, 0.3)', borderTopColor: 'white', borderRadius: '50%' }} className="animate-spin"></div>
+                <div style={{ width: '20px', height: '20px', border: '2px solid rgba(255, 255, 255, 0.3)', borderTopColor: 'white', borderRadius: '50%' }} className="animate-spin"></div>
               ) : (
                 <>
-                  <LogIn size={20} />
+                  <LogIn size={18} />
                   <span>INITIALIZE UPLINK</span>
                 </>
               )}
@@ -115,9 +114,9 @@ export const AdminLoginPage: React.FC = () => {
         </Card>
         
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '32px' }}>
-          <p style={{ color: 'var(--text-tertiary)', fontSize: '10px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
-            SECURE CONNECTION ESTABLISHED • ENCRYPTED CHANNEL
+        <div style={{ textAlign: 'center', marginTop: '28px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '10px', fontFamily: 'var(--font-mono)', letterSpacing: '0.12em' }}>
+            SECURE ENCRYPTED SESSION • CRIMSON PROTOCOL
           </p>
         </div>
       </div>

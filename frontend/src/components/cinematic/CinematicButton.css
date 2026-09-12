@@ -11,7 +11,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   background-color: var(--bg-panel);
-  border: 1px solid var(--border-cyan);
+  border: 1px solid var(--border-crimson);
   color: var(--text-primary);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -27,7 +27,7 @@
   inset: 0;
   background: radial-gradient(
     140px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(0, 217, 255, 0.25),
+    rgba(225, 6, 19, 0.3),
     transparent 70%
   );
   opacity: 0;
@@ -40,45 +40,45 @@
 }
 
 .cinematic-btn:hover {
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 14px rgba(0, 217, 255, 0.35);
+  border-color: var(--accent-crimson-bright);
+  box-shadow: 0 0 16px rgba(225, 6, 19, 0.45);
 }
 
 .cinematic-btn:active {
   transform: translateY(1px);
 }
 
-/* Primary Cyan Variant */
+/* Primary Crimson Variant */
 .cinematic-btn-primary {
-  background-color: rgba(0, 217, 255, 0.1);
-  border-color: var(--accent-cyan);
+  background-color: rgba(225, 6, 19, 0.14);
+  border-color: var(--accent-crimson);
   color: #ffffff;
 }
 
 .cinematic-btn-primary:hover {
-  background-color: rgba(0, 217, 255, 0.18);
-  box-shadow: 0 0 20px rgba(0, 217, 255, 0.45);
+  background-color: rgba(225, 6, 19, 0.25);
+  box-shadow: 0 0 22px rgba(225, 6, 19, 0.6);
 }
 
-/* Danger Crimson Variant */
+/* Danger Deep Crimson Variant */
 .cinematic-btn-danger {
-  background-color: rgba(225, 29, 72, 0.1);
-  border-color: var(--accent-crimson);
-  color: #ffffff;
+  background-color: rgba(94, 0, 8, 0.2);
+  border-color: var(--accent-crimson-deep);
+  color: #ff99a4;
 }
 
 .cinematic-btn-danger::before {
   background: radial-gradient(
     140px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(225, 29, 72, 0.35),
+    rgba(255, 36, 70, 0.4),
     transparent 70%
   );
 }
 
 .cinematic-btn-danger:hover {
-  background-color: rgba(225, 29, 72, 0.22);
+  background-color: rgba(94, 0, 8, 0.35);
   border-color: var(--accent-crimson);
-  box-shadow: 0 0 16px rgba(225, 29, 72, 0.5);
+  box-shadow: 0 0 16px rgba(225, 6, 19, 0.5);
 }
 
 /* Secondary Dim Variant */
@@ -89,20 +89,21 @@
 }
 
 .cinematic-btn-secondary:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(225, 6, 19, 0.5);
   color: var(--text-primary);
 }
 
 /* Technical Bracket Corners */
 .cinematic-btn-bracket {
-  color: var(--accent-cyan);
-  opacity: 0.6;
+  color: var(--accent-crimson);
+  opacity: 0.7;
   font-weight: 400;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, color 0.2s ease;
 }
 
 .cinematic-btn:hover .cinematic-btn-bracket {
   opacity: 1;
+  color: var(--accent-crimson-bright);
 }
 
 /* Disabled State */

@@ -52,27 +52,31 @@ export const PlayerLoginPage: React.FC = () => {
 
   return (
     <div className="login-page">
-      <div className="digital-noise-overlay"></div>
-      
+      {/* Background Ambience */}
+      <div className="login-ambient-glow" aria-hidden="true" />
+      <div className="login-scanlines" aria-hidden="true" />
+
       <div className="cyber-panel login-panel animate-slide-up">
+        {/* Terminal Header */}
         <div className="login-header">
-          <div className="badge badge-cyan" style={{ marginBottom: '24px' }}>
+          <div className="badge badge-crimson" style={{ marginBottom: '20px' }}>
             <span className="indicator-dot indicator-connected" style={{ marginRight: '8px' }}></span>
-            CLEARANCE TERMINAL
+            CRIMSON CLEARANCE TERMINAL
           </div>
-          
+
           <h1 className="login-title">AUTHENTICATION</h1>
-          <p className="terminal-text text-muted" style={{ fontSize: '12px' }}>
+          <p className="terminal-text text-secondary" style={{ fontSize: '12px' }}>
             &gt; ENTER ASSIGNED TEAM IDENTIFIER AND SELECT CONSOLE NODE_
           </p>
         </div>
 
+        {/* Honest Error Notice */}
         {errorMsg && (
           <div className="cyber-panel error-banner animate-glitch">
-            <AlertOctagon size={16} />
+            <AlertOctagon size={16} className="text-error" />
             <div>
-              <p className="terminal-text text-error font-bold">AUTHENTICATION FAILED</p>
-              <p className="text-muted" style={{ fontSize: '12px', marginTop: '4px' }}>{errorMsg}</p>
+              <p className="terminal-text text-error font-bold" style={{ fontSize: '12px' }}>AUTHENTICATION FAILED</p>
+              <p className="text-secondary" style={{ fontSize: '11px', marginTop: '3px' }}>{errorMsg}</p>
             </div>
           </div>
         )}
@@ -80,8 +84,8 @@ export const PlayerLoginPage: React.FC = () => {
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label htmlFor="teamCode" className="form-label terminal-text">
-              <KeyRound size={14} />
-              TEAM SECURITY CODE
+              <KeyRound size={14} color="var(--accent-crimson)" />
+              <span>TEAM SECURITY CODE</span>
             </label>
             <div style={{ position: 'relative' }}>
               <input
@@ -90,45 +94,46 @@ export const PlayerLoginPage: React.FC = () => {
                 className="cyber-input"
                 value={teamCode}
                 onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
-                placeholder="> INPUT HEX/ID_"
+                placeholder="> INPUT HEX / ID_"
                 disabled={isLoading}
                 maxLength={30}
+                autoFocus
               />
             </div>
           </div>
 
           <div className="form-group">
             <label className="form-label terminal-text">
-              <Cpu size={14} />
-              SELECT CONSOLE NODE
+              <Cpu size={14} color="var(--accent-crimson)" />
+              <span>SELECT CONSOLE NODE</span>
             </label>
             <div className="role-grid">
-              {/* Player 1 Option */}
+              {/* Operator 1 */}
               <button
                 type="button"
                 onClick={() => setPlayerNumber(1)}
                 disabled={isLoading}
-                className={`cyber-panel role-btn ${playerNumber === 1 ? 'selected-cyan' : ''}`}
+                className={`cyber-panel role-btn ${playerNumber === 1 ? 'selected-crimson' : ''}`}
               >
                 <div className="role-icon">
                   <Terminal size={18} />
                 </div>
                 <div className="role-name">NODE 01</div>
-                <span className="role-sub">PRIMARY</span>
+                <span className="role-sub">PRIMARY OPERATOR</span>
               </button>
 
-              {/* Player 2 Option */}
+              {/* Operator 2 */}
               <button
                 type="button"
                 onClick={() => setPlayerNumber(2)}
                 disabled={isLoading}
-                className={`cyber-panel role-btn ${playerNumber === 2 ? 'selected-purple' : ''}`}
+                className={`cyber-panel role-btn ${playerNumber === 2 ? 'selected-crimson' : ''}`}
               >
                 <div className="role-icon">
                   <Cpu size={18} />
                 </div>
                 <div className="role-name">NODE 02</div>
-                <span className="role-sub">SECONDARY</span>
+                <span className="role-sub">COOPERATIVE PARTNER</span>
               </button>
             </div>
           </div>
@@ -136,7 +141,7 @@ export const PlayerLoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading || !teamCode.trim()}
-            className="btn btn-primary login-submit animate-pulse-glow"
+            className="btn btn-primary login-submit"
           >
             {isLoading ? (
               <span className="terminal-text">&gt; AUTHENTICATING...</span>
@@ -149,8 +154,8 @@ export const PlayerLoginPage: React.FC = () => {
           </button>
         </form>
 
-        <div className="login-footer terminal-text text-muted">
-          SECURE 256-BIT ENCRYPTED SESSION // CODEXCAPE PROTOCOL
+        <div className="login-footer terminal-text text-secondary">
+          SECURE 256-BIT ENCRYPTED SESSION // CRIMSON PROTOCOL
         </div>
       </div>
     </div>
