@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Shield, Lock, Unlock, ChevronDown, ChevronUp, Radio } from 'lucide-react';
 import { StorylineData, RecoveryFragment } from '../../types/story';
+import { soundService } from '../../services/soundService';
 
 interface InvestigationDossierProps {
   storyline: StorylineData | null;
@@ -13,6 +14,17 @@ export const InvestigationDossier: React.FC<InvestigationDossierProps> = ({
 }) => {
   const [selectedFragment, setSelectedFragment] = useState<RecoveryFragment | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const prevCountRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!storyline?.fragments) return;
+    const currentUnlocked = storyline.fragments.filter(f => f.status === 'UNLOCKED').length;
+    if (prevCountRef.current !== null && currentUnlocked > prevCountRef.current) {
+      soundService.playClueDiscover();
+    }
+    prevCountRef.current = currentUnlocked;
+  }, [storyline?.fragments]);
 
   if (!storyline) return null;
 
@@ -197,7 +209,14 @@ export const InvestigationDossier: React.FC<InvestigationDossierProps> = ({
                   >
                     <button
                       type="button"
-                      onClick={() => setSelectedFragment(isSelected ? null : frag)}
+                      onClick={() => {
+                        if (isUnlocked) {
+                          soundService.playSelect();
+                          setSelectedFragment(isSelected ? null : frag);
+                        } else {
+                          soundService.playError();
+                        }
+                      }}
                       style={{
                         width: '100%',
                         padding: '8px 12px',

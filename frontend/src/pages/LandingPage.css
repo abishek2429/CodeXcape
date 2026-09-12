@@ -123,6 +123,25 @@
   transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  /* CODEXCAPE KNOCK cursor: Armored pointing hand with fingertip glow */
+  .codexcape-title-interactive {
+    cursor: url('/assets/cursors/crimson-knock-hand.svg') 11 2, url('/assets/cursors/crimson-knock-hand.png') 11 2, pointer !important;
+  }
+
+  .codexcape-title-interactive * {
+    cursor: inherit !important;
+  }
+
+  /* Immediately after click, switch back to the default flame-arrow cursor */
+  .codexcape-title-interactive.is-knocking,
+  .codexcape-title-interactive.is-knocking *,
+  .crimson-home-container.knock-shake .codexcape-title-interactive,
+  .crimson-home-container.knock-shake .codexcape-title-interactive * {
+    cursor: url('/assets/cursors/crimson-flame-arrow.svg') 1 1, url('/assets/cursors/crimson-flame-arrow.png') 1 1, auto !important;
+  }
+}
+
 .codexcape-title-interactive:focus-visible {
   box-shadow: 0 0 0 2px #E10613, 0 0 16px rgba(225, 6, 19, 0.5);
 }
@@ -779,8 +798,12 @@
   text-shadow: 0 0 10px #FFFFFF;
 }
 
-.crimson-cta-btn:active {
-  transform: translateY(1px);
+.crimson-cta-btn:active,
+.crimson-cta-btn.cta-activating {
+  transform: scale(0.98) translateY(1px);
+  background-color: rgba(225, 6, 19, 0.42);
+  border-color: #FF2446;
+  box-shadow: 0 0 32px rgba(255, 36, 70, 0.85), inset 0 0 20px rgba(225, 6, 19, 0.5);
 }
 
 .crimson-cta-btn:focus-visible {

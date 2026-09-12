@@ -147,6 +147,8 @@ export const LandingPage: React.FC = () => {
     }
   };
 
+  const [isProceeding, setIsProceeding] = useState(false);
+
   const toggleAudio = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     const next = soundService.toggleMute();
@@ -154,8 +156,17 @@ export const LandingPage: React.FC = () => {
   };
 
   const handleProceedToLogin = () => {
-    soundService.playClick();
-    navigate('/player/login');
+    if (isProceeding) return; // Prevent duplicate sound playback / clicks
+    setIsProceeding(true);
+
+    // Play cyber-security terminal unlock sound immediately on click
+    soundService.playFindWayOutUnlock(0.48);
+
+    // Wait ~280ms before existing navigation so the unlock impact and whoosh are noticeable
+    const tNav = setTimeout(() => {
+      navigate('/player/login');
+    }, 280);
+    timerRefs.current.push(tNav);
   };
 
   return (
@@ -297,7 +308,8 @@ export const LandingPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleProceedToLogin}
-                className="crimson-cta-btn"
+                disabled={isProceeding}
+                className={`crimson-cta-btn ${isProceeding ? 'cta-activating' : ''}`}
                 autoFocus
               >
                 <span className="cta-btn-text">FIND THE WAY OUT</span>

@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { LandingPage } from './pages/LandingPage';
@@ -8,6 +8,7 @@ import { PlayerAuthProvider } from './context/PlayerAuthContext';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 import { TargetCursor } from './components/cinematic/TargetCursor';
+import { soundService } from './services/soundService';
 
 // Lazy-loaded player gameplay suite (isolated from initial entry bundle)
 const PlayerLobbyPage = lazy(() => import('./pages/player/PlayerLobbyPage').then(m => ({ default: m.PlayerLobbyPage })));
@@ -34,6 +35,11 @@ const SystemSuspenseFallback = () => (
 );
 
 export const App: React.FC = () => {
+  useEffect(() => {
+    soundService.initGlobalUiSounds();
+    soundService.preloadUiSounds();
+  }, []);
+
   return (
     <BrowserRouter>
       <AdminAuthProvider>

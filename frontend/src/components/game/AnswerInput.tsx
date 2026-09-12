@@ -219,7 +219,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
                     className={`btn ${selectedNode === node ? 'btn-primary' : 'btn-secondary'}`}
                     onClick={() => {
                       setSelectedNode(node);
-                      soundService.playClick();
+                      soundService.playSelect();
                     }}
                     style={{ flex: 1, padding: '10px', fontSize: '12px' }}
                   >
@@ -242,7 +242,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
                     className={`btn ${selectedProcess === proc ? 'btn-primary' : 'btn-secondary'}`}
                     onClick={() => {
                       setSelectedProcess(proc);
-                      soundService.playClick();
+                      soundService.playSelect();
                     }}
                     style={{ flex: 1, padding: '10px', fontSize: '12px' }}
                   >
@@ -265,7 +265,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
                     className={`btn ${selectedSequence === seq ? 'btn-primary' : 'btn-secondary'}`}
                     onClick={() => {
                       setSelectedSequence(seq);
-                      soundService.playClick();
+                      soundService.playSelect();
                     }}
                     style={{ flex: 1, padding: '10px', fontSize: '12px' }}
                   >
@@ -300,7 +300,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
                   className={`btn ${selectedOperation === operation ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={() => {
                     setSelectedOperation(operation);
-                    soundService.playClick();
+                    soundService.playSelect();
                   }}
                   style={{ fontSize: '12px', padding: '8px 16px' }}
                 >
@@ -428,7 +428,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
                 type="button"
                 onClick={() => {
                   setAnswer(option);
-                  soundService.playClick();
+                  soundService.playSelect();
                 }}
                 style={{
                   padding: '14px 16px',

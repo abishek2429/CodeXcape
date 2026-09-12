@@ -30,13 +30,18 @@ export const CinematicButton: React.FC<CinematicButtonProps> = ({
   };
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (withSound && !rest.disabled) {
+      soundService.playHover();
+    }
     if (onMouseEnter) onMouseEnter(e);
   };
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (withSound) {
-      if (variant === 'danger') {
-        soundService.playAccessDenied();
+      if (rest.disabled) {
+        soundService.playError();
+      } else if (variant === 'danger') {
+        soundService.playError();
       } else {
         soundService.playClick();
       }
@@ -50,6 +55,7 @@ export const CinematicButton: React.FC<CinematicButtonProps> = ({
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onClick={handleClick}
+      data-sound="custom"
       className={`cinematic-btn cinematic-btn-${variant} ${className}`}
       {...rest}
     >

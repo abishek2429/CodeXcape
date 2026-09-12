@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlayerAuth } from '../../context/PlayerAuthContext';
 import { Terminal, Cpu, ArrowRight, AlertOctagon, KeyRound } from 'lucide-react';
+import { soundService } from '../../services/soundService';
 import './PlayerLoginPage.css';
 
 export const PlayerLoginPage: React.FC = () => {
@@ -26,6 +27,7 @@ export const PlayerLoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamCode.trim()) {
+      soundService.playError();
       setErrorMsg('MISSING PARAMETER: TEAM_SECURITY_CODE');
       return;
     }
@@ -38,12 +40,14 @@ export const PlayerLoginPage: React.FC = () => {
         teamCode: teamCode.trim().toUpperCase(),
         playerNumber,
       });
+      soundService.playClick();
       if (playerInfo.gameState === 'NOT_STARTED') {
         navigate('/player/lobby', { replace: true });
       } else {
         navigate('/player/game', { replace: true });
       }
     } catch (err: any) {
+      soundService.playError();
       setErrorMsg(err.message || 'ACCESS DENIED: CONNECTION REJECTED');
     } finally {
       setIsLoading(false);
@@ -111,7 +115,10 @@ export const PlayerLoginPage: React.FC = () => {
               {/* Operator 1 */}
               <button
                 type="button"
-                onClick={() => setPlayerNumber(1)}
+                onClick={() => {
+                  soundService.playSelect();
+                  setPlayerNumber(1);
+                }}
                 disabled={isLoading}
                 className={`cyber-panel role-btn ${playerNumber === 1 ? 'selected-crimson' : ''}`}
               >
@@ -125,7 +132,10 @@ export const PlayerLoginPage: React.FC = () => {
               {/* Operator 2 */}
               <button
                 type="button"
-                onClick={() => setPlayerNumber(2)}
+                onClick={() => {
+                  soundService.playSelect();
+                  setPlayerNumber(2);
+                }}
                 disabled={isLoading}
                 className={`cyber-panel role-btn ${playerNumber === 2 ? 'selected-crimson' : ''}`}
               >
