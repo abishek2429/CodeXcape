@@ -51,21 +51,32 @@ public class PlayerSessionService {
 
     @Transactional
     public PlayerResponseDto login(PlayerLoginRequest request, HttpServletRequest httpRequest, HttpServletResponse response) {
-        String normalizedTeamCode = request.getTeamCode().trim().toUpperCase();
+        String rawCode = request.getTeamCode() != null ? request.getTeamCode().trim().toUpperCase() : "";
+        String normalizedTeamCode = rawCode.replaceAll("\\s+", "-");
 
-        // 1. Resolve Team
-        Team team = teamRepository.findByTeamCode(normalizedTeamCode)
-                .orElseThrow(() -> {
-                    auditService.logEvent(
-                            GameEventType.PLAYER_LOGIN_FAILED,
-                            null,
-                            null,
-                            null,
-                            "{\"reason\": \"Team code not found\", \"teamCode\": \"" + normalizedTeamCode + "\"}",
-                            "PLAYER"
-                    );
-                    return new ResourceNotFoundException("Team not found.");
-                });
+        // 1. Resolve Team (try exact normalized, then with TEAM- prefix, then aliases)
+        Optional<Team> teamOpt = teamRepository.findByTeamCode(normalizedTeamCode);
+        if (teamOpt.isEmpty() && !normalizedTeamCode.startsWith("TEAM-")) {
+            teamOpt = teamRepository.findByTeamCode("TEAM-" + normalizedTeamCode);
+        }
+        if (teamOpt.isEmpty() && ("TEAM-BETA".equals(normalizedTeamCode) || "BETA".equals(rawCode))) {
+            teamOpt = teamRepository.findByTeamCode("TEAM-BRAVO");
+        }
+        if (teamOpt.isEmpty() && ("TEAM-CHARLIE".equals(normalizedTeamCode) || "CHARLIE".equals(rawCode))) {
+            teamOpt = teamRepository.findByTeamCode("TEAM-CHARL");
+        }
+
+        Team team = teamOpt.orElseThrow(() -> {
+            auditService.logEvent(
+                    GameEventType.PLAYER_LOGIN_FAILED,
+                    null,
+                    null,
+                    null,
+                    "{\"reason\": \"Team code not found\", \"teamCode\": \"" + rawCode + "\"}",
+                    "PLAYER"
+            );
+            return new ResourceNotFoundException("Team not found.");
+        });
 
         // 2. Validate Event
         Event event = team.getEvent();
