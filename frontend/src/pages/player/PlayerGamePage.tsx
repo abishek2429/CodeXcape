@@ -167,9 +167,11 @@ export const PlayerGamePage: React.FC = () => {
     };
   }, [serverState?.gameStatus, serverState?.currentLevel, liveQuestion?.stageNumber]);
 
-  // Stop loading screen audio as soon as gameplay data is ready and actual game screen renders
+  // Ensure loading screen audio starts on initial entry and stops as soon as gameplay data is ready
   useEffect(() => {
-    if (!isLoadingData && serverState) {
+    if ((isLoadingData || !serverState) && !soundService.hasPlayedLoadingSound()) {
+      soundService.playLoadingScreen();
+    } else if (!isLoadingData && serverState) {
       soundService.stopLoadingScreen();
     }
   }, [isLoadingData, serverState]);
