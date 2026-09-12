@@ -3,6 +3,7 @@ class SoundService {
   private muted: boolean = false;
   private ambientOsc: OscillatorNode | null = null;
   private ambientGain: GainNode | null = null;
+  private audioCache: Record<string, HTMLAudioElement> = {};
 
   constructor() {
     this.muted = localStorage.getItem('codexcape_muted') === 'true';
@@ -35,6 +36,144 @@ class SoundService {
       this.playClick();
     }
     return this.muted;
+  }
+
+  public setMuted(val: boolean): boolean {
+    this.muted = val;
+    localStorage.setItem('codexcape_muted', String(this.muted));
+    if (this.muted) {
+      this.stopAmbientHum();
+    }
+    return this.muted;
+  }
+
+  // Preload local audio files
+  public preloadHomeSounds() {
+    if (typeof window === 'undefined') return;
+    const paths = [
+      '/assets/sounds/knock-impact.mp3',
+      '/assets/sounds/x-approach-whoosh.mp3',
+      '/assets/sounds/glitch-transition.mp3',
+    ];
+    paths.forEach((p) => {
+      try {
+        if (!this.audioCache[p]) {
+          const audio = new Audio(p);
+          audio.preload = 'auto';
+          this.audioCache[p] = audio;
+        }
+      } catch {}
+    });
+  }
+
+  private playSoundFile(src: string, volume: number = 0.42, fallbackSynth?: () => void) {
+    if (this.muted) return;
+    const clampedVol = Math.max(0.1, Math.min(0.5, volume));
+
+    try {
+      let audio = this.audioCache[src];
+      if (!audio) {
+        audio = new Audio(src);
+        audio.preload = 'auto';
+        this.audioCache[src] = audio;
+      }
+      audio.currentTime = 0;
+      audio.volume = clampedVol;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // If browser policy or codec blocks file playback, execute synthesized fallback
+          if (fallbackSynth) fallbackSynth();
+        });
+      }
+    } catch {
+      if (fallbackSynth) fallbackSynth();
+    }
+  }
+
+  // 1. Heavy Glass / Metallic Knock Sound (~0.75s)
+  public playKnockImpact(volume: number = 0.45) {
+    if (this.muted) return;
+    this.playSoundFile('/assets/sounds/knock-impact.mp3', volume, () => {
+      const ctx = this.initCtx();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        // Deep low sub thud (68Hz -> 38Hz)
+        const subOsc = ctx.createOscillator();
+        const subGain = ctx.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(68, now);
+        subOsc.frequency.exponentialRampToValueAtTime(38, now + 0.38);
+        subGain.gain.setValueAtTime(volume * 0.9, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        subOsc.connect(subGain);
+        subGain.connect(ctx.destination);
+        subOsc.start(now);
+        subOsc.stop(now + 0.38);
+
+        // Metallic / glass resonant ring (1840Hz & 2460Hz)
+        [1840, 2460].forEach((freq) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(volume * 0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.65);
+        });
+      } catch {}
+    });
+  }
+
+  // 2. Rising Digital Whoosh as X surges forward (~0.95s)
+  public playXApproachWhoosh(volume: number = 0.38) {
+    if (this.muted) return;
+    this.playSoundFile('/assets/sounds/x-approach-whoosh.mp3', volume, () => {
+      const ctx = this.initCtx();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(110, now);
+        osc.frequency.exponentialRampToValueAtTime(700, now + 0.85);
+        gain.gain.setValueAtTime(volume * 0.15, now);
+        gain.gain.linearRampToValueAtTime(volume * 0.9, now + 0.65);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.92);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.92);
+      } catch {}
+    });
+  }
+
+  // 3. Short Low Glitch / Fade-Out Sound (~0.45s)
+  public playGlitchTransition(volume: number = 0.4) {
+    if (this.muted) return;
+    this.playSoundFile('/assets/sounds/glitch-transition.mp3', volume, () => {
+      const ctx = this.initCtx();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(85, now);
+        osc.frequency.linearRampToValueAtTime(32, now + 0.35);
+        gain.gain.setValueAtTime(volume * 0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } catch {}
+    });
   }
 
   // Subtle ambient server hum (55Hz / 110Hz sub-audible texture)
@@ -126,7 +265,6 @@ class SoundService {
     if (!ctx) return;
     try {
       const now = ctx.currentTime;
-      // Tone 1: 523 Hz (C5)
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
@@ -138,7 +276,6 @@ class SoundService {
       osc1.start(now);
       osc1.stop(now + 0.18);
 
-      // Tone 2: 784 Hz (G5)
       const osc2 = ctx.createOscillator();
       const gain2 = ctx.createGain();
       osc2.type = 'sine';

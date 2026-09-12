@@ -1,6 +1,7 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { soundService } from '../services/soundService';
+import { Volume2, VolumeX } from 'lucide-react';
 import './LandingPage.css';
 
 // Fragments for the ready screen ambient background
@@ -55,12 +56,22 @@ export const LandingPage: React.FC = () => {
   const [knockMessage, setKnockMessage] = useState(false);
   const [lettersEscaped, setLettersEscaped] = useState(false);
   const [shockwaveActive, setShockwaveActive] = useState(false);
+  const [isMuted, setIsMuted] = useState<boolean>(() => soundService.isMuted());
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const timerRefs = useRef<any[]>([]);
 
   // Check prefers-reduced-motion
   const prefersReducedMotion = useMemo(() => {
     if (typeof window === 'undefined') return false;
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }, []);
+
+  // Preload local sound files on mount and cleanup listeners/timers on unmount
+  useEffect(() => {
+    soundService.preloadHomeSounds();
+    return () => {
+      timerRefs.current.forEach((t) => clearTimeout(t));
+    };
   }, []);
 
   // Generate 42 wandering fragments with deterministic seeded distribution
@@ -81,34 +92,52 @@ export const LandingPage: React.FC = () => {
   }, []);
 
   const handleKnock = () => {
+    // Prevent overlapping triggers if user clicks while animation is running
     if (stage !== 'idle') return;
 
-    soundService.playClick();
+    // 1. Play immediate cinematic knock sound (heavy glass / metal terminal impact)
+    soundService.playKnockImpact(0.48);
+
     setStage('knocking');
     setShockwaveActive(true);
 
     if (prefersReducedMotion) {
-      // Reduced motion: short fade without violent screen shake or 3D letter scatter
-      setTimeout(() => {
+      // Reduced motion: shorter visual duration but keep sound effect
+      const tRed = setTimeout(() => {
+        soundService.playGlitchTransition(0.35);
         setStage('ready');
       }, 500);
+      timerRefs.current.push(tRed);
       return;
     }
 
     // Trigger brief terminal text
-    setTimeout(() => {
+    const tNotice = setTimeout(() => {
       setKnockMessage(true);
-    }, 150);
+    }, 120);
+    timerRefs.current.push(tNotice);
 
-    // Trigger individual 3D letter escape sequence
-    setTimeout(() => {
+    // Trigger letter split and escape sequence:
+    // Other letters begin escaping away; X begins forward zoom with subtle rising digital whoosh
+    const tEscape = setTimeout(() => {
       setLettersEscaped(true);
-    }, 320);
+      // 2. Rising digital whoosh as X surges toward the camera
+      soundService.playXApproachWhoosh(0.40);
+    }, 200);
+    timerRefs.current.push(tEscape);
 
-    // Direct transition to the Ready screen after ~1.25s
-    setTimeout(() => {
+    // 3. Short low glitch/fade-out sound as X vanishes and Ready screen appears
+    const tGlitch = setTimeout(() => {
+      soundService.playGlitchTransition(0.42);
+    }, 1520);
+    timerRefs.current.push(tGlitch);
+
+    // Transition to the Ready screen after the X reaches and vanishes into darkness,
+    // including an intentional 100ms extra pause on a clean black/crimson screen
+    const tReady = setTimeout(() => {
       setStage('ready');
-    }, 1300);
+    }, 1650);
+    timerRefs.current.push(tReady);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -116,6 +145,12 @@ export const LandingPage: React.FC = () => {
       e.preventDefault();
       handleKnock();
     }
+  };
+
+  const toggleAudio = (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
+    const next = soundService.toggleMute();
+    setIsMuted(next);
   };
 
   const handleProceedToLogin = () => {
@@ -148,15 +183,36 @@ export const LandingPage: React.FC = () => {
         ))}
       </div>
 
+      {/* Subtle Corner Audio Mute/Unmute Control */}
+      <button
+        type="button"
+        onClick={toggleAudio}
+        className="home-audio-control"
+        aria-label={isMuted ? 'Enable sound effects' : 'Mute sound effects'}
+        title={isMuted ? 'Enable sound effects' : 'Mute sound effects'}
+      >
+        {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+        <span className="audio-control-label">
+          {isMuted ? 'AUDIO: OFF' : 'AUDIO: ON'}
+        </span>
+      </button>
+
       {/* STAGE 1: INITIAL HOME SCREEN (CODEXCAPE + GIVE IT A KNOCK) */}
       {(stage === 'idle' || stage === 'knocking') && (
         <div className="home-center-stage">
-          {/* Impact Pulse shockwaves on Knock */}
+          {/* Impact Shockwaves & Hero X Energy Tunnel */}
           {shockwaveActive && (
             <div className="impact-shockwave-container" aria-hidden="true">
               <div className="impact-shockwave wave-1" />
               <div className="impact-shockwave wave-2" />
               <div className="impact-spark-burst" />
+              {lettersEscaped && (
+                <>
+                  <div className="x-hero-shockwave-ring" />
+                  <div className="x-hero-energy-tunnel" />
+                  <div className="x-hero-motion-streaks" />
+                </>
+              )}
             </div>
           )}
 
@@ -171,8 +227,12 @@ export const LandingPage: React.FC = () => {
           >
             <h1 className="codexcape-title-display">
               {LETTERS.map((item, idx) => {
-                const escapeClass = lettersEscaped ? `letter-escape letter-idx-${idx}` : '';
-                const isXClass = item.isX ? 'letter-x-glow' : 'letter-metallic';
+                const isX = item.isX;
+                let escapeClass = '';
+                if (lettersEscaped) {
+                  escapeClass = isX ? 'letter-x-hero' : `letter-escape letter-idx-${idx}`;
+                }
+                const isXClass = isX ? 'letter-x-glow' : 'letter-metallic';
                 return (
                   <span
                     key={item.key}
