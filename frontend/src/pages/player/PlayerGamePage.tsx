@@ -167,8 +167,36 @@ export const PlayerGamePage: React.FC = () => {
     };
   }, [serverState?.gameStatus, serverState?.currentLevel, liveQuestion?.stageNumber]);
 
-  if (authStatus === 'INITIALIZING' || !player || isLoadingData) {
-    return <GameLoadingState message="INITIALIZING CONSOLE TELEMETRY..." />;
+  // Stop loading screen audio as soon as gameplay data is ready and actual game screen renders
+  useEffect(() => {
+    if (!isLoadingData && serverState) {
+      soundService.stopLoadingScreen();
+    }
+  }, [isLoadingData, serverState]);
+
+  useEffect(() => {
+    return () => {
+      soundService.stopLoadingScreen();
+    };
+  }, []);
+
+  // Initial loading experience: Cleanly display initial entry overlay; skip intermediate telemetry screen
+  if (authStatus === 'INITIALIZING' || !player || isLoadingData || !serverState) {
+    return (
+      <div className="lobby-transition-overlay">
+        <div className="lobby-transition-panel animate-fade-in">
+          <CheckCircle2 size={48} color="var(--accent-crimson-bright)" className="animate-pulse-glow" />
+          <h1 className="transition-title">TEAM VERIFIED</h1>
+          <div className="transition-sub">
+            &gt; OPERATOR 01 ... READY<br />
+            &gt; OPERATOR 02 ... READY
+          </div>
+          <div className="transition-alert animate-pulse">
+            STARTING CODEXCAPE // LEVEL 01
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (authStatus !== 'AUTHENTICATED') {
