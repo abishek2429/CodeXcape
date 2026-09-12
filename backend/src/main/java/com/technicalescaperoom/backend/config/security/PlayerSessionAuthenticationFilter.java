@@ -206,7 +206,13 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
             return headerToken.trim();
         }
 
-        // 2. Check Cookie
+        // 2. Check Header Authorization: Bearer <token>
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7).trim();
+        }
+
+        // 3. Check Cookie
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if (ADMIN_COOKIE_NAME.equals(cookie.getName())) {

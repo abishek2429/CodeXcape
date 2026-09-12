@@ -55,14 +55,11 @@ export interface PublicLeaderboard {
   activeEntries: PublicLeaderboardEntry[];
 }
 
-const ADMIN_HEADERS = {
-  'Accept': 'application/json',
-  'Content-Type': 'application/json',
-};
+import { getAdminHeaders } from './adminService';
 
 export async function fetchLeaderboard(eventId: number): Promise<LeaderboardEntry[]> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/leaderboard`, {
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to fetch leaderboard.');
@@ -71,7 +68,7 @@ export async function fetchLeaderboard(eventId: number): Promise<LeaderboardEntr
 
 export async function fetchEventStatistics(eventId: number): Promise<EventStatistics> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/statistics`, {
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to fetch event statistics.');

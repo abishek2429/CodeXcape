@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getAdminHeaders } from '../services/adminService';
 
 interface AdminAuthContextType {
   isAdminAuthenticated: boolean;
@@ -9,20 +10,36 @@ interface AdminAuthContextType {
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return Boolean(localStorage.getItem('codexcape_admin_session') || sessionStorage.getItem('codexcape_admin_session'));
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     let mounted = true;
     fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events`, {
-      headers: { Accept: 'application/json' },
+      headers: getAdminHeaders(),
       credentials: 'include',
       cache: 'no-store',
     })
       .then((response) => {
-        if (mounted) setIsAdminAuthenticated(response.ok);
+        if (mounted) {
+          if (response.ok) {
+            setIsAdminAuthenticated(true);
+          } else {
+            try {
+              localStorage.removeItem('codexcape_admin_session');
+              sessionStorage.removeItem('codexcape_admin_session');
+            } catch {}
+            setIsAdminAuthenticated(false);
+          }
+        }
       })
       .catch(() => {
-        if (mounted) setIsAdminAuthenticated(false);
+        // network issue
       });
 
     return () => {
@@ -31,6 +48,10 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, []);
 
   const logoutAdmin = () => {
+    try {
+      localStorage.removeItem('codexcape_admin_session');
+      sessionStorage.removeItem('codexcape_admin_session');
+    } catch {}
     setIsAdminAuthenticated(false);
   };
 

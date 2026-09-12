@@ -27,14 +27,17 @@ public class AdminAuthController {
 
             Cookie cookie = new Cookie(ADMIN_COOKIE_NAME, token);
             cookie.setHttpOnly(true);
-            cookie.setSecure(true); // Should be true in prod, but Vite dev server works with secure=false or secure=true depending on https. 
-            // In Spring, we can dynamically set this or just set it based on a property, but usually true is fine if proxy is handling it.
-            // Let's use standard cookie settings similar to Player.
+            cookie.setSecure(true);
             cookie.setPath("/");
             cookie.setMaxAge(24 * 60 * 60); // 24 hours
+            cookie.setAttribute("SameSite", "None");
             response.addCookie(cookie);
 
-            return ResponseEntity.ok(Map.of("message", "Login successful"));
+            return ResponseEntity.ok(Map.of(
+                    "message", "Login successful",
+                    "token", token,
+                    "sessionToken", token
+            ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
         }
@@ -44,8 +47,10 @@ public class AdminAuthController {
     public ResponseEntity<?> logout(HttpServletResponse response) {
         Cookie cookie = new Cookie(ADMIN_COOKIE_NAME, null);
         cookie.setHttpOnly(true);
+        cookie.setSecure(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
+        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }

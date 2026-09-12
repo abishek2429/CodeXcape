@@ -88,14 +88,32 @@ export interface AdminAuditLog {
   createdAt: string;
 }
 
-const ADMIN_HEADERS = {
+export function getAdminHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
+  let token: string | null = null;
+  try {
+    token = localStorage.getItem('codexcape_admin_session') || sessionStorage.getItem('codexcape_admin_session');
+  } catch (e) {
+    // storage not accessible
+  }
+  return {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    ...(token ? {
+      'X-Admin-Session': token,
+      'Authorization': `Bearer ${token}`
+    } : {}),
+    ...additionalHeaders,
+  };
+}
+
+export const ADMIN_HEADERS = {
   'Accept': 'application/json',
   'Content-Type': 'application/json',
 };
 
 export async function fetchDashboardStats(eventId: number): Promise<AdminDashboardStats> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/dashboard`, {
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to fetch dashboard stats.');
@@ -109,7 +127,7 @@ export async function fetchTeamsProgress(eventId: number, search?: string, level
   if (status) params.append('status', status);
 
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/teams/progress?${params.toString()}`, {
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to fetch team progress.');
@@ -119,7 +137,7 @@ export async function fetchTeamsProgress(eventId: number, search?: string, level
 export async function startEvent(eventId: number): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/start`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to start event.');
@@ -128,7 +146,7 @@ export async function startEvent(eventId: number): Promise<void> {
 export async function pauseEvent(eventId: number): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/pause`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to pause event.');
@@ -137,7 +155,7 @@ export async function pauseEvent(eventId: number): Promise<void> {
 export async function resumeEvent(eventId: number): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/resume`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to resume event.');
@@ -146,7 +164,7 @@ export async function resumeEvent(eventId: number): Promise<void> {
 export async function endEvent(eventId: number): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/end`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to end event.');
@@ -155,7 +173,7 @@ export async function endEvent(eventId: number): Promise<void> {
 export async function emergencyStopEvent(eventId: number, reason?: string): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/emergency-stop`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
     body: JSON.stringify({ reason: reason || 'Organizer Emergency Stop Triggered' }),
   });
@@ -165,7 +183,7 @@ export async function emergencyStopEvent(eventId: number, reason?: string): Prom
 export async function pauseTeam(teamId: number): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/teams/${teamId}/pause`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to pause team.');
@@ -174,7 +192,7 @@ export async function pauseTeam(teamId: number): Promise<void> {
 export async function resumeTeam(teamId: number): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/teams/${teamId}/resume`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to resume team.');
@@ -183,7 +201,7 @@ export async function resumeTeam(teamId: number): Promise<void> {
 export async function revokeSession(sessionId: number): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/sessions/${sessionId}/revoke`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to revoke session.');
@@ -192,7 +210,7 @@ export async function revokeSession(sessionId: number): Promise<void> {
 export async function updateEventPasskey(eventId: number, passkey: string): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/passkey`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
     body: JSON.stringify({ passkey }),
   });
@@ -202,7 +220,7 @@ export async function updateEventPasskey(eventId: number, passkey: string): Prom
 export async function resetTeam(teamId: number): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/teams/${teamId}/reset`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to reset team.');
@@ -210,7 +228,7 @@ export async function resetTeam(teamId: number): Promise<void> {
 
 export async function fetchActiveSessions(eventId: number): Promise<AdminActiveSession[]> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/active-sessions`, {
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to fetch active sessions.');
@@ -220,7 +238,7 @@ export async function fetchActiveSessions(eventId: number): Promise<AdminActiveS
 export async function resetTeamCredentials(teamId: number): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/teams/${teamId}/reset-credentials`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to reset team credentials.');
@@ -229,7 +247,7 @@ export async function resetTeamCredentials(teamId: number): Promise<void> {
 export async function revokeTeamSessions(teamId: number): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/teams/${teamId}/revoke-sessions`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to revoke team sessions.');
@@ -238,7 +256,7 @@ export async function revokeTeamSessions(teamId: number): Promise<void> {
 export async function resetAllSessionsAndCredentials(): Promise<void> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/sessions/reset-all`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to reset all sessions and credentials.');
@@ -246,7 +264,7 @@ export async function resetAllSessionsAndCredentials(): Promise<void> {
 
 export async function fetchAuditLogs(): Promise<AdminAuditLog[]> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/audit-logs`, {
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) return [];
@@ -255,7 +273,7 @@ export async function fetchAuditLogs(): Promise<AdminAuditLog[]> {
 
 export async function fetchEventContent(eventId: number): Promise<any> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/content`, {
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to fetch event content.');
@@ -264,7 +282,7 @@ export async function fetchEventContent(eventId: number): Promise<any> {
 
 export async function fetchEventValidation(eventId: number): Promise<any> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/validation`, {
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to fetch event validation.');
@@ -286,7 +304,7 @@ export async function saveQuestion(eventId: number, levelNumber: number, data: {
 }): Promise<any> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/levels/${levelNumber}/questions`, {
     method: 'PUT',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
     body: JSON.stringify(data),
   });
@@ -300,7 +318,7 @@ export async function saveQuestion(eventId: number, levelNumber: number, data: {
 export async function saveHint(eventId: number, levelNumber: number, hintContent: string): Promise<any> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/levels/${levelNumber}/hint`, {
     method: 'PUT',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
     body: JSON.stringify({ levelNumber, hintContent, displayOrder: 1, isActive: true }),
   });
@@ -314,7 +332,7 @@ export async function saveHint(eventId: number, levelNumber: number, hintContent
 export async function testAnswer(eventId: number, levelNumber: number, playerNumber: 'PLAYER_1' | 'PLAYER_2', candidateAnswer: string): Promise<{ result: string }> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/test-answer`, {
     method: 'POST',
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
     body: JSON.stringify({ levelNumber, playerNumber, candidateAnswer }),
   });
@@ -324,7 +342,7 @@ export async function testAnswer(eventId: number, levelNumber: number, playerNum
 
 export async function fetchPlayerSafePreview(eventId: number, levelNumber: number, playerNumber: number): Promise<any> {
   const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/events/${eventId}/preview/player?levelNumber=${levelNumber}&playerNumber=${playerNumber}`, {
-    headers: ADMIN_HEADERS,
+    headers: getAdminHeaders(),
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to fetch player safe preview.');

@@ -103,7 +103,7 @@ export const AdminDashboardPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [statsData, teamsData, logs, content, validation, sessionsData] = await Promise.all([
+      const results = await Promise.allSettled([
         fetchDashboardStats(eventId),
         fetchTeamsProgress(eventId, searchTerm, levelFilter, statusFilter),
         fetchAuditLogs(),
@@ -111,12 +111,22 @@ export const AdminDashboardPage: React.FC = () => {
         fetchEventValidation(eventId),
         fetchActiveSessions(eventId),
       ]);
-      setStats(statsData);
-      setTeams(teamsData);
-      setAuditLogs(logs);
-      setContentData(content);
-      setReadinessData(validation);
-      setActiveSessions(sessionsData);
+
+      const [statsRes, teamsRes, logsRes, contentRes, validationRes, sessionsRes] = results;
+
+      if (statsRes.status === 'fulfilled') setStats(statsRes.value);
+      if (teamsRes.status === 'fulfilled') setTeams(teamsRes.value);
+      if (logsRes.status === 'fulfilled') setAuditLogs(logsRes.value);
+      if (contentRes.status === 'fulfilled') setContentData(contentRes.value);
+      if (validationRes.status === 'fulfilled') setReadinessData(validationRes.value);
+      if (sessionsRes.status === 'fulfilled') setActiveSessions(sessionsRes.value);
+
+      const isAuthError = results.some(
+        (r) => r.status === 'rejected' && (r.reason?.message?.includes('401') || r.reason?.message?.includes('unauthorized') || r.reason?.message?.includes('UNAUTHORIZED'))
+      );
+      if (isAuthError) {
+        console.warn('Admin session expired or unauthorized');
+      }
     } catch (err: any) {
       console.error('Failed to load admin data:', err);
     } finally {

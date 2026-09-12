@@ -32,6 +32,12 @@ export const AdminLoginPage: React.FC = () => {
       });
 
       if (response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const token = data.token || data.sessionToken;
+        if (token) {
+          localStorage.setItem('codexcape_admin_session', token);
+          sessionStorage.setItem('codexcape_admin_session', token);
+        }
         setIsAdminAuthenticated(true);
         navigate(from, { replace: true });
       } else {
