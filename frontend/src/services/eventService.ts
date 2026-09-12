@@ -1,11 +1,13 @@
 import { Event, CreateEventPayload, UpdateEventPayload, EventStatus } from '../types/event';
+import { getAdminHeaders, getAdminAuthOnlyHeaders } from './adminService';
 
 const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/admin/events` : '/api/admin/events';
 
 export async function fetchEvents(): Promise<Event[]> {
   const response = await fetch(API_BASE, {
     method: 'GET',
-    headers: { 'Accept': 'application/json' },
+    headers: getAdminAuthOnlyHeaders(),
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -20,7 +22,8 @@ export async function fetchEvents(): Promise<Event[]> {
 export async function fetchEventById(eventId: number): Promise<Event> {
   const response = await fetch(`${API_BASE}/${eventId}`, {
     method: 'GET',
-    headers: { 'Accept': 'application/json' },
+    headers: getAdminAuthOnlyHeaders(),
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -35,10 +38,8 @@ export async function fetchEventById(eventId: number): Promise<Event> {
 export async function createEvent(payload: CreateEventPayload): Promise<Event> {
   const response = await fetch(API_BASE, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+    headers: getAdminHeaders(),
+    credentials: 'include',
     body: JSON.stringify(payload),
   });
 
@@ -57,10 +58,8 @@ export async function createEvent(payload: CreateEventPayload): Promise<Event> {
 export async function updateEvent(eventId: number, payload: UpdateEventPayload): Promise<Event> {
   const response = await fetch(`${API_BASE}/${eventId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+    headers: getAdminHeaders(),
+    credentials: 'include',
     body: JSON.stringify(payload),
   });
 
@@ -75,10 +74,8 @@ export async function updateEvent(eventId: number, payload: UpdateEventPayload):
 export async function updateEventStatus(eventId: number, status: EventStatus): Promise<Event> {
   const response = await fetch(`${API_BASE}/${eventId}/status`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+    headers: getAdminHeaders(),
+    credentials: 'include',
     body: JSON.stringify({ status }),
   });
 

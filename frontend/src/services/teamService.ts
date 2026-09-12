@@ -1,11 +1,13 @@
 import { Team, TeamDetail, CreateTeamPayload, UpdateTeamPayload, TeamStatus } from '../types/team';
+import { getAdminHeaders, getAdminAuthOnlyHeaders } from './adminService';
 
 const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/admin` : '/api/admin';
 
 export async function fetchTeamsForEvent(eventId: number): Promise<Team[]> {
   const response = await fetch(`${API_BASE}/events/${eventId}/teams`, {
     method: 'GET',
-    headers: { 'Accept': 'application/json' },
+    headers: getAdminAuthOnlyHeaders(),
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -20,7 +22,8 @@ export async function fetchTeamsForEvent(eventId: number): Promise<Team[]> {
 export async function fetchTeamById(teamId: number): Promise<TeamDetail> {
   const response = await fetch(`${API_BASE}/teams/${teamId}`, {
     method: 'GET',
-    headers: { 'Accept': 'application/json' },
+    headers: getAdminAuthOnlyHeaders(),
+    credentials: 'include',
     cache: 'no-store',
   });
 
@@ -35,10 +38,8 @@ export async function fetchTeamById(teamId: number): Promise<TeamDetail> {
 export async function createTeam(eventId: number, payload: CreateTeamPayload): Promise<TeamDetail> {
   const response = await fetch(`${API_BASE}/events/${eventId}/teams`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+    headers: getAdminHeaders(),
+    credentials: 'include',
     body: JSON.stringify(payload),
   });
 
@@ -57,10 +58,8 @@ export async function createTeam(eventId: number, payload: CreateTeamPayload): P
 export async function updateTeam(teamId: number, payload: UpdateTeamPayload): Promise<TeamDetail> {
   const response = await fetch(`${API_BASE}/teams/${teamId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+    headers: getAdminHeaders(),
+    credentials: 'include',
     body: JSON.stringify(payload),
   });
 
@@ -75,10 +74,8 @@ export async function updateTeam(teamId: number, payload: UpdateTeamPayload): Pr
 export async function updateTeamStatus(teamId: number, status: TeamStatus): Promise<TeamDetail> {
   const response = await fetch(`${API_BASE}/teams/${teamId}/status`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+    headers: getAdminHeaders(),
+    credentials: 'include',
     body: JSON.stringify({ status }),
   });
 
@@ -93,6 +90,8 @@ export async function updateTeamStatus(teamId: number, status: TeamStatus): Prom
 export async function deleteTeam(teamId: number): Promise<void> {
   const response = await fetch(`${API_BASE}/teams/${teamId}`, {
     method: 'DELETE',
+    headers: getAdminAuthOnlyHeaders(),
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -140,6 +139,8 @@ export async function uploadTeamExcelPreview(eventId: number, file: File): Promi
 
   const response = await fetch(`${API_BASE}/events/${eventId}/teams/import/preview`, {
     method: 'POST',
+    headers: getAdminAuthOnlyHeaders(),
+    credentials: 'include',
     body: formData,
   });
 
@@ -157,6 +158,8 @@ export async function confirmTeamImport(eventId: number, file: File): Promise<Te
 
   const response = await fetch(`${API_BASE}/events/${eventId}/teams/import/confirm`, {
     method: 'POST',
+    headers: getAdminAuthOnlyHeaders(),
+    credentials: 'include',
     body: formData,
   });
 

@@ -106,6 +106,23 @@ export function getAdminHeaders(additionalHeaders: Record<string, string> = {}):
   };
 }
 
+export function getAdminAuthOnlyHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
+  let token: string | null = null;
+  try {
+    token = localStorage.getItem('codexcape_admin_session') || sessionStorage.getItem('codexcape_admin_session');
+  } catch (e) {
+    // storage not accessible
+  }
+  return {
+    'Accept': 'application/json',
+    ...(token ? {
+      'X-Admin-Session': token,
+      'Authorization': `Bearer ${token}`
+    } : {}),
+    ...additionalHeaders,
+  };
+}
+
 export const ADMIN_HEADERS = {
   'Accept': 'application/json',
   'Content-Type': 'application/json',
