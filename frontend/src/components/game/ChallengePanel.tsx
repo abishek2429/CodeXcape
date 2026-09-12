@@ -31,23 +31,23 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
 
   // Determine technical system archetype metadata
   const getSystemArchetype = () => {
-    if (lvl === 1 && stg === 1) return { title: 'FORENSIC LOG COLLISION ANALYZER', code: 'LOG-COLLISION-SYS', icon: <FileSearch size={18} color="var(--accent-cyan)" /> };
-    if (lvl === 1 && stg === 2) return { title: 'RESTRICTED CIRCUIT ACCESS PANEL', code: 'CIRCUIT-OVERRIDE', icon: <Layers size={18} color="var(--accent-cyan)" /> };
-    if (lvl === 2 && stg === 1) return { title: 'BYTE FRAGMENT VAULT', code: 'VAULT-VX17', icon: <Binary size={18} color="var(--accent-cyan)" /> };
-    if (lvl === 2 && stg === 2) return { title: 'TRANSFORMATION CHAMBER', code: 'TRANS-CHAMBER', icon: <Cpu size={18} color="var(--accent-cyan)" /> };
-    if (lvl === 3 && stg === 1) return { title: 'NETWORK TOPOLOGY ROUTER', code: 'TOPOLOGY-ROUTER', icon: <Network size={18} color="var(--accent-cyan)" /> };
-    if (lvl === 3 && stg === 2) return { title: 'TRAFFIC FORENSICS ANALYZER', code: 'TRAFFIC-SNIFFER', icon: <Share2 size={18} color="var(--accent-cyan)" /> };
-    if (lvl === 3 && stg === 3) return { title: 'PACKET FRAME RECONSTRUCTOR', code: 'FRAME-RECON', icon: <Binary size={18} color="var(--accent-cyan)" /> };
-    if (lvl === 4 && stg === 1) return { title: 'ENCRYPTED ARCHIVE CIPHER', code: 'ARCHIVE-CIPHER', icon: <Lock size={18} color="var(--accent-purple)" /> };
-    if (lvl === 4 && stg === 2) return { title: 'SECURE DECRYPTION TERMINAL', code: 'DECRYPT-ENGINE', icon: <Lock size={18} color="var(--accent-purple)" /> };
+    if (lvl === 1 && stg === 1) return { title: 'FORENSIC LOG COLLISION ANALYZER', code: 'LOG-COLLISION-SYS', icon: <FileSearch size={18} color="var(--accent-crimson-bright)" /> };
+    if (lvl === 1 && stg === 2) return { title: 'RESTRICTED CIRCUIT ACCESS PANEL', code: 'CIRCUIT-OVERRIDE', icon: <Layers size={18} color="var(--accent-crimson-bright)" /> };
+    if (lvl === 2 && stg === 1) return { title: 'BYTE FRAGMENT VAULT', code: 'VAULT-VX17', icon: <Binary size={18} color="var(--accent-crimson-bright)" /> };
+    if (lvl === 2 && stg === 2) return { title: 'TRANSFORMATION CHAMBER', code: 'TRANS-CHAMBER', icon: <Cpu size={18} color="var(--accent-crimson-bright)" /> };
+    if (lvl === 3 && stg === 1) return { title: 'NETWORK TOPOLOGY ROUTER', code: 'TOPOLOGY-ROUTER', icon: <Network size={18} color="var(--accent-crimson-bright)" /> };
+    if (lvl === 3 && stg === 2) return { title: 'TRAFFIC FORENSICS ANALYZER', code: 'TRAFFIC-SNIFFER', icon: <Share2 size={18} color="var(--accent-crimson-bright)" /> };
+    if (lvl === 3 && stg === 3) return { title: 'PACKET FRAME RECONSTRUCTOR', code: 'FRAME-RECON', icon: <Binary size={18} color="var(--accent-crimson-bright)" /> };
+    if (lvl === 4 && stg === 1) return { title: 'ENCRYPTED ARCHIVE CIPHER', code: 'ARCHIVE-CIPHER', icon: <Lock size={18} color="var(--accent-crimson)" /> };
+    if (lvl === 4 && stg === 2) return { title: 'SECURE DECRYPTION TERMINAL', code: 'DECRYPT-ENGINE', icon: <Lock size={18} color="var(--accent-crimson)" /> };
     if (lvl === 5 && stg === 1) return { title: 'FORENSIC CORRELATION MATRIX', code: 'CORRELATION-WALL', icon: <Share2 size={18} color="var(--status-warning)" /> };
     if (lvl === 5 && stg === 2) return { title: 'EVIDENCE CHAIN TIMELINE', code: 'CHAIN-TIMELINE', icon: <Layers size={18} color="var(--status-warning)" /> };
     if (lvl === 5 && stg === 3) return { title: 'PARITY EXTRACTION ENGINE', code: 'EXTRACTION-ENGINE', icon: <Binary size={18} color="var(--status-warning)" /> };
-    if (lvl === 6 && stg === 1) return { title: 'DUAL-OPERATOR KEY SYNCHRONIZER', code: 'DUAL-KEY-AUTH', icon: <KeyRound size={18} color="var(--accent-crimson)" /> };
-    if (lvl === 6 && stg === 2) return { title: 'CORE SEQUENCE RECONSTRUCTION', code: 'CORE-MAINFRAME', icon: <ShieldCheck size={18} color="var(--accent-crimson)" /> };
-    if (lvl === 6 && stg === 3) return { title: 'EMERGENCY PROTOCOL CONSOLE', code: 'EMERGENCY-CORE', icon: <Terminal size={18} color="var(--accent-crimson)" /> };
+    if (lvl === 6 && stg === 1) return { title: 'DUAL-OPERATOR KEY SYNCHRONIZER', code: 'DUAL-KEY-AUTH', icon: <KeyRound size={18} color="var(--accent-crimson-bright)" /> };
+    if (lvl === 6 && stg === 2) return { title: 'CORE SEQUENCE RECONSTRUCTION', code: 'CORE-MAINFRAME', icon: <ShieldCheck size={18} color="var(--accent-crimson-bright)" /> };
+    if (lvl === 6 && stg === 3) return { title: 'EMERGENCY PROTOCOL CONSOLE', code: 'EMERGENCY-CORE', icon: <Terminal size={18} color="var(--accent-crimson-bright)" /> };
 
-    return { title: 'TECHNICAL WORKSPACE', code: 'SYS-WORKSPACE', icon: <Terminal size={18} color="var(--accent-cyan)" /> };
+    return { title: 'TECHNICAL WORKSPACE', code: 'SYS-WORKSPACE', icon: <Terminal size={18} color="var(--accent-crimson-bright)" /> };
   };
 
   const archetype = getSystemArchetype();
@@ -59,11 +59,10 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
         display: 'flex',
         flexDirection: 'column',
         minHeight: '360px',
-        backgroundColor: 'var(--bg-panel)',
-        border: '1px solid',
-        borderColor: lvl === 6 ? 'var(--accent-crimson)' : 'var(--border-cyan)',
+        backgroundColor: 'var(--bg-panel-elevated)',
+        border: '1px solid var(--border-crimson)',
         borderRadius: 'var(--radius-sm)',
-        boxShadow: lvl === 6 ? '0 8px 32px rgba(225, 29, 72, 0.2)' : '0 8px 30px rgba(0, 0, 0, 0.8)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.85), 0 0 16px rgba(225, 6, 19, 0.1)',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -85,8 +84,8 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
             style={{
               padding: '6px',
               borderRadius: 'var(--radius-xs)',
-              backgroundColor: 'rgba(0, 217, 255, 0.08)',
-              border: '1px solid var(--border-cyan)',
+              backgroundColor: 'rgba(225, 6, 19, 0.12)',
+              border: '1px solid var(--border-crimson)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -96,19 +95,19 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: lvl === 6 ? 'var(--accent-crimson)' : 'var(--accent-cyan)', fontWeight: 800, letterSpacing: '0.1em' }}>
+              <span style={{ fontSize: '12px', color: 'var(--accent-crimson-bright)', fontWeight: 800, letterSpacing: '0.1em' }}>
                 {archetype.title}
               </span>
-              <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>[{archetype.code}]</span>
+              <span style={{ fontSize: '9px', color: 'var(--text-secondary)' }}>[{archetype.code}]</span>
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
               TIER 0{challenge.levelNumber} // STAGE {challenge.stageNumber || 1} OF {challenge.totalStages || 1}
             </div>
           </div>
         </div>
 
         <span
-          className={`badge ${isP1 ? 'badge-cyan' : 'badge-purple'}`}
+          className={`badge ${isP1 ? 'badge-crimson' : 'badge-purple'}`}
           style={{ fontSize: '10px', letterSpacing: '0.05em' }}
         >
           NODE 0{playerNumber} OPERATOR PERSPECTIVE
@@ -141,12 +140,12 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
               fontFamily: 'var(--font-mono)',
               padding: '4px 10px',
               borderRadius: 'var(--radius-xs)',
-              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              backgroundColor: 'rgba(8, 8, 10, 0.8)',
               border: '1px solid var(--border-dim)',
             }}
           >
-            <span style={{ color: 'var(--text-muted)' }}>SYSTEM SPEC:</span>
-            <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>
+            <span style={{ color: 'var(--text-secondary)' }}>SYSTEM SPEC:</span>
+            <span style={{ color: 'var(--accent-crimson-bright)', fontWeight: 700 }}>
               {challenge.puzzleContext}
             </span>
           </div>
@@ -156,9 +155,9 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
       {/* STAGE-SPECIFIC FORENSIC WORKSPACE VISUALS */}
       {/* Level 3 Stage 1: Interactive Radar Network Topology */}
       {lvl === 3 && stg === 1 && (
-        <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: 'rgba(4, 5, 7, 0.8)', border: '1px solid var(--border-cyan)', borderRadius: 'var(--radius-sm)' }}>
+        <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: 'rgba(5, 5, 5, 0.9)', border: '1px solid var(--border-crimson)', borderRadius: 'var(--radius-sm)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-            <span style={{ color: 'var(--accent-cyan)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: 'var(--accent-crimson-bright)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Activity size={14} />
               RADAR TOPOLOGY SCANNER // SUBNET NODES
             </span>
@@ -178,8 +177,8 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
             marginBottom: '16px',
             padding: '12px 16px',
             borderRadius: 'var(--radius-xs)',
-            backgroundColor: 'rgba(225, 29, 72, 0.08)',
-            border: '1px solid rgba(225, 29, 72, 0.35)',
+            backgroundColor: 'rgba(225, 6, 19, 0.1)',
+            border: '1px solid var(--border-crimson)',
             fontFamily: 'var(--font-mono)',
             fontSize: '11px',
             display: 'flex',
@@ -187,12 +186,12 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-crimson)', fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-crimson-bright)', fontWeight: 700 }}>
             <ShieldAlert size={14} />
             <span>PACKET // 7A-19 [CORRUPTED HEADER DETECTED]</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: 'var(--text-muted)' }}>RECOVERY GAUGE:</span>
+            <span style={{ color: 'var(--text-secondary)' }}>RECOVERY GAUGE:</span>
             <span style={{ color: 'var(--status-warning)', fontWeight: 800 }}>82%</span>
           </div>
         </div>
@@ -205,7 +204,7 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
             marginBottom: '16px',
             padding: '12px 16px',
             borderRadius: 'var(--radius-xs)',
-            backgroundColor: 'rgba(225, 29, 72, 0.1)',
+            backgroundColor: 'rgba(225, 6, 19, 0.12)',
             border: '1px solid var(--accent-crimson)',
             fontFamily: 'var(--font-mono)',
             fontSize: '11px',
@@ -214,12 +213,12 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-crimson)', fontWeight: 800 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-crimson-bright)', fontWeight: 800 }}>
             <KeyRound size={14} />
             <span>TWO-OPERATOR AUTHORIZATION BARRIER ACTIVE</span>
           </div>
-          <div style={{ color: 'var(--text-cold-white)', backgroundColor: 'rgba(0,0,0,0.5)', padding: '2px 8px', borderRadius: '2px', border: '1px solid var(--border-dim)' }}>
-            CORE ACCESS: <strong style={{ color: 'var(--accent-crimson)' }}>LOCKED</strong>
+          <div style={{ color: 'var(--text-cold-white)', backgroundColor: 'rgba(8, 8, 10, 0.8)', padding: '2px 8px', borderRadius: '2px', border: '1px solid var(--border-dim)' }}>
+            CORE ACCESS: <strong style={{ color: 'var(--accent-crimson-bright)' }}>LOCKED</strong>
           </div>
         </div>
       )}
@@ -228,11 +227,11 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Evidence Block with SpotlightCard */}
         <SpotlightCard
-          variant={lvl === 6 ? 'danger' : 'cyan'}
+          variant={lvl === 6 ? 'danger' : 'obsidian'}
           style={{
             padding: '20px',
             borderRadius: 'var(--radius-xs)',
-            backgroundColor: 'rgba(4, 5, 7, 0.9)',
+            backgroundColor: 'rgba(8, 8, 10, 0.95)',
             border: '1px solid var(--border-dim)',
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-mono)',
@@ -244,7 +243,7 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
           <div
             style={{
               fontSize: '11px',
-              color: lvl === 6 ? 'var(--accent-crimson)' : 'var(--accent-cyan)',
+              color: 'var(--accent-crimson-bright)',
               fontWeight: 800,
               letterSpacing: '0.1em',
               marginBottom: '10px',
@@ -254,7 +253,7 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
             }}
           >
             <span>&gt; EVIDENCE / ARTIFACT TELEMETRY STREAM</span>
-            <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>AUTHORIZED CAPTURE</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>AUTHORIZED CAPTURE</span>
           </div>
           <p style={{ whiteSpace: 'pre-line', margin: 0, color: 'var(--text-cold-white)' }}>
             {challenge.evidence}
@@ -267,9 +266,9 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
             style={{
               padding: '14px 18px',
               borderRadius: 'var(--radius-xs)',
-              backgroundColor: 'rgba(0, 217, 255, 0.04)',
-              border: '1px solid var(--border-cyan)',
-              color: 'var(--accent-cyan)',
+              backgroundColor: 'rgba(225, 6, 19, 0.05)',
+              border: '1px solid var(--border-crimson)',
+              color: 'var(--accent-crimson-bright)',
               fontFamily: 'var(--font-mono)',
               fontSize: '12px',
               lineHeight: 1.6,
@@ -303,18 +302,18 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
           alignItems: 'center',
           justifyContent: 'space-between',
           fontSize: '11px',
-          color: 'var(--text-muted)',
+          color: 'var(--text-secondary)',
           fontFamily: 'var(--font-mono)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Code2 size={13} color="var(--accent-cyan)" />
+          <Code2 size={13} color="var(--accent-crimson-bright)" />
           <span>
             INPUT FORMAT:{' '}
             <strong
               style={{
-                color: 'var(--accent-cyan)',
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                color: 'var(--accent-crimson-bright)',
+                backgroundColor: 'rgba(8, 8, 10, 0.8)',
                 padding: '2px 8px',
                 borderRadius: '2px',
                 border: '1px solid var(--border-dim)',

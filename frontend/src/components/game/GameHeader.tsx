@@ -72,8 +72,8 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid var(--border-cyan)',
-        backgroundColor: 'rgba(4, 5, 7, 0.95)',
+        borderBottom: '1px solid var(--border-crimson)',
+        backgroundColor: 'rgba(5, 5, 5, 0.95)',
         backdropFilter: 'blur(12px)',
         position: 'sticky',
         top: 0,
@@ -89,21 +89,21 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
               width: '32px',
               height: '32px',
               borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'rgba(0, 217, 255, 0.08)',
-              border: '1px solid var(--accent-cyan)',
-              color: 'var(--accent-cyan)',
+              backgroundColor: 'rgba(225, 6, 19, 0.12)',
+              border: '1px solid var(--accent-crimson)',
+              color: 'var(--accent-crimson-bright)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'var(--glow-cyan-text)',
+              boxShadow: 'var(--glow-crimson)',
             }}
           >
             <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '18px' }}>X</span>
           </div>
 
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
-              <span>CODEXCAPE // SECURE NETWORK</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+              <span>CODEXCAPE // CRIMSON HUD</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '1px' }}>
               <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.05em' }}>
@@ -112,11 +112,12 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
               <span
                 style={{
                   fontSize: '10px',
-                  backgroundColor: 'rgba(0, 217, 255, 0.1)',
-                  color: 'var(--accent-cyan)',
+                  backgroundColor: 'rgba(225, 6, 19, 0.12)',
+                  color: 'var(--accent-crimson-bright)',
                   padding: '1px 6px',
                   borderRadius: '2px',
-                  border: '1px solid var(--border-cyan)',
+                  border: '1px solid var(--border-crimson)',
+                  fontWeight: 700,
                 }}
               >
                 STAGE {String(currentStage).padStart(2, '0')} / {String(totalStages).padStart(2, '0')}
@@ -129,11 +130,11 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
 
         {/* Team Code & Active Node Pill */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="badge badge-cyan" style={{ fontSize: '10px', padding: '3px 8px' }}>
+          <div className="badge badge-crimson" style={{ fontSize: '10px', padding: '3px 8px' }}>
             TEAM: {player.teamCode}
           </div>
           <div
-            className={`badge ${isPlayer1 ? 'badge-cyan' : 'badge-purple'}`}
+            className={`badge ${isPlayer1 ? 'badge-crimson' : 'badge-purple'}`}
             style={{ fontSize: '10px', padding: '3px 8px' }}
           >
             {isPlayer1 ? <Terminal size={11} style={{ marginRight: '4px' }} /> : <Cpu size={11} style={{ marginRight: '4px' }} />}
@@ -159,18 +160,18 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
               gap: '8px',
               padding: '6px 14px',
               borderRadius: 'var(--radius-sm)',
-              backgroundColor: isTimerCritical ? 'rgba(225, 29, 72, 0.15)' : isTimerWarning ? 'rgba(245, 158, 11, 0.1)' : 'rgba(0, 0, 0, 0.6)',
+              backgroundColor: isTimerCritical ? 'rgba(225, 6, 19, 0.2)' : isTimerWarning ? 'rgba(214, 168, 75, 0.12)' : 'rgba(8, 8, 10, 0.8)',
               border: '1px solid',
-              borderColor: isTimerCritical ? 'var(--accent-crimson)' : isTimerWarning ? 'var(--status-warning)' : 'var(--border-cyan)',
-              color: isTimerCritical ? 'var(--accent-crimson)' : isTimerWarning ? 'var(--status-warning)' : 'var(--accent-cyan)',
-              boxShadow: isTimerCritical ? 'var(--glow-crimson)' : 'none',
+              borderColor: isTimerCritical ? 'var(--accent-crimson)' : isTimerWarning ? 'var(--status-warning)' : 'var(--border-crimson)',
+              color: isTimerCritical ? 'var(--accent-crimson-bright)' : isTimerWarning ? 'var(--status-warning)' : 'var(--accent-crimson-bright)',
+              boxShadow: isTimerCritical ? 'var(--glow-crimson-intense)' : 'none',
               fontSize: '13px',
               fontWeight: 800,
               letterSpacing: '0.08em',
             }}
           >
             <Clock size={14} className={isTimerCritical ? 'animate-pulse' : ''} />
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>TIME REMAINING:</span>
+            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>TIME REMAINING:</span>
             <span>{formattedRemaining}</span>
           </div>
         ) : null}
@@ -192,11 +193,11 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
             padding: '4px 10px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-dim)',
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backgroundColor: 'rgba(8, 8, 10, 0.7)',
             fontSize: '10px',
           }}
         >
-          <span style={{ color: 'var(--text-muted)' }}>OPERATORS:</span>
+          <span style={{ color: 'var(--text-secondary)' }}>OPERATORS:</span>
           <span style={{ color: 'var(--status-success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: 'var(--status-success)', boxShadow: '0 0 4px var(--status-success)' }} />
             OP 01
@@ -215,7 +216,7 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
             style={{ padding: '6px 10px', fontSize: '10px', letterSpacing: '0.08em' }}
             title="Review Investigation Dossier"
           >
-            <ShieldAlert size={12} color="var(--accent-cyan)" />
+            <ShieldAlert size={12} color="var(--accent-crimson)" />
             <span>DOSSIER</span>
           </CinematicButton>
         )}
@@ -229,8 +230,8 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
             padding: '6px 10px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-dim)',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            color: isMuted ? 'var(--text-muted)' : 'var(--accent-cyan)',
+            backgroundColor: 'rgba(8, 8, 10, 0.8)',
+            color: isMuted ? 'var(--text-secondary)' : 'var(--accent-crimson-bright)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -268,7 +269,7 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-dim)',
             backgroundColor: 'var(--bg-panel)',
-            color: 'var(--status-error)',
+            color: 'var(--accent-crimson)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
