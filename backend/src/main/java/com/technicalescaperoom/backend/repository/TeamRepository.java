@@ -14,6 +14,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
     Optional<Team> findByEventIdAndTeamCode(Long eventId, String teamCode);
     Optional<Team> findByTeamCode(String teamCode);
+    java.util.List<Team> findAllByTeamCode(String teamCode);
     boolean existsByEventIdAndTeamCode(Long eventId, String teamCode);
     java.util.List<Team> findByEventId(Long eventId);
     long countByEventId(Long eventId);

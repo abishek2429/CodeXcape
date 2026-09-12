@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,19 +55,8 @@ public class PlayerSessionService {
         String rawCode = request.getTeamCode() != null ? request.getTeamCode().trim().toUpperCase() : "";
         String normalizedTeamCode = rawCode.replaceAll("\\s+", "-");
 
-        // 1. Resolve Team (try exact normalized, then with TEAM- prefix, then aliases)
-        Optional<Team> teamOpt = teamRepository.findByTeamCode(normalizedTeamCode);
-        if (teamOpt.isEmpty() && !normalizedTeamCode.startsWith("TEAM-")) {
-            teamOpt = teamRepository.findByTeamCode("TEAM-" + normalizedTeamCode);
-        }
-        if (teamOpt.isEmpty() && ("TEAM-BETA".equals(normalizedTeamCode) || "BETA".equals(rawCode))) {
-            teamOpt = teamRepository.findByTeamCode("TEAM-BRAVO");
-        }
-        if (teamOpt.isEmpty() && ("TEAM-CHARLIE".equals(normalizedTeamCode) || "CHARLIE".equals(rawCode))) {
-            teamOpt = teamRepository.findByTeamCode("TEAM-CHARL");
-        }
-
-        Team team = teamOpt.orElseThrow(() -> {
+        // 1. Resolve Team (try exact normalized, then with TEAM- prefix, then aliases, prioritizing active events)
+        Team team = resolveTeam(rawCode, normalizedTeamCode).orElseThrow(() -> {
             auditService.logEvent(
                     GameEventType.PLAYER_LOGIN_FAILED,
                     null,
@@ -685,7 +675,7 @@ public class PlayerSessionService {
                 .playerId(player.getId())
                 .isActive(player.getIsActive())
                 .isReady(Boolean.TRUE.equals(player.getIsReady()))
-                .gameState(team.getGameState().name())
+                .gameState(team.getGameState() != null ? team.getGameState().name() : "NOT_STARTED")
                 .eventStatus(team.getEvent() != null ? team.getEvent().getStatus().name() : "UNKNOWN")
                 .eventStartedAt(team.getStartedAt())
                 .currentLevel(currentLevel)
@@ -695,5 +685,32 @@ public class PlayerSessionService {
                 .teammateLoggedIn(teammateLoggedIn)
                 .teammateReady(teammateReady)
                 .build();
+    }
+
+    private Optional<Team> resolveTeam(String rawCode, String normalizedTeamCode) {
+        List<Team> candidates = new ArrayList<>(teamRepository.findAllByTeamCode(normalizedTeamCode));
+        if (candidates.isEmpty() && !normalizedTeamCode.startsWith("TEAM-")) {
+            candidates.addAll(teamRepository.findAllByTeamCode("TEAM-" + normalizedTeamCode));
+        }
+        if (candidates.isEmpty() && ("TEAM-BETA".equals(normalizedTeamCode) || "BETA".equals(rawCode))) {
+            candidates.addAll(teamRepository.findAllByTeamCode("TEAM-BRAVO"));
+        }
+        if (candidates.isEmpty() && ("TEAM-CHARLIE".equals(normalizedTeamCode) || "CHARLIE".equals(rawCode))) {
+            candidates.addAll(teamRepository.findAllByTeamCode("TEAM-CHARL"));
+        }
+
+        if (candidates.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return candidates.stream()
+                .filter(t -> t.getEvent() != null && (t.getEvent().getStatus() == EventStatus.READY || t.getEvent().getStatus() == EventStatus.RUNNING))
+                .sorted((a, b) -> {
+                    if (Long.valueOf(1L).equals(a.getEvent().getId())) return -1;
+                    if (Long.valueOf(1L).equals(b.getEvent().getId())) return 1;
+                    return b.getId().compareTo(a.getId());
+                })
+                .findFirst()
+                .or(() -> Optional.of(candidates.get(0)));
     }
 }
