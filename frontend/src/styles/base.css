@@ -107,3 +107,70 @@ code, pre, .font-mono, [data-mono="true"] {
     display: none !important;
   }
 }
+
+/* =========================================================
+   CUSTOM CRIMSON PROTOCOL CURSOR SYSTEM
+   ========================================================= */
+
+@media (hover: hover) and (pointer: fine) {
+  :root,
+  html,
+  body,
+  button,
+  a,
+  [role="button"],
+  select,
+  summary,
+  .btn,
+  .cinematic-btn,
+  .nav-link,
+  .card,
+  .spotlight-card,
+  .chamber-node,
+  .investigation-dossier,
+  .leaderboard-row,
+  .team-card,
+  .event-card,
+  .modal-overlay,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    cursor: url('/assets/cursors/crimson-flame-arrow.svg') 1 1, url('/assets/cursors/crimson-flame-arrow.png') 1 1, auto;
+  }
+
+  button,
+  a,
+  [role="button"],
+  select,
+  summary,
+  .btn,
+  .cinematic-btn,
+  .nav-link,
+  input[type="button"],
+  input[type="submit"],
+  [style*="cursor: pointer"],
+  [style*="cursor:pointer"] {
+    cursor: url('/assets/cursors/crimson-flame-arrow.svg') 1 1, url('/assets/cursors/crimson-flame-arrow.png') 1 1, pointer !important;
+  }
+
+  /* Keep normal text I-beam behavior for input fields so users can type normally */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  [contenteditable="true"] {
+    cursor: text !important;
+  }
+
+  button:disabled,
+  [aria-disabled="true"],
+  input:disabled {
+    cursor: not-allowed !important;
+  }
+}

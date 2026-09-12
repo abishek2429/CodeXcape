@@ -166,4 +166,79 @@ const sampleRate = 44100;
   fs.writeFileSync(path.join(targetDir, 'glitch-transition.mp3'), buf);
 }
 
+// 4. FIND THE WAY OUT UNLOCK SOUND (~0.85s)
+// Deep cyber-security terminal unlock sound for "FIND THE WAY OUT →" button:
+// - Start with short low electronic impact / click (0-50ms)
+// - Follow with rising crimson-style digital whoosh (40-450ms)
+// - End with subtle secure-door unlock / terminal-access confirmation tone (350-850ms)
+// - Dark, mysterious, premium, hidden-network feeling
+{
+  const duration = 0.85;
+  const numSamples = Math.floor(sampleRate * duration);
+  const samples = new Float32Array(numSamples);
+
+  let airFilter = 0;
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+
+    // --- Phase 1: Electronic impact / click (0 - 0.06s) ---
+    let click = 0;
+    let punch = 0;
+    if (t < 0.06) {
+      const clickEnv = Math.exp(-t * 220);
+      click = (Math.random() * 2 - 1) * clickEnv * 0.45;
+      click += Math.sin(2 * Math.PI * 1350 * t) * clickEnv * 0.6;
+
+      const punchEnv = Math.exp(-t * 28);
+      punch = Math.sin(2 * Math.PI * (62 - 20 * (t / 0.06)) * t) * punchEnv * 0.75;
+    }
+
+    // --- Phase 2: Rising crimson digital whoosh (0.04s - 0.45s) ---
+    let whoosh = 0;
+    if (t >= 0.03 && t < 0.50) {
+      const whooshT = (t - 0.03) / 0.47;
+      const whooshEnv = Math.sin(whooshT * Math.PI);
+
+      // Rising harmonic sweep (95Hz -> 480Hz)
+      const whooshFreq = 95 + 385 * Math.pow(whooshT, 1.7);
+      const sweep = Math.sin(2 * Math.PI * whooshFreq * t) * 0.4;
+      const sweepSub = Math.sin(2 * Math.PI * (whooshFreq * 0.5) * t) * 0.25;
+
+      // Filtered rushing air
+      const white = Math.random() * 2 - 1;
+      const filterCoeff = 0.08 + 0.15 * whooshT;
+      airFilter += filterCoeff * (white - airFilter);
+      const air = airFilter * 0.35;
+
+      whoosh = (sweep + sweepSub + air) * whooshEnv;
+    }
+
+    // --- Phase 3: Secure door unlock & terminal confirmation tone (0.32s - 0.85s) ---
+    let unlockTone = 0;
+    if (t >= 0.30) {
+      const unlockT = t - 0.30;
+      const toneEnv = Math.exp(-unlockT * 5.8);
+
+      // Cyber lock mechanical release sub (42Hz)
+      const subLock = Math.sin(2 * Math.PI * 42 * t) * Math.exp(-unlockT * 7.5) * 0.5;
+
+      // Dark terminal access confirmation tones (F#4 ~370Hz & C#5 ~554Hz - mysterious dark fifth)
+      const chime1 = Math.sin(2 * Math.PI * 369.99 * t) * toneEnv * 0.32;
+      const chime2 = Math.sin(2 * Math.PI * 554.37 * t) * toneEnv * 0.22;
+      // Soft metallic harmonic overtone
+      const chime3 = Math.sin(2 * Math.PI * 1108.74 * t) * Math.exp(-unlockT * 9.0) * 0.09;
+
+      unlockTone = subLock + chime1 + chime2 + chime3;
+    }
+
+    // Combine with soft tape saturation
+    const raw = (click + punch + whoosh + unlockTone);
+    samples[i] = Math.tanh(raw * 1.15) * 0.82;
+  }
+
+  const buf = encodeWAV(samples, sampleRate);
+  fs.writeFileSync(path.join(targetDir, 'find-way-out-unlock.wav'), buf);
+  fs.writeFileSync(path.join(targetDir, 'find-way-out-unlock.mp3'), buf);
+}
+
 console.log('Successfully generated audio assets in', targetDir);

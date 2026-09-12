@@ -22,7 +22,7 @@ export const FinalTerminal: React.FC<FinalTerminalProps> = ({ isUnlocked, isComp
     const trimmed = passkey.trim();
     if (!/^\d{6}$/.test(trimmed)) {
       setErrorMsg('PASSKEY MUST BE EXACTLY 6 NUMERIC DIGITS.');
-      soundService.playAccessDenied();
+      soundService.playError();
       return;
     }
 
@@ -32,20 +32,21 @@ export const FinalTerminal: React.FC<FinalTerminalProps> = ({ isUnlocked, isComp
     try {
       const res: FinalPasskeyResponse = await submitFinalPasskey(trimmed);
       if (res.status === 'COMPLETED' || res.status === 'ALREADY_COMPLETED') {
-        soundService.playLevelUnlock();
+        // 9. FINAL ESCAPE SOUND: Special success / system-unlock sound
+        soundService.playFinalEscape();
         if (onSuccess) onSuccess();
       } else if (res.status === 'INCORRECT') {
-        soundService.playAccessDenied();
+        soundService.playWrongAnswer();
         setErrorMsg(res.message || 'ACCESS DENIED: INVALID SEQUENCE. ATTEMPT RECORDED.');
       } else if (res.status === 'FINAL_NOT_AVAILABLE') {
-        soundService.playAccessDenied();
+        soundService.playError();
         setErrorMsg('TERMINAL UNAVAILABLE. COMPLETE ALL 6 TIERS FIRST.');
       } else {
-        soundService.playAccessDenied();
+        soundService.playError();
         setErrorMsg(res.message || 'PASSKEY SUBMISSION REJECTED.');
       }
     } catch (err: any) {
-      soundService.playAccessDenied();
+      soundService.playError();
       setErrorMsg(err.message || 'SYSTEM ERROR VALIDATING PASSKEY.');
     } finally {
       setIsSubmitting(false);

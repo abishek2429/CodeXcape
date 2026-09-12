@@ -77,7 +77,7 @@ export const PlayerLobbyPage: React.FC = () => {
     // Otherwise toggle self readiness
     try {
       setIsSubmitting(true);
-      soundService.playClick();
+      soundService.playSelect();
       const updated = await setPlayerReady(!isSelfReady);
       setLobbyData(updated);
 
@@ -89,10 +89,11 @@ export const PlayerLobbyPage: React.FC = () => {
 
       // If this action completed mutual readiness, trigger start prompt
       if (updated.isReady && updated.teammateReady && updated.teammateLoggedIn) {
-        soundService.playLevelUnlock();
+        soundService.playChallengeUnlock();
         setShowConfirmModal(true);
       }
     } catch (err: any) {
+      soundService.playError();
       setErrorMsg(err.message || 'Failed to update readiness.');
     } finally {
       setIsSubmitting(false);
@@ -105,18 +106,20 @@ export const PlayerLobbyPage: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      soundService.playLevelUnlock();
+      // 4. ENTER ARENA SOUND: Futuristic activation / confirmation
+      soundService.playArenaEnter();
       setShowConfirmModal(false);
       setTransitioning(true);
 
       await startTeamEvent();
       await refreshPlayer();
 
-      // Brief transition before game entry
+      // Transition before game entry without delaying navigation
       setTimeout(() => {
         navigate('/player/game', { replace: true });
       }, 1200);
     } catch (err: any) {
+      soundService.playError();
       setTransitioning(false);
       setErrorMsg(err.message || 'Failed to start event.');
     } finally {
@@ -321,6 +324,7 @@ export const PlayerLobbyPage: React.FC = () => {
               <CinematicButton
                 variant={isSelfReady && isTeammateReady ? 'primary' : isSelfReady ? 'secondary' : 'primary'}
                 onClick={handleToggleReady}
+                withSound={false}
                 disabled={isSubmitting || isLoading}
                 className="lobby-start-btn"
               >
@@ -368,6 +372,7 @@ export const PlayerLobbyPage: React.FC = () => {
               <CinematicButton
                 variant="primary"
                 onClick={handleConfirmStart}
+                withSound={false}
                 disabled={isSubmitting}
                 className="modal-btn-confirm"
               >

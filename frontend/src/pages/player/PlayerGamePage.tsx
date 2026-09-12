@@ -250,17 +250,17 @@ export const PlayerGamePage: React.FC = () => {
     try {
       const res = await submitAnswer(answer, interactionPayload);
       if (res.correct) {
-        soundService.playAccessGranted();
+        soundService.playCorrectAnswer();
         setFeedbackIsError(false);
         setFeedbackMsg(res.message || 'ACCESS GRANTED: EVIDENCE VERIFIED. PROTOCOL UNLOCKED.');
         await loadData();
       } else {
-        soundService.playAccessDenied();
+        soundService.playWrongAnswer();
         setFeedbackIsError(true);
         setFeedbackMsg(res.message || 'ACCESS DENIED: INVALID SEQUENCE. ATTEMPT RECORDED.');
       }
     } catch (err: any) {
-      soundService.playAccessDenied();
+      soundService.playError();
       setFeedbackIsError(true);
       setFeedbackMsg(err.message || 'TRANSMISSION ERROR. RE-SUBMIT REQUIRED.');
     } finally {
@@ -272,8 +272,10 @@ export const PlayerGamePage: React.FC = () => {
   const handleUseHint = async (hintNumber: number) => {
     try {
       await usePlayerHint(gameState.currentLevel, liveQuestion?.stageNumber || 1, hintNumber);
+      soundService.playClueDiscover();
       await loadData();
     } catch (err: any) {
+      soundService.playError();
       setFeedbackIsError(true);
       setFeedbackMsg(err.message || 'HINT REQUEST REJECTED.');
     }
