@@ -48,11 +48,11 @@ export const PlayerLobbyPage: React.FC = () => {
     playerNumber: player?.playerNumber,
     onRefreshData: loadData,
     onEventStarted: () => {
-      soundService.playLevelUnlock();
+      soundService.playLoadingScreen();
       setTransitioning(true);
       setTimeout(() => {
         navigate('/player/game', { replace: true });
-      }, 1200);
+      }, 4800);
     },
   });
 
@@ -106,19 +106,20 @@ export const PlayerLobbyPage: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      // 4. ENTER ARENA SOUND: Futuristic activation / confirmation
-      soundService.playArenaEnter();
       setShowConfirmModal(false);
       setTransitioning(true);
+      soundService.playLoadingScreen();
 
       await startTeamEvent();
       await refreshPlayer();
 
-      // Transition before game entry without delaying navigation
+      // Synchronize transition with the initial loading audio experience
       setTimeout(() => {
         navigate('/player/game', { replace: true });
-      }, 1200);
+      }, 4800);
     } catch (err: any) {
+      soundService.stopLoadingScreen();
+      soundService.resetLoadingSoundState();
       soundService.playError();
       setTransitioning(false);
       setErrorMsg(err.message || 'Failed to start event.');
@@ -128,6 +129,8 @@ export const PlayerLobbyPage: React.FC = () => {
   };
 
   const handleLogout = async () => {
+    soundService.stopLoadingScreen();
+    soundService.resetLoadingSoundState();
     soundService.playClick();
     await logout();
     navigate('/player/login');

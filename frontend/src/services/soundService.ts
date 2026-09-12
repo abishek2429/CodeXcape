@@ -54,6 +54,8 @@ class SoundService {
   private lastTypingTime: number = 0;
   private typingPool: HTMLAudioElement[] = [];
   private typingPoolIndex: number = 0;
+  private loadingAudio: HTMLAudioElement | null = null;
+  private loadingSoundPlayed: boolean = false;
 
   // Preload local audio files
   public preloadHomeSounds() {
@@ -74,6 +76,7 @@ class SoundService {
       '/sounds/success.mp3',
       '/sounds/error.mp3',
       '/sounds/typing.mp3',
+      '/sounds/gorefield-loading-screen.mp3',
       '/assets/sounds/knock-impact.mp3',
       '/assets/sounds/x-approach-whoosh.mp3',
       '/assets/sounds/glitch-transition.mp3',
@@ -752,6 +755,50 @@ class SoundService {
       bodyOsc.start(t);
       bodyOsc.stop(t + 0.035);
     } catch {}
+  }
+
+  // =========================================================
+  // INITIAL LOADING SCREEN AUDIO (gorefield-loading-screen.mp3)
+  // =========================================================
+  public playLoadingScreen(volume: number = 0.6) {
+    if (this.muted) return;
+    if (this.loadingSoundPlayed) return;
+
+    try {
+      if (!this.loadingAudio) {
+        this.loadingAudio = new Audio('/sounds/gorefield-loading-screen.mp3');
+        this.loadingAudio.preload = 'auto';
+        this.loadingAudio.loop = false;
+      }
+      this.loadingAudio.currentTime = 0;
+      this.loadingAudio.volume = Math.max(0.1, Math.min(1.0, volume));
+      const p = this.loadingAudio.play();
+      if (p !== undefined) {
+        p.catch(() => {
+          // Handled gracefully if browser autoplay policy delays playback
+        });
+      }
+      this.loadingSoundPlayed = true;
+    } catch {}
+  }
+
+  public stopLoadingScreen() {
+    if (this.loadingAudio) {
+      try {
+        this.loadingAudio.pause();
+        this.loadingAudio.currentTime = 0;
+      } catch {}
+      this.loadingAudio = null;
+    }
+  }
+
+  public resetLoadingSoundState() {
+    this.loadingSoundPlayed = false;
+    this.stopLoadingScreen();
+  }
+
+  public hasPlayedLoadingSound(): boolean {
+    return this.loadingSoundPlayed;
   }
 
   // =========================================================
