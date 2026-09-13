@@ -4,7 +4,7 @@ WORKDIR /app/backend
 
 # 1. Cache Maven dependencies layer
 COPY backend/pom.xml .
-RUN mvn dependency:go-offline -B || true
+RUN mvn dependency:resolve -B
 
 # 2. Build backend source
 COPY backend/src ./src
