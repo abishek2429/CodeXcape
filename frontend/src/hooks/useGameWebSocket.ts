@@ -118,6 +118,11 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
       triggerCoalescedRefresh();
     });
 
+    const unsubAntiCheatAlert = webSocketService.subscribe('ANTI_CHEAT_ALERT', (payload: WebSocketEventPayload) => {
+      setLatestNotification(payload.message || 'ANTI-CHEAT ALERT: Penalty recorded against your team.');
+      triggerCoalescedRefresh();
+    });
+
     return () => {
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
@@ -135,6 +140,7 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
       unsubRankChanged();
       unsubReadyChanged();
       unsubEventStarted();
+      unsubAntiCheatAlert();
       webSocketService.disconnect();
     };
   }, [teamId, playerNumber]);

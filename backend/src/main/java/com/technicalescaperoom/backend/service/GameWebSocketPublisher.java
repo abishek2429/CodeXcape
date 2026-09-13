@@ -153,4 +153,40 @@ public class GameWebSocketPublisher {
                 .build();
         broadcastToTeam(teamId, event);
     }
+
+    public void notifyTeamAntiCheatAlert(Long teamId, String teamCode, Integer playerNumber, String violationType,
+                                         Integer penaltyPoints, Integer teamTotalPenalties, String message) {
+        WebSocketEventDto event = WebSocketEventDto.builder()
+                .type(WebSocketEventType.ANTI_CHEAT_ALERT)
+                .teamId(teamId)
+                .teamCode(teamCode)
+                .playerNumber(playerNumber)
+                .violationType(violationType)
+                .penaltyPoints(penaltyPoints)
+                .teamTotalPenalties(teamTotalPenalties)
+                .message(message)
+                .timestamp(Instant.now())
+                .build();
+        broadcastToTeam(teamId, event);
+    }
+
+    public void notifyAdminAntiCheatEvent(Long teamId, String teamCode, Long playerId, Integer playerNumber,
+                                          String displayName, String violationType, Integer penaltyPoints,
+                                          Integer teamTotalPenalties, Integer totalViolations, String message) {
+        WebSocketEventDto event = WebSocketEventDto.builder()
+                .type(WebSocketEventType.ANTI_CHEAT_EVENT)
+                .teamId(teamId)
+                .teamCode(teamCode)
+                .playerId(playerId)
+                .playerNumber(playerNumber)
+                .displayName(displayName)
+                .violationType(violationType)
+                .penaltyPoints(penaltyPoints)
+                .teamTotalPenalties(teamTotalPenalties)
+                .totalViolations(totalViolations)
+                .message(message)
+                .timestamp(Instant.now())
+                .build();
+        broadcastToAdmin(event);
+    }
 }

@@ -29,6 +29,7 @@ public class LeaderboardService {
     private final TeamRepository teamRepository;
     private final PlayerRepository playerRepository;
     private final TeamLevelProgressRepository teamLevelProgressRepository;
+    private final TeamAntiCheatSummaryRepository teamAntiCheatSummaryRepository;
 
     private final Map<Long, Integer> lastBroadcastRanks = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -47,8 +48,12 @@ public class LeaderboardService {
         Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
                 .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
 
+        Map<Long, TeamAntiCheatSummary> summaryByTeam = teamAntiCheatSummaryRepository.findByTeamIdIn(teamIds).stream()
+                .collect(Collectors.toMap(TeamAntiCheatSummary::getTeamId, s -> s));
+
         Map<Long, Integer> levelMap = preloadTeamLevels(teams, progressByTeam);
-        teams.sort(getFastTeamComparator(levelMap));
+        Map<Long, Integer> scoreMap = preloadTeamScores(teams, levelMap, summaryByTeam);
+        teams.sort(getFastTeamComparator(levelMap, scoreMap));
 
         List<Player> allPlayers = playerRepository.findByTeamIdIn(teamIds);
         Map<Long, List<Player>> playersByTeam = allPlayers.stream()
@@ -59,7 +64,9 @@ public class LeaderboardService {
         for (Team team : teams) {
             result.add(buildLeaderboardEntry(event, team, rank++,
                     progressByTeam.getOrDefault(team.getId(), Collections.emptyList()),
-                    playersByTeam.getOrDefault(team.getId(), Collections.emptyList())));
+                    playersByTeam.getOrDefault(team.getId(), Collections.emptyList()),
+                    summaryByTeam.get(team.getId()),
+                    scoreMap.getOrDefault(team.getId(), 1000)));
         }
 
         return result;
@@ -85,8 +92,12 @@ public class LeaderboardService {
         Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
                 .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
 
+        Map<Long, TeamAntiCheatSummary> summaryByTeam = teamAntiCheatSummaryRepository.findByTeamIdIn(teamIds).stream()
+                .collect(Collectors.toMap(TeamAntiCheatSummary::getTeamId, s -> s));
+
         Map<Long, Integer> levelMap = preloadTeamLevels(allTeams, progressByTeam);
-        allTeams.sort(getFastTeamComparator(levelMap));
+        Map<Long, Integer> scoreMap = preloadTeamScores(allTeams, levelMap, summaryByTeam);
+        allTeams.sort(getFastTeamComparator(levelMap, scoreMap));
 
         for (int i = 0; i < allTeams.size(); i++) {
             lastBroadcastRanks.put(allTeams.get(i).getId(), i + 1);
@@ -120,8 +131,12 @@ public class LeaderboardService {
         Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
                 .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
 
+        Map<Long, TeamAntiCheatSummary> summaryByTeam = teamAntiCheatSummaryRepository.findByTeamIdIn(teamIds).stream()
+                .collect(Collectors.toMap(TeamAntiCheatSummary::getTeamId, s -> s));
+
         Map<Long, Integer> levelMap = preloadTeamLevels(allTeams, progressByTeam);
-        allTeams.sort(getFastTeamComparator(levelMap));
+        Map<Long, Integer> scoreMap = preloadTeamScores(allTeams, levelMap, summaryByTeam);
+        allTeams.sort(getFastTeamComparator(levelMap, scoreMap));
 
         for (int i = 0; i < allTeams.size(); i++) {
             Team team = allTeams.get(i);
@@ -132,6 +147,18 @@ public class LeaderboardService {
                 webSocketPublisher.notifyRankChanged(team.getId(), newRank);
             }
         }
+    }
+
+    private Map<Long, Integer> preloadTeamScores(List<Team> teams, Map<Long, Integer> levelMap, Map<Long, TeamAntiCheatSummary> summaryByTeam) {
+        Map<Long, Integer> scoreMap = new HashMap<>();
+        for (Team team : teams) {
+            int level = levelMap.getOrDefault(team.getId(), 1);
+            int baseScore = 1000 + (level * 100);
+            TeamAntiCheatSummary summary = summaryByTeam.get(team.getId());
+            int antiCheatPenalties = (summary != null) ? summary.getTotalPenaltyPoints() : 0;
+            scoreMap.put(team.getId(), Math.max(0, baseScore - antiCheatPenalties));
+        }
+        return scoreMap;
     }
 
     private Map<Long, Integer> preloadTeamLevels(List<Team> teams, Map<Long, List<TeamLevelProgress>> progressByTeam) {
@@ -152,26 +179,40 @@ public class LeaderboardService {
         return levelMap;
     }
 
-    private Comparator<Team> getFastTeamComparator(Map<Long, Integer> levelMap) {
+    private Comparator<Team> getFastTeamComparator(Map<Long, Integer> levelMap, Map<Long, Integer> scoreMap) {
         return (t1, t2) -> {
             boolean t1Completed = t1.getGameState() == TeamGameState.COMPLETED && t1.getCompletedAt() != null;
             boolean t2Completed = t2.getGameState() == TeamGameState.COMPLETED && t2.getCompletedAt() != null;
             
+            // 1. Completion Status
             if (t1Completed && !t2Completed) return -1;
             if (!t1Completed && t2Completed) return 1;
             
             if (t1Completed && t2Completed) {
+                // If both completed, compare competitive score first (fewer penalties wins)
+                int s1 = scoreMap.getOrDefault(t1.getId(), 0);
+                int s2 = scoreMap.getOrDefault(t2.getId(), 0);
+                if (s1 != s2) {
+                    return Integer.compare(s2, s1); // Descending
+                }
                 return t1.getCompletedAt().compareTo(t2.getCompletedAt());
             }
             
-            // Both incomplete, sort by highest active level
+            // 2. Both in-progress, sort by highest active level
             int t1Level = levelMap.getOrDefault(t1.getId(), 1);
             int t2Level = levelMap.getOrDefault(t2.getId(), 1);
             if (t1Level != t2Level) {
                 return Integer.compare(t2Level, t1Level); // Descending
             }
             
-            // If tied on level, maintain a stable sort by ID
+            // 3. If tied on level, sort by competitive score (fewer penalties wins)
+            int s1 = scoreMap.getOrDefault(t1.getId(), 0);
+            int s2 = scoreMap.getOrDefault(t2.getId(), 0);
+            if (s1 != s2) {
+                return Integer.compare(s2, s1); // Descending
+            }
+            
+            // 4. Stable sort by ID
             return t1.getId().compareTo(t2.getId());
         };
     }
@@ -288,6 +329,8 @@ public class LeaderboardService {
                         .status("COMPLETED")
                         .currentLevel(6)
                         .formattedDuration(e.getFormattedDuration())
+                        .antiCheatPenalties(e.getAntiCheatPenalties())
+                        .competitiveScore(e.getCompetitiveScore())
                         .build())
                 .collect(Collectors.toList());
 
@@ -299,6 +342,8 @@ public class LeaderboardService {
                         .status(e.getGameState().name())
                         .currentLevel(e.getCurrentLevel())
                         .formattedDuration("-")
+                        .antiCheatPenalties(e.getAntiCheatPenalties())
+                        .competitiveScore(e.getCompetitiveScore())
                         .build())
                 .collect(Collectors.toList());
 
@@ -313,7 +358,9 @@ public class LeaderboardService {
 
     private LeaderboardEntryDto buildLeaderboardEntry(Event event, Team team, Integer rank,
                                                       List<TeamLevelProgress> progressList,
-                                                      List<Player> players) {
+                                                      List<Player> players,
+                                                      TeamAntiCheatSummary summary,
+                                                      Integer competitiveScore) {
         TeamLevelProgress activeProgress = progressList.stream()
                 .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
                 .findFirst()
@@ -332,6 +379,9 @@ public class LeaderboardService {
             formattedDuration = formatDuration(durationSeconds);
         }
 
+        int antiCheatPenalties = (summary != null) ? summary.getTotalPenaltyPoints() : 0;
+        int totalViolations = (summary != null) ? summary.getTotalViolations() : 0;
+
         return LeaderboardEntryDto.builder()
                 .rank(team.getGameState() == TeamGameState.COMPLETED ? rank : null)
                 .teamId(team.getId())
@@ -345,6 +395,9 @@ public class LeaderboardService {
                 .completedAt(team.getCompletedAt())
                 .durationSeconds(durationSeconds)
                 .formattedDuration(formattedDuration)
+                .antiCheatPenalties(antiCheatPenalties)
+                .totalViolations(totalViolations)
+                .competitiveScore(competitiveScore)
                 .build();
     }
 

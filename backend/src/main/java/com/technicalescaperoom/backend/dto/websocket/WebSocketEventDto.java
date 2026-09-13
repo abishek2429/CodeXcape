@@ -30,6 +30,11 @@ public class WebSocketEventDto {
     private String eventStatus;
     private Boolean isReady;
     private Boolean allReady;
+    private String violationType;
+    private Integer penaltyPoints;
+    private Integer teamTotalPenalties;
+    private Integer totalViolations;
+    private String teamCode;
     
     @Builder.Default
     private Instant timestamp = Instant.now();

@@ -26,4 +26,7 @@ public class LeaderboardEntryDto {
     private Instant completedAt;
     private Long durationSeconds;
     private String formattedDuration; // e.g. "38m 42s"
+    private Integer antiCheatPenalties;
+    private Integer totalViolations;
+    private Integer competitiveScore;
 }

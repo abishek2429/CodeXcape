@@ -14,8 +14,9 @@ import { FinalTerminal } from '../../components/game/FinalTerminal';
 import { GameStatus } from '../../components/game/GameStatus';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { GameErrorState } from '../../components/game/GameErrorState';
-import { Shield, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy } from 'lucide-react';
+import { Shield, ShieldAlert, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy } from 'lucide-react';
 import { GameSessionState, ChallengeData } from '../../types/game';
+import { useAntiCheat } from '../../hooks/useAntiCheat';
 
 import { fetchPlayerHints, usePlayerHint } from '../../services/hintService';
 import { HintData } from '../../types/game';
@@ -142,6 +143,11 @@ export const PlayerGamePage: React.FC = () => {
     playerNumber: player?.playerNumber,
     onRefreshData: loadData,
     onRankChanged: (newRank) => setLiveRank(newRank),
+  });
+
+  const { teamSummary, lastAlert } = useAntiCheat({
+    isActive: serverState?.gameStatus === 'IN_PROGRESS',
+    onViolationAlert: () => soundService.playError(),
   });
 
   useEffect(() => {
@@ -450,6 +456,13 @@ export const PlayerGamePage: React.FC = () => {
               </div>
             )}
 
+            {lastAlert && (
+              <div className="notification-banner banner-error animate-pulse" style={{ borderColor: 'var(--accent-crimson)', backgroundColor: 'rgba(225, 29, 72, 0.15)' }}>
+                <ShieldAlert size={16} color="var(--accent-crimson)" />
+                <span className="terminal-text" style={{ color: 'var(--accent-crimson)', fontWeight: 800 }}>{lastAlert}</span>
+              </div>
+            )}
+
             {feedbackMsg && (
               <div className={`notification-banner animate-fade-in ${feedbackIsError ? 'banner-error' : 'banner-success'}`}>
                 {feedbackIsError ? <AlertOctagon size={16} /> : <CheckCircle2 size={16} />}
@@ -512,6 +525,17 @@ export const PlayerGamePage: React.FC = () => {
                     <Trophy size={14} /> CURRENT RANK
                   </span>
                   <span className="terminal-text text-warning text-lg font-bold">#{gameState.currentRank}</span>
+                </div>
+              )}
+
+              {teamSummary && teamSummary.totalPenaltyPoints > 0 && (
+                <div className="matrix-row" style={{ borderLeft: '3px solid var(--accent-crimson)', backgroundColor: 'rgba(225, 29, 72, 0.08)' }}>
+                  <span className="terminal-text flex items-center gap-2 font-bold" style={{ color: 'var(--accent-crimson)' }}>
+                    <ShieldAlert size={14} /> PENALTIES
+                  </span>
+                  <span className="terminal-text font-bold" style={{ color: 'var(--accent-crimson)' }}>
+                    -{teamSummary.totalPenaltyPoints} PTS ({teamSummary.totalViolations} inf)
+                  </span>
                 </div>
               )}
 

@@ -11,6 +11,9 @@ export interface LeaderboardEntry {
   completedAt?: string;
   durationSeconds?: number;
   formattedDuration: string;
+  antiCheatPenalties?: number;
+  totalViolations?: number;
+  competitiveScore?: number;
 }
 
 export interface LevelStatistics {
@@ -45,6 +48,9 @@ export interface PublicLeaderboardEntry {
   status: string;
   currentLevel: number;
   formattedDuration: string;
+  antiCheatPenalties?: number;
+  totalViolations?: number;
+  competitiveScore?: number;
 }
 
 export interface PublicLeaderboard {

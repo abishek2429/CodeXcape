@@ -15,4 +15,6 @@ public class PublicLeaderboardEntryDto {
     private String status; // "COMPLETED" or "IN_PROGRESS"
     private Integer currentLevel;
     private String formattedDuration;
+    private Integer antiCheatPenalties;
+    private Integer competitiveScore;
 }

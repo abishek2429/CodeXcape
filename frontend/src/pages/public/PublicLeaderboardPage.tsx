@@ -201,10 +201,17 @@ export const PublicLeaderboardPage: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <p style={{ fontSize: '11px', color: 'var(--status-success)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '5px', letterSpacing: '0.04em' }}>
-                            <CheckCircle2 size={12} />
-                            <span>ALL TIERS BREACHED</span>
-                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                            <p style={{ fontSize: '11px', color: 'var(--status-success)', margin: 0, display: 'flex', alignItems: 'center', gap: '5px', letterSpacing: '0.04em' }}>
+                              <CheckCircle2 size={12} />
+                              <span>ALL TIERS BREACHED</span>
+                            </p>
+                            {Boolean(entry.antiCheatPenalties && entry.antiCheatPenalties > 0) && (
+                              <span style={{ fontSize: '10px', color: 'var(--accent-danger)', fontWeight: 700, padding: '1px 6px', background: 'rgba(239, 68, 68, 0.15)', borderRadius: '2px', border: '1px solid var(--accent-danger)' }}>
+                                ⚠️ -{entry.antiCheatPenalties} PTS PENALTY
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -253,9 +260,16 @@ export const PublicLeaderboardPage: React.FC = () => {
                     }}
                   >
                     <div>
-                      <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                        {entry.teamName}
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                          {entry.teamName}
+                        </p>
+                        {Boolean(entry.antiCheatPenalties && entry.antiCheatPenalties > 0) && (
+                          <span style={{ fontSize: '9px', color: 'var(--accent-danger)', fontWeight: 700, padding: '1px 5px', background: 'rgba(239, 68, 68, 0.15)', borderRadius: '2px', border: '1px solid var(--accent-danger)' }}>
+                            ⚠️ -{entry.antiCheatPenalties} PTS
+                          </span>
+                        )}
+                      </div>
                       <p style={{ fontSize: '10px', color: 'var(--accent-crimson-bright)', marginTop: '2px', letterSpacing: '0.06em' }}>
                         STATUS: {entry.status}
                       </p>

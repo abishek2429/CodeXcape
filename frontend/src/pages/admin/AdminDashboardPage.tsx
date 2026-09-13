@@ -27,6 +27,7 @@ import {
   Radio,
   Terminal,
   Cpu,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   fetchDashboardStats,
@@ -57,12 +58,18 @@ import {
   AdminActiveSession,
   AdminAuditLog,
 } from '../../services/adminService';
+import {
+  fetchAdminAntiCheatEvents,
+  fetchAdminAntiCheatSummaries,
+  AntiCheatSummary,
+  AntiCheatAuditItem,
+} from '../../services/antiCheatService';
 import { AdminMissionHeader } from '../../components/admin/AdminMissionHeader';
 import { AdminSystemHealth } from '../../components/admin/AdminSystemHealth';
 import { webSocketService } from '../../services/websocketService';
 
 export const AdminDashboardPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'teams' | 'sessions' | 'controls' | 'results' | 'audit'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'teams' | 'sessions' | 'anticheat' | 'controls' | 'results' | 'audit'>('dashboard');
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [teams, setTeams] = useState<AdminTeamProgress[]>([]);
   const [activeSessions, setActiveSessions] = useState<AdminActiveSession[]>([]);
@@ -98,6 +105,12 @@ export const AdminDashboardPage: React.FC = () => {
   const [safePreview, setSafePreview] = useState<any>(null);
   const [previewPlayerNum, setPreviewPlayerNum] = useState<number | null>(null);
 
+  // Anti-Cheat Telemetry State
+  const [antiCheatEvents, setAntiCheatEvents] = useState<AntiCheatAuditItem[]>([]);
+  const [antiCheatSummaries, setAntiCheatSummaries] = useState<AntiCheatSummary[]>([]);
+  const [antiCheatFilter, setAntiCheatFilter] = useState<'ALL' | 'PENALIZED_ONLY'>('ALL');
+  const [antiCheatSearch, setAntiCheatSearch] = useState('');
+
   const eventId = 1;
 
   const loadData = async () => {
@@ -110,9 +123,11 @@ export const AdminDashboardPage: React.FC = () => {
         fetchEventContent(eventId),
         fetchEventValidation(eventId),
         fetchActiveSessions(eventId),
+        fetchAdminAntiCheatEvents(eventId),
+        fetchAdminAntiCheatSummaries(eventId),
       ]);
 
-      const [statsRes, teamsRes, logsRes, contentRes, validationRes, sessionsRes] = results;
+      const [statsRes, teamsRes, logsRes, contentRes, validationRes, sessionsRes, acEventsRes, acSummRes] = results;
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value);
       if (teamsRes.status === 'fulfilled') setTeams(teamsRes.value);
@@ -120,6 +135,8 @@ export const AdminDashboardPage: React.FC = () => {
       if (contentRes.status === 'fulfilled') setContentData(contentRes.value);
       if (validationRes.status === 'fulfilled') setReadinessData(validationRes.value);
       if (sessionsRes.status === 'fulfilled') setActiveSessions(sessionsRes.value);
+      if (acEventsRes && acEventsRes.status === 'fulfilled') setAntiCheatEvents(acEventsRes.value);
+      if (acSummRes && acSummRes.status === 'fulfilled') setAntiCheatSummaries(acSummRes.value);
 
       const isAuthError = results.some(
         (r) => r.status === 'rejected' && (r.reason?.message?.includes('401') || r.reason?.message?.includes('unauthorized') || r.reason?.message?.includes('UNAUTHORIZED'))
@@ -157,6 +174,12 @@ export const AdminDashboardPage: React.FC = () => {
     const unsubRank = webSocketService.subscribe('RANK_CHANGED', triggerCoalescedAdminRefresh);
     const unsubConn = webSocketService.subscribe('PLAYER_CONNECTED', triggerCoalescedAdminRefresh);
     const unsubDisc = webSocketService.subscribe('PLAYER_DISCONNECTED', triggerCoalescedAdminRefresh);
+    const unsubAntiCheat = webSocketService.subscribe('ANTI_CHEAT_EVENT', (eventData: any) => {
+      if (eventData) {
+        setAntiCheatEvents((prev) => [eventData, ...prev.slice(0, 99)]);
+        triggerCoalescedAdminRefresh();
+      }
+    });
 
     return () => {
       clearInterval(interval);
@@ -171,6 +194,7 @@ export const AdminDashboardPage: React.FC = () => {
       unsubRank();
       unsubConn();
       unsubDisc();
+      unsubAntiCheat();
       webSocketService.disconnect();
     };
   }, [searchTerm, levelFilter, statusFilter]);
@@ -678,6 +702,23 @@ export const AdminDashboardPage: React.FC = () => {
               style={{ fontSize: '10px', marginLeft: '6px', padding: '1px 7px', borderRadius: '10px', fontWeight: 800 }}
             >
               {stats.totalActiveSessions} LIVE
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('anticheat')}
+          className={`admin-dynamic-element ${activeTab === 'anticheat' ? 'active' : ''}`}
+          id="admin-anticheat-tab"
+        >
+          <ShieldAlert size={14} className={antiCheatSummaries.some(s => s.totalViolations > 0) ? 'text-danger animate-pulse' : ''} />
+          <span>ANTI-CHEAT MONITOR</span>
+          {antiCheatSummaries.reduce((sum, s) => sum + s.totalViolations, 0) > 0 && (
+            <span
+              className="badge-status-offline"
+              style={{ fontSize: '10px', marginLeft: '6px', padding: '1px 7px', borderRadius: '10px', fontWeight: 800, background: 'rgba(239, 68, 68, 0.2)', color: 'var(--accent-danger)' }}
+            >
+              {antiCheatSummaries.reduce((sum, s) => sum + s.totalViolations, 0)} VIOLATIONS
             </span>
           )}
         </button>
@@ -1614,6 +1655,337 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
+        {activeTab === 'anticheat' && (
+          <div className="flex" style={{ flexDirection: 'column', gap: '20px' }}>
+            {/* Top Mission Briefing Banner */}
+            <div className="admin-panel flex items-center justify-between" style={{ borderLeft: '4px solid var(--accent-danger)' }}>
+              <div>
+                <h3 className="text-primary flex items-center gap-2" style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>
+                  <ShieldAlert className="text-danger" size={22} />
+                  <span>ANTI-CHEAT DETECTION MATRIX & TEAM PENALTY AUDIT</span>
+                </h3>
+                <p className="text-secondary" style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
+                  Server-authoritative telemetry verification: browser tab visibility, fullscreen escapes, and team score deductions.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="badge-status-online" style={{ fontSize: '10px', padding: '3px 8px' }}>
+                  LIVE WEBSOCKET AUDIT ACTIVE
+                </span>
+                <button
+                  type="button"
+                  onClick={loadData}
+                  className="admin-btn-secondary flex items-center gap-1"
+                  style={{ fontSize: '11px', padding: '6px 12px' }}
+                >
+                  <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+                  <span>SYNC DATA</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Anti-Cheat KPI Statistics Cards */}
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+              <div className="admin-panel flex items-center gap-3">
+                <div style={{ padding: '10px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)' }}>
+                  <AlertTriangle size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                    {antiCheatSummaries.reduce((sum, s) => sum + s.totalViolations, 0)}
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    Total Violations Recorded
+                  </div>
+                </div>
+              </div>
+
+              <div className="admin-panel flex items-center gap-3">
+                <div style={{ padding: '10px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.1)', color: 'var(--status-warning)' }}>
+                  <Users size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--status-warning)', fontFamily: 'var(--font-mono)' }}>
+                    {antiCheatSummaries.filter(s => s.totalViolations > 0).length} / {teams.length}
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    Teams with Penalties
+                  </div>
+                </div>
+              </div>
+
+              <div className="admin-panel flex items-center gap-3">
+                <div style={{ padding: '10px', borderRadius: '4px', background: 'rgba(225, 29, 72, 0.15)', color: 'var(--accent-crimson-bright)' }}>
+                  <ShieldAlert size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--accent-crimson-bright)', fontFamily: 'var(--font-mono)' }}>
+                    -{antiCheatSummaries.reduce((sum, s) => sum + s.totalPenaltyPoints, 0)} PTS
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    Total Points Deducted
+                  </div>
+                </div>
+              </div>
+
+              <div className="admin-panel flex items-center gap-3">
+                <div style={{ padding: '10px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--status-success)' }}>
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--status-success)' }}>
+                    ACTIVE ENFORCEMENT
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    Deduplication & Cooldown: Active
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter and Search Toolbar */}
+            <div className="admin-panel flex items-center justify-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAntiCheatFilter('ALL')}
+                  className={`admin-dynamic-element ${antiCheatFilter === 'ALL' ? 'active' : ''}`}
+                  style={{ fontSize: '11px', padding: '6px 14px' }}
+                >
+                  ALL TEAMS ({antiCheatSummaries.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAntiCheatFilter('PENALIZED_ONLY')}
+                  className={`admin-dynamic-element ${antiCheatFilter === 'PENALIZED_ONLY' ? 'active' : ''}`}
+                  style={{ fontSize: '11px', padding: '6px 14px' }}
+                >
+                  PENALIZED ONLY ({antiCheatSummaries.filter(s => s.totalViolations > 0).length})
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Search size={14} className="text-secondary" />
+                <input
+                  type="text"
+                  placeholder="Filter by team name or code..."
+                  value={antiCheatSearch}
+                  onChange={(e) => setAntiCheatSearch(e.target.value)}
+                  style={{
+                    backgroundColor: 'rgba(0,0,0,0.4)',
+                    border: '1px solid var(--border-dim)',
+                    borderRadius: 'var(--radius-xs)',
+                    color: 'var(--text-primary)',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    width: '240px',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Main Tables Grid: Team Summaries & Live Telemetry Stream */}
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))', gap: '20px' }}>
+              {/* Team Penalty Summaries Table */}
+              <div className="admin-panel">
+                <div className="flex items-center justify-between" style={{ marginBottom: '14px' }}>
+                  <h4 className="text-primary flex items-center gap-2" style={{ margin: 0, fontSize: '14px', fontWeight: 800 }}>
+                    <Users size={16} className="text-accent" />
+                    <span>TEAM PENALTY STANDINGS</span>
+                  </h4>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    Leaderboard Impact: Ranked Lower
+                  </span>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead className="text-secondary" style={{ borderBottom: '1px solid var(--border-dim)', textAlign: 'left' }}>
+                      <tr>
+                        <th style={{ padding: '8px 10px' }}>Team</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center' }}>Total Penalties</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center' }}>Tab Switches</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center' }}>Fullscreen Exits</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center' }}>Prolonged Hidden</th>
+                        <th style={{ padding: '8px 10px' }}>Last Violation</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {antiCheatSummaries
+                        .filter((s) => {
+                          if (antiCheatFilter === 'PENALIZED_ONLY' && s.totalViolations === 0) return false;
+                          if (antiCheatSearch.trim()) {
+                            const q = antiCheatSearch.toLowerCase();
+                            const matchesCode = s.teamCode?.toLowerCase().includes(q);
+                            const matchesName = s.teamName?.toLowerCase().includes(q);
+                            if (!matchesCode && !matchesName) return false;
+                          }
+                          return true;
+                        })
+                        .map((summary) => {
+                          const hasPenalties = summary.totalViolations > 0;
+                          return (
+                            <tr
+                              key={summary.teamId}
+                              style={{
+                                borderBottom: '1px solid var(--border-dim)',
+                                backgroundColor: hasPenalties ? 'rgba(239, 68, 68, 0.04)' : undefined,
+                              }}
+                            >
+                              <td style={{ padding: '10px' }}>
+                                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                  {summary.teamName || `Team #${summary.teamId}`}
+                                </div>
+                                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--accent-cyan)' }}>
+                                  {summary.teamCode}
+                                </div>
+                              </td>
+                              <td style={{ padding: '10px', textAlign: 'center' }}>
+                                {hasPenalties ? (
+                                  <span style={{ fontWeight: 900, color: 'var(--accent-danger)', background: 'rgba(239, 68, 68, 0.15)', padding: '3px 8px', borderRadius: '3px', border: '1px solid var(--accent-danger)' }}>
+                                    -{summary.totalPenaltyPoints} pts
+                                  </span>
+                                ) : (
+                                  <span style={{ color: 'var(--status-success)', fontWeight: 600 }}>0 pts (Clean)</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '10px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+                                {summary.tabSwitchCount > 0 ? (
+                                  <span style={{ color: 'var(--status-warning)', fontWeight: 700 }}>{summary.tabSwitchCount}</span>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)' }}>0</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '10px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+                                {summary.fullscreenExitCount > 0 ? (
+                                  <span style={{ color: 'var(--accent-danger)', fontWeight: 700 }}>{summary.fullscreenExitCount}</span>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)' }}>0</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '10px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+                                {summary.prolongedHiddenCount > 0 ? (
+                                  <span style={{ color: 'var(--accent-danger)', fontWeight: 700 }}>{summary.prolongedHiddenCount}</span>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)' }}>0</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '10px', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                                {summary.lastViolationAt ? new Date(summary.lastViolationAt).toLocaleTimeString() : 'None'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      {antiCheatSummaries.length === 0 && (
+                        <tr>
+                          <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                            No team anti-cheat records found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Real-time Incident Audit Stream */}
+              <div className="admin-panel">
+                <div className="flex items-center justify-between" style={{ marginBottom: '14px' }}>
+                  <h4 className="text-primary flex items-center gap-2" style={{ margin: 0, fontSize: '14px', fontWeight: 800 }}>
+                    <Activity size={16} className="text-danger animate-pulse" />
+                    <span>LIVE SECURITY INCIDENT STREAM</span>
+                  </h4>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    Last 100 Recorded Events
+                  </span>
+                </div>
+
+                <div style={{ overflowX: 'auto', maxHeight: '540px', overflowY: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                    <thead className="text-secondary" style={{ borderBottom: '1px solid var(--border-dim)', textAlign: 'left', position: 'sticky', top: 0, background: 'var(--bg-panel)' }}>
+                      <tr>
+                        <th style={{ padding: '8px 10px' }}>Timestamp</th>
+                        <th style={{ padding: '8px 10px' }}>Team</th>
+                        <th style={{ padding: '8px 10px' }}>Player</th>
+                        <th style={{ padding: '8px 10px' }}>Violation</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center' }}>Penalty</th>
+                        <th style={{ padding: '8px 10px' }}>Server Verification</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {antiCheatEvents
+                        .filter((ev) => {
+                          if (antiCheatSearch.trim()) {
+                            const q = antiCheatSearch.toLowerCase();
+                            const match =
+                              ev.teamCode?.toLowerCase().includes(q) ||
+                              ev.teamName?.toLowerCase().includes(q) ||
+                              ev.playerName?.toLowerCase().includes(q) ||
+                              ev.violationType?.toLowerCase().includes(q);
+                            if (!match) return false;
+                          }
+                          return true;
+                        })
+                        .map((ev) => {
+                          const isFullscreen = ev.violationType === 'FULLSCREEN_EXIT';
+                          const isProlonged = ev.violationType === 'PROLONGED_PAGE_HIDDEN';
+
+                          return (
+                            <tr key={ev.id} style={{ borderBottom: '1px solid var(--border-dim)' }}>
+                              <td style={{ padding: '8px 10px', fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)' }}>
+                                {new Date(ev.detectedAt).toLocaleTimeString()}
+                              </td>
+                              <td style={{ padding: '8px 10px' }}>
+                                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{ev.teamName || ev.teamCode}</div>
+                                <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{ev.teamCode}</div>
+                              </td>
+                              <td style={{ padding: '8px 10px' }}>
+                                <span style={{ color: 'var(--text-primary)' }}>{ev.playerName}</span>
+                                <span style={{ fontSize: '9px', color: 'var(--text-muted)', marginLeft: '4px' }}>[P{ev.playerNumber}]</span>
+                              </td>
+                              <td style={{ padding: '8px 10px' }}>
+                                <span
+                                  style={{
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    padding: '2px 6px',
+                                    borderRadius: '2px',
+                                    background: isProlonged ? 'rgba(239, 68, 68, 0.2)' : isFullscreen ? 'rgba(245, 158, 11, 0.2)' : 'rgba(14, 165, 233, 0.2)',
+                                    color: isProlonged ? 'var(--accent-danger)' : isFullscreen ? 'var(--status-warning)' : 'var(--accent-cyan)',
+                                    border: `1px solid ${isProlonged ? 'var(--accent-danger)' : isFullscreen ? 'var(--status-warning)' : 'var(--accent-cyan)'}`,
+                                  }}
+                                >
+                                  {ev.violationType}
+                                </span>
+                              </td>
+                              <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                                <span style={{ fontWeight: 800, color: 'var(--accent-danger)' }}>
+                                  -{ev.penaltyPoints} pts
+                                </span>
+                              </td>
+                              <td style={{ padding: '8px 10px', color: 'var(--text-secondary)', fontSize: '10px' }}>
+                                <div style={{ color: 'var(--status-success)', fontWeight: 600 }}>✓ Server Verified</div>
+                                {ev.durationMs ? <div>Duration: {(ev.durationMs / 1000).toFixed(1)}s</div> : null}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      {antiCheatEvents.length === 0 && (
+                        <tr>
+                          <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                            No security incidents logged yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'controls' && (
           <div className="grid">
             {/* Organizer Event Controls */}
@@ -1729,38 +2101,51 @@ export const AdminDashboardPage: React.FC = () => {
                     <th className="">Player 1</th>
                     <th className="">Player 2</th>
                     <th className="">Status</th>
+                    <th className="">Penalties</th>
                     <th className="">Completed At</th>
                   </tr>
                 </thead>
                 <tbody className="">
                   {teams.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="">
+                      <td colSpan={7} className="">
                         No team results recorded.
                       </td>
                     </tr>
                   ) : (
-                    teams.map((t, idx) => (
-                      <tr key={t.teamId} className="admin-btn-secondary">
-                        <td className="text-warning">
-                          {t.gameState === 'COMPLETED' ? `#${idx + 1}` : '-'}
-                        </td>
-                        <td className="text-primary">
-                          <div>{t.teamName}</div>
-                          <div className="text-accent">{t.teamCode}</div>
-                        </td>
-                        <td className="">{t.player1Name}</td>
-                        <td className="">{t.player2Name}</td>
-                        <td className="">
-                          <span className="admin-dynamic-element">
-                            {t.gameState}
-                          </span>
-                        </td>
-                        <td className="text-secondary">
-                          {t.completedAt ? new Date(t.completedAt).toLocaleString() : '-'}
-                        </td>
-                      </tr>
-                    ))
+                    teams.map((t, idx) => {
+                      const summary = antiCheatSummaries.find((s) => s.teamId === t.teamId);
+                      return (
+                        <tr key={t.teamId} className="admin-btn-secondary">
+                          <td className="text-warning">
+                            {t.gameState === 'COMPLETED' ? `#${idx + 1}` : '-'}
+                          </td>
+                          <td className="text-primary">
+                            <div>{t.teamName}</div>
+                            <div className="text-accent">{t.teamCode}</div>
+                          </td>
+                          <td className="">{t.player1Name}</td>
+                          <td className="">{t.player2Name}</td>
+                          <td className="">
+                            <span className="admin-dynamic-element">
+                              {t.gameState}
+                            </span>
+                          </td>
+                          <td className="">
+                            {summary && summary.totalPenaltyPoints > 0 ? (
+                              <span style={{ color: 'var(--accent-danger)', fontWeight: 800, fontSize: '11px' }}>
+                                -{summary.totalPenaltyPoints} pts ({summary.totalViolations} viol.)
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--status-success)', fontSize: '11px' }}>0 pts (Clean)</span>
+                            )}
+                          </td>
+                          <td className="text-secondary">
+                            {t.completedAt ? new Date(t.completedAt).toLocaleString() : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
