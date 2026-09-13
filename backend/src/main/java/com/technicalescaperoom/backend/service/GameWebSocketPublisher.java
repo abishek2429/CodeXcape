@@ -189,4 +189,18 @@ public class GameWebSocketPublisher {
                 .build();
         broadcastToAdmin(event);
     }
+
+    public void notifyTeamScoreChanged(Long teamId, com.technicalescaperoom.backend.dto.player.TeamScoreDto scoreSummary) {
+        if (teamId == null || scoreSummary == null) return;
+        WebSocketEventDto event = WebSocketEventDto.builder()
+                .type(WebSocketEventType.SCORE_UPDATED)
+                .teamId(teamId)
+                .teamCode(scoreSummary.getTeamCode())
+                .newRank(scoreSummary.getCurrentRank())
+                .scoreSummary(scoreSummary)
+                .message("Team score updated: " + scoreSummary.getFinalScore() + " pts (Rank #" + scoreSummary.getCurrentRank() + ")")
+                .timestamp(Instant.now())
+                .build();
+        broadcastToTeam(teamId, event);
+    }
 }

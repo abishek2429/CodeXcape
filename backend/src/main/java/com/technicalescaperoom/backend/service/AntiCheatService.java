@@ -37,6 +37,8 @@ public class AntiCheatService {
     private final AuditService auditService;
     private final GameWebSocketPublisher webSocketPublisher;
     private final LeaderboardService leaderboardService;
+    private final ScoringService scoringService;
+    private final com.technicalescaperoom.backend.config.ScoringConfig scoringConfig;
 
     @Value("${codexcape.anticheat.tab-switch-penalty:10}")
     private int tabSwitchPenalty = 10;
@@ -182,8 +184,31 @@ public class AntiCheatService {
     private AntiCheatEventResponseDto recordViolation(Team team, Player player, Event event,
                                                       AntiCheatViolationType violationType,
                                                       Long durationMs, Instant detectedAt, String metadata) {
-        int penaltyPoints = getPenaltyPointsForType(violationType);
-        String incidentKey = "inc_" + team.getId() + "_p" + player.getPlayerNumber() + "_" + violationType.name() + "_" + (detectedAt.toEpochMilli() / (cooldownSeconds * 1000L));
+        // Update or create Team summary atomically
+        TeamAntiCheatSummary summary = teamAntiCheatSummaryRepository.findByTeamId(team.getId())
+                .orElseGet(() -> TeamAntiCheatSummary.builder()
+                        .team(team)
+                        .totalPenaltyPoints(0)
+                        .totalViolations(0)
+                        .tabSwitchCount(0)
+                        .fullscreenExitCount(0)
+                        .prolongedHiddenCount(0)
+                        .build());
+
+        int incidentNumber = switch (violationType) {
+            case TAB_SWITCH, PROLONGED_PAGE_HIDDEN -> summary.getTabSwitchCount() + 1;
+            case FULLSCREEN_EXIT -> summary.getFullscreenExitCount() + 1;
+        };
+
+        String incidentKey = "inc_" + team.getId() + "_p" + player.getPlayerNumber() + "_" + violationType.name() + "_#" + incidentNumber;
+
+        int penaltyPoints = switch (violationType) {
+            case TAB_SWITCH, PROLONGED_PAGE_HIDDEN -> scoringConfig.getEscalatingTabSwitchPenalty(incidentNumber);
+            case FULLSCREEN_EXIT -> scoringConfig.getEscalatingFullscreenPenalty(incidentNumber);
+        };
+
+        // Record authoritative penalty in ScoringService
+        scoringService.recordAntiCheatPenalty(team.getId(), player.getId(), violationType, penaltyPoints, incidentKey);
 
         AntiCheatEvent auditRecord = AntiCheatEvent.builder()
                 .team(team)
@@ -197,17 +222,6 @@ public class AntiCheatService {
                 .metadata(metadata)
                 .build();
         antiCheatEventRepository.save(auditRecord);
-
-        // Update or create Team summary atomically
-        TeamAntiCheatSummary summary = teamAntiCheatSummaryRepository.findByTeamId(team.getId())
-                .orElseGet(() -> TeamAntiCheatSummary.builder()
-                        .team(team)
-                        .totalPenaltyPoints(0)
-                        .totalViolations(0)
-                        .tabSwitchCount(0)
-                        .fullscreenExitCount(0)
-                        .prolongedHiddenCount(0)
-                        .build());
 
         summary.setTotalPenaltyPoints(summary.getTotalPenaltyPoints() + penaltyPoints);
         summary.setTotalViolations(summary.getTotalViolations() + 1);
@@ -223,9 +237,9 @@ public class AntiCheatService {
 
         teamAntiCheatSummaryRepository.saveAndFlush(summary);
 
-        log.warn("🚨 ANTI-CHEAT VIOLATION: Team {} | Player {} (P{}) | Type: {} | -{} pts | Team Total: -{} pts",
+        log.warn("🚨 ANTI-CHEAT VIOLATION: Team {} | Player {} (P{}) | Type: {} (#{}) | -{} pts | Team Total: -{} pts",
                 team.getTeamCode(), player.getDisplayName(), player.getPlayerNumber(),
-                violationType, penaltyPoints, summary.getTotalPenaltyPoints());
+                violationType, incidentNumber, penaltyPoints, summary.getTotalPenaltyPoints());
 
         // Audit Trail Log
         auditService.logEvent(
@@ -374,4 +388,10 @@ public class AntiCheatService {
                 .metadata(e.getMetadata())
                 .build();
     }
+
+    public void resetDeduplicationCache() {
+        playerHiddenStartTime.clear();
+        recentViolationCache.clear();
+    }
 }
+

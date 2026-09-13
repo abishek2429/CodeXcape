@@ -41,6 +41,7 @@ public class HintService {
     private final HintUsageRepository hintUsageRepository;
     private final TeamStageProgressRepository teamStageProgressRepository;
     private final GameWebSocketPublisher webSocketPublisher;
+    private final ScoringService scoringService;
 
     @Transactional(readOnly = true)
     public PlayerHintsResponseDto getHintsForPlayer(PlayerPrincipal principal) {
@@ -121,6 +122,7 @@ public class HintService {
         if (!alreadyUsed) {
             try {
                 hintUsageRepository.saveAndFlush(HintUsage.builder().team(team).level(level).stageNumber(stageNumber).hintNumber(hintNumber).build());
+                scoringService.recordHintUsage(team.getId(), principal.getPlayerId(), levelNumber, stageNumber, hintNumber);
             } catch (org.springframework.dao.DataIntegrityViolationException e) {
                 log.info("Concurrent hint usage detected for team {} level {} stage {} hint {}: safely treating as already used",
                         team.getId(), level.getId(), stageNumber, hintNumber);

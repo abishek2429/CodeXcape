@@ -35,6 +35,7 @@ public class WebSocketEventDto {
     private Integer teamTotalPenalties;
     private Integer totalViolations;
     private String teamCode;
+    private com.technicalescaperoom.backend.dto.player.TeamScoreDto scoreSummary;
     
     @Builder.Default
     private Instant timestamp = Instant.now();

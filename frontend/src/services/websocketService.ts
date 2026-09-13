@@ -14,7 +14,9 @@ export type WebSocketEventType =
   | 'GAME_STATE_UPDATED'
   | 'RANK_CHANGED'
   | 'ANTI_CHEAT_ALERT'
-  | 'ANTI_CHEAT_EVENT';
+  | 'ANTI_CHEAT_EVENT'
+  | 'SCORE_UPDATED'
+  | 'SECURITY_INCIDENT';
 
 export interface WebSocketEventPayload {
   type: WebSocketEventType;
@@ -38,6 +40,17 @@ export interface WebSocketEventPayload {
   penaltyPoints?: number;
   teamTotalPenalties?: number;
   totalViolations?: number;
+  scoreSummary?: {
+    teamId: number;
+    teamCode: string;
+    baseScore: number;
+    wrongAttemptPenalty: number;
+    hintPenalty: number;
+    antiCheatPenalty: number;
+    finalScore: number;
+    completedMiniGames: number;
+    completedLevels: number;
+  };
 }
 
 export type ConnectionStatus = 'CONNECTED' | 'DISCONNECTED' | 'RECONNECTING';

@@ -123,6 +123,11 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
       triggerCoalescedRefresh();
     });
 
+    const unsubScoreUpdated = webSocketService.subscribe('SCORE_UPDATED', (payload: WebSocketEventPayload) => {
+      setLatestNotification(payload.message || 'Score updated.');
+      triggerCoalescedRefresh();
+    });
+
     return () => {
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
@@ -141,6 +146,7 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
       unsubReadyChanged();
       unsubEventStarted();
       unsubAntiCheatAlert();
+      unsubScoreUpdated();
       webSocketService.disconnect();
     };
   }, [teamId, playerNumber]);

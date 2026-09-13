@@ -21,11 +21,28 @@ public class AdminResultsController {
 
     private final LeaderboardService leaderboardService;
     private final ResultExportService resultExportService;
+    private final com.technicalescaperoom.backend.service.ScoringService scoringService;
 
     @GetMapping("/leaderboard")
     public ResponseEntity<List<LeaderboardEntryDto>> getLeaderboard(@PathVariable Long eventId) {
         List<LeaderboardEntryDto> leaderboard = leaderboardService.getLeaderboard(eventId);
         return ResponseEntity.ok(leaderboard);
+    }
+
+    @GetMapping("/teams/{teamId}/scores")
+    public ResponseEntity<com.technicalescaperoom.backend.dto.player.TeamScoreDto> getTeamScoreSummary(
+            @PathVariable Long eventId,
+            @PathVariable Long teamId
+    ) {
+        return ResponseEntity.ok(scoringService.getTeamScoreSummary(teamId));
+    }
+
+    @GetMapping("/teams/{teamId}/score-events")
+    public ResponseEntity<List<com.technicalescaperoom.backend.dto.admin.ScoreEventDto>> getTeamScoreEvents(
+            @PathVariable Long eventId,
+            @PathVariable Long teamId
+    ) {
+        return ResponseEntity.ok(scoringService.getTeamScoreEvents(teamId));
     }
 
     @GetMapping("/statistics")

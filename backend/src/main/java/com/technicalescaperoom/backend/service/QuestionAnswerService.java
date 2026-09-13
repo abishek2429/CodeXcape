@@ -39,6 +39,7 @@ public class QuestionAnswerService {
     private final LevelContentValidationService levelContentValidationService;
     private final DiscoverySubmissionRepository discoverySubmissionRepository;
     private final TeamStageProgressRepository teamStageProgressRepository;
+    private final ScoringService scoringService;
     private final jakarta.persistence.EntityManager entityManager;
 
     @Transactional(readOnly = true)
@@ -220,6 +221,14 @@ public class QuestionAnswerService {
             isCorrect = true;
         }
 
+        // Check for duplicate wrong attempt to debounce rapid double-clicks
+        var previousAttempt = answerAttemptRepository.findFirstByTeamIdAndPlayerIdAndQuestionIdOrderBySubmittedAtDesc(
+                team.getId(), player.getId(), question.getId());
+        boolean isDuplicateWrongAttempt = !isCorrect
+                && previousAttempt.isPresent()
+                && !Boolean.TRUE.equals(previousAttempt.get().getIsCorrect())
+                && submittedRaw.equalsIgnoreCase(previousAttempt.get().getSubmittedAnswer());
+
         // Record Answer Attempt
         AnswerAttempt attempt = AnswerAttempt.builder()
                 .team(team)
@@ -281,6 +290,7 @@ public class QuestionAnswerService {
                 stageProgress.setCompletedAt(Instant.now());
                 stageProgress.setDiscoveryKey("DISCOVERY-L" + currentLevel.getLevelNumber() + "-S" + currentStage);
                 teamStageProgressRepository.saveAndFlush(stageProgress);
+                scoringService.recordMiniGameCompletion(team.getId(), currentLevel.getLevelNumber(), currentStage);
             }
             if (getTotalStages(currentLevel) == 1) {
                 if (player.getPlayerNumber() == 1) {
@@ -319,6 +329,13 @@ public class QuestionAnswerService {
                         : "Correct. Your evidence is verified; compare findings with your teammate.")
                     .build();
         } else {
+            if (!isDuplicateWrongAttempt) {
+                scoringService.recordWrongAttempt(team.getId(), player.getId(), currentLevel.getLevelNumber(), currentStage, attempt.getId());
+            } else {
+                log.info("Duplicate wrong attempt debounced for Team {}, Player {}, Question {}: '{}'",
+                        team.getTeamCode(), player.getId(), question.getId(), submittedRaw);
+            }
+
             auditService.logEvent(
                     GameEventType.ANSWER_WRONG,
                     event,

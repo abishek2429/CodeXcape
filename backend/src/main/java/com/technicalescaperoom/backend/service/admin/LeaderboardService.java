@@ -52,8 +52,7 @@ public class LeaderboardService {
                 .collect(Collectors.toMap(TeamAntiCheatSummary::getTeamId, s -> s));
 
         Map<Long, Integer> levelMap = preloadTeamLevels(teams, progressByTeam);
-        Map<Long, Integer> scoreMap = preloadTeamScores(teams, levelMap, summaryByTeam);
-        teams.sort(getFastTeamComparator(levelMap, scoreMap));
+        teams.sort(getFastTeamComparator(event, summaryByTeam));
 
         List<Player> allPlayers = playerRepository.findByTeamIdIn(teamIds);
         Map<Long, List<Player>> playersByTeam = allPlayers.stream()
@@ -66,7 +65,7 @@ public class LeaderboardService {
                     progressByTeam.getOrDefault(team.getId(), Collections.emptyList()),
                     playersByTeam.getOrDefault(team.getId(), Collections.emptyList()),
                     summaryByTeam.get(team.getId()),
-                    scoreMap.getOrDefault(team.getId(), 1000)));
+                    team.getFinalScore()));
         }
 
         return result;
@@ -87,17 +86,7 @@ public class LeaderboardService {
             return null;
         }
 
-        List<Long> teamIds = allTeams.stream().map(Team::getId).toList();
-        List<TeamLevelProgress> allProgress = teamLevelProgressRepository.findByTeamIdInOrderByLevelIdAsc(teamIds);
-        Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
-                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
-
-        Map<Long, TeamAntiCheatSummary> summaryByTeam = teamAntiCheatSummaryRepository.findByTeamIdIn(teamIds).stream()
-                .collect(Collectors.toMap(TeamAntiCheatSummary::getTeamId, s -> s));
-
-        Map<Long, Integer> levelMap = preloadTeamLevels(allTeams, progressByTeam);
-        Map<Long, Integer> scoreMap = preloadTeamScores(allTeams, levelMap, summaryByTeam);
-        allTeams.sort(getFastTeamComparator(levelMap, scoreMap));
+        allTeams.sort(getFastTeamComparator(team.getEvent()));
 
         for (int i = 0; i < allTeams.size(); i++) {
             lastBroadcastRanks.put(allTeams.get(i).getId(), i + 1);
@@ -126,17 +115,8 @@ public class LeaderboardService {
             return;
         }
 
-        List<Long> teamIds = allTeams.stream().map(Team::getId).toList();
-        List<TeamLevelProgress> allProgress = teamLevelProgressRepository.findByTeamIdInOrderByLevelIdAsc(teamIds);
-        Map<Long, List<TeamLevelProgress>> progressByTeam = allProgress.stream()
-                .collect(Collectors.groupingBy(p -> p.getTeam().getId()));
-
-        Map<Long, TeamAntiCheatSummary> summaryByTeam = teamAntiCheatSummaryRepository.findByTeamIdIn(teamIds).stream()
-                .collect(Collectors.toMap(TeamAntiCheatSummary::getTeamId, s -> s));
-
-        Map<Long, Integer> levelMap = preloadTeamLevels(allTeams, progressByTeam);
-        Map<Long, Integer> scoreMap = preloadTeamScores(allTeams, levelMap, summaryByTeam);
-        allTeams.sort(getFastTeamComparator(levelMap, scoreMap));
+        Event event = eventRepository.findById(eventId).orElse(null);
+        allTeams.sort(getFastTeamComparator(event));
 
         for (int i = 0; i < allTeams.size(); i++) {
             Team team = allTeams.get(i);
@@ -147,18 +127,6 @@ public class LeaderboardService {
                 webSocketPublisher.notifyRankChanged(team.getId(), newRank);
             }
         }
-    }
-
-    private Map<Long, Integer> preloadTeamScores(List<Team> teams, Map<Long, Integer> levelMap, Map<Long, TeamAntiCheatSummary> summaryByTeam) {
-        Map<Long, Integer> scoreMap = new HashMap<>();
-        for (Team team : teams) {
-            int level = levelMap.getOrDefault(team.getId(), 1);
-            int baseScore = 1000 + (level * 100);
-            TeamAntiCheatSummary summary = summaryByTeam.get(team.getId());
-            int antiCheatPenalties = (summary != null) ? summary.getTotalPenaltyPoints() : 0;
-            scoreMap.put(team.getId(), Math.max(0, baseScore - antiCheatPenalties));
-        }
-        return scoreMap;
     }
 
     private Map<Long, Integer> preloadTeamLevels(List<Team> teams, Map<Long, List<TeamLevelProgress>> progressByTeam) {
@@ -179,40 +147,54 @@ public class LeaderboardService {
         return levelMap;
     }
 
-    private Comparator<Team> getFastTeamComparator(Map<Long, Integer> levelMap, Map<Long, Integer> scoreMap) {
+    private int getEffectiveScore(Team team, Map<Long, TeamAntiCheatSummary> summaryByTeam) {
+        if (team.getFinalScore() != null && team.getFinalScore() > 0) {
+            return team.getFinalScore();
+        }
+        int base = (team.getBaseScore() != null && team.getBaseScore() > 0) ? team.getBaseScore() : (team.getGameState() == TeamGameState.COMPLETED ? 1000 : 0);
+        int acPenalty = (team.getAntiCheatPenalty() != null && team.getAntiCheatPenalty() > 0)
+                ? team.getAntiCheatPenalty()
+                : (summaryByTeam != null && summaryByTeam.containsKey(team.getId()) ? summaryByTeam.get(team.getId()).getTotalPenaltyPoints() : 0);
+        int wrongPenalty = (team.getWrongAttemptPenalty() != null) ? team.getWrongAttemptPenalty() : 0;
+        int hintPenalty = (team.getHintPenalty() != null) ? team.getHintPenalty() : 0;
+        return Math.max(0, base - wrongPenalty - hintPenalty - acPenalty);
+    }
+
+    private Comparator<Team> getFastTeamComparator(Event event) {
+        return getFastTeamComparator(event, Collections.emptyMap());
+    }
+
+    private Comparator<Team> getFastTeamComparator(Event event, Map<Long, TeamAntiCheatSummary> summaryByTeam) {
         return (t1, t2) -> {
             boolean t1Completed = t1.getGameState() == TeamGameState.COMPLETED && t1.getCompletedAt() != null;
             boolean t2Completed = t2.getGameState() == TeamGameState.COMPLETED && t2.getCompletedAt() != null;
             
-            // 1. Completion Status
+            // 1. Completion Status: completed teams rank ahead of incomplete teams
             if (t1Completed && !t2Completed) return -1;
             if (!t1Completed && t2Completed) return 1;
-            
-            if (t1Completed && t2Completed) {
-                // If both completed, compare competitive score first (fewer penalties wins)
-                int s1 = scoreMap.getOrDefault(t1.getId(), 0);
-                int s2 = scoreMap.getOrDefault(t2.getId(), 0);
-                if (s1 != s2) {
-                    return Integer.compare(s2, s1); // Descending
-                }
-                return t1.getCompletedAt().compareTo(t2.getCompletedAt());
+
+            // 2. Game Progress: greater game progress (completed mini-games)
+            int p1 = (t1.getCompletedMiniGames() != null) ? t1.getCompletedMiniGames() : 0;
+            int p2 = (t2.getCompletedMiniGames() != null) ? t2.getCompletedMiniGames() : 0;
+            if (p1 != p2) {
+                return Integer.compare(p2, p1); // Descending (more mini-games ranks higher)
             }
-            
-            // 2. Both in-progress, sort by highest active level
-            int t1Level = levelMap.getOrDefault(t1.getId(), 1);
-            int t2Level = levelMap.getOrDefault(t2.getId(), 1);
-            if (t1Level != t2Level) {
-                return Integer.compare(t2Level, t1Level); // Descending
-            }
-            
-            // 3. If tied on level, sort by competitive score (fewer penalties wins)
-            int s1 = scoreMap.getOrDefault(t1.getId(), 0);
-            int s2 = scoreMap.getOrDefault(t2.getId(), 0);
+
+            // 3. Final Competitive Score: higher score ranks higher
+            int s1 = getEffectiveScore(t1, summaryByTeam);
+            int s2 = getEffectiveScore(t2, summaryByTeam);
             if (s1 != s2) {
-                return Integer.compare(s2, s1); // Descending
+                return Integer.compare(s2, s1); // Descending (higher score ranks higher)
             }
-            
-            // 4. Stable sort by ID
+
+            // 4. Completion Time: faster time ranks higher
+            long d1 = calculateDurationSeconds(event, t1);
+            long d2 = calculateDurationSeconds(event, t2);
+            if (d1 != d2) {
+                return Long.compare(d1, d2); // Ascending (faster time ranks higher)
+            }
+
+            // 5. Stable deterministic tie-breaker
             return t1.getId().compareTo(t2.getId());
         };
     }
@@ -380,6 +362,9 @@ public class LeaderboardService {
         }
 
         int antiCheatPenalties = (summary != null) ? summary.getTotalPenaltyPoints() : 0;
+        int finalAcPenalty = (team.getAntiCheatPenalty() != null && team.getAntiCheatPenalty() > 0)
+                ? team.getAntiCheatPenalty()
+                : antiCheatPenalties;
         int totalViolations = (summary != null) ? summary.getTotalViolations() : 0;
 
         return LeaderboardEntryDto.builder()
@@ -395,9 +380,20 @@ public class LeaderboardService {
                 .completedAt(team.getCompletedAt())
                 .durationSeconds(durationSeconds)
                 .formattedDuration(formattedDuration)
-                .antiCheatPenalties(antiCheatPenalties)
+                .antiCheatPenalties(finalAcPenalty)
                 .totalViolations(totalViolations)
                 .competitiveScore(competitiveScore)
+                .baseScore(team.getBaseScore())
+                .wrongAttemptPenalty(team.getWrongAttemptPenalty())
+                .hintPenalty(team.getHintPenalty())
+                .antiCheatPenalty(finalAcPenalty)
+                .finalScore(team.getFinalScore())
+                .completedMiniGames(team.getCompletedMiniGames())
+                .totalMiniGames(18)
+                .completedLevels(team.getCompletedLevels())
+                .totalLevels(6)
+                .isFlaggedForReview(team.getIsFlaggedForReview())
+                .securityIncidentCount(team.getSecurityIncidentCount())
                 .build();
     }
 

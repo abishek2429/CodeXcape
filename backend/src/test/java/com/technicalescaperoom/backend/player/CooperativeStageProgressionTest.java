@@ -70,7 +70,7 @@ class CooperativeStageProgressionTest {
         Level level = levelRepository.findByLevelNumber(1).orElseThrow();
 
         progressRepository.save(TeamLevelProgress.builder().team(team).level(level).levelStatus(LevelStatus.AVAILABLE).build());
-        for (int stage = 1; stage <= 2; stage++) {
+        for (int stage = 1; stage <= 3; stage++) {
             stageProgressRepository.save(TeamStageProgress.builder().team(team).level(level).stageNumber(stage).discoveryKey("L1-S" + stage).build());
         }
 
@@ -82,7 +82,7 @@ class CooperativeStageProgressionTest {
     void stageRequiresBothPlayersBeforeNextStageUnlocks() {
         PlayerQuestionDto initial = questionAnswerService.getCurrentQuestionForPlayer(playerOne);
         assertEquals(1, initial.getStageNumber());
-        assertEquals(2, initial.getTotalStages());
+        assertEquals(3, initial.getTotalStages());
 
         String expectedDiscovery = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(
             initialLevelId(), 1, QuestionPlayer.PLAYER_1).orElseThrow().getExpectedAnswerHash();

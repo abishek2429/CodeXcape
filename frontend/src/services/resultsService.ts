@@ -14,6 +14,15 @@ export interface LeaderboardEntry {
   antiCheatPenalties?: number;
   totalViolations?: number;
   competitiveScore?: number;
+  baseScore?: number;
+  wrongAttemptPenalty?: number;
+  hintPenalty?: number;
+  antiCheatPenalty?: number;
+  finalScore?: number;
+  completedMiniGames?: number;
+  completedLevels?: number;
+  isFlaggedForReview?: boolean;
+  securityIncidentCount?: number;
 }
 
 export interface LevelStatistics {

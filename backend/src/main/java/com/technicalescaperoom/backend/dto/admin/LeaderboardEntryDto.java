@@ -29,4 +29,15 @@ public class LeaderboardEntryDto {
     private Integer antiCheatPenalties;
     private Integer totalViolations;
     private Integer competitiveScore;
+    private Integer baseScore;
+    private Integer wrongAttemptPenalty;
+    private Integer hintPenalty;
+    private Integer antiCheatPenalty;
+    private Integer finalScore;
+    private Integer completedMiniGames;
+    private Integer totalMiniGames;
+    private Integer completedLevels;
+    private Integer totalLevels;
+    private Boolean isFlaggedForReview;
+    private Integer securityIncidentCount;
 }

@@ -37,6 +37,7 @@ public class FinalPasskeyService {
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
     private final com.technicalescaperoom.backend.service.admin.LeaderboardService leaderboardService;
+    private final ScoringService scoringService;
 
     @Transactional
     public FinalPasskeyResponseDto submitFinalPasskey(PlayerPrincipal principal, FinalPasskeySubmissionRequest request) {
@@ -126,7 +127,10 @@ public class FinalPasskeyService {
         Instant now = Instant.now();
         team.setGameState(TeamGameState.COMPLETED);
         team.setCompletedAt(now);
+        team.setCompletedLevels(6);
         teamRepository.saveAndFlush(team);
+
+        scoringService.recordFinalProtocolCompletion(team.getId(), player.getId());
 
         log.info("🎉 Team {} (Player {}) successfully completed CodeXcape at {}!", team.getTeamCode(), player.getDisplayName(), now);
 

@@ -53,6 +53,11 @@ class AntiCheatServiceTest {
     @Mock
     private LeaderboardService leaderboardService;
 
+    @Mock
+    private ScoringService scoringService;
+
+    private final com.technicalescaperoom.backend.config.ScoringConfig scoringConfig = new com.technicalescaperoom.backend.config.ScoringConfig();
+
     private AntiCheatService antiCheatService;
 
     private Event testEvent;
@@ -70,7 +75,9 @@ class AntiCheatServiceTest {
                 playerRepository,
                 auditService,
                 webSocketPublisher,
-                leaderboardService
+                leaderboardService,
+                scoringService,
+                scoringConfig
         );
 
         testEvent = Event.builder()

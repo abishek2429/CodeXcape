@@ -59,3 +59,36 @@ export async function fetchCurrentLevel(): Promise<CurrentLevelResponse | null> 
     return null;
   }
 }
+
+export interface PlayerScoreResponse {
+  teamId: number;
+  teamCode: string;
+  baseScore: number;
+  wrongAttemptPenalty: number;
+  hintPenalty: number;
+  antiCheatPenalty: number;
+  totalPenalties: number;
+  finalScore: number;
+  completedMiniGames: number;
+  completedLevels: number;
+}
+
+export async function fetchPlayerScore(): Promise<PlayerScoreResponse | null> {
+  try {
+    const response = await fetch(`${API_BASE}/score`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json();
+  } catch (err) {
+    return null;
+  }
+}
+

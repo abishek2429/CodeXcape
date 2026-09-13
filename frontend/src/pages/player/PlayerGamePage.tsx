@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlayerAuth } from '../../context/PlayerAuthContext';
-import { fetchPlayerGameState, PlayerGameStateResponse } from '../../services/playerGameStateService';
+import { fetchPlayerGameState, PlayerGameStateResponse, fetchPlayerScore, PlayerScoreResponse } from '../../services/playerGameStateService';
 import { fetchCurrentQuestion, submitAnswer, PlayerQuestionResponse } from '../../services/questionService';
 import { useGameWebSocket } from '../../hooks/useGameWebSocket';
 import { GameHeader } from '../../components/game/GameHeader';
@@ -14,7 +14,7 @@ import { FinalTerminal } from '../../components/game/FinalTerminal';
 import { GameStatus } from '../../components/game/GameStatus';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { GameErrorState } from '../../components/game/GameErrorState';
-import { Shield, ShieldAlert, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy } from 'lucide-react';
+import { Shield, ShieldAlert, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy, Activity } from 'lucide-react';
 import { GameSessionState, ChallengeData } from '../../types/game';
 import { useAntiCheat } from '../../hooks/useAntiCheat';
 
@@ -54,6 +54,7 @@ export const PlayerGamePage: React.FC = () => {
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [feedbackIsError, setFeedbackIsError] = useState(false);
   const [liveRank, setLiveRank] = useState<number | undefined>(undefined);
+  const [teamScore, setTeamScore] = useState<PlayerScoreResponse | null>(null);
   const [isBriefingOpen, setIsBriefingOpen] = useState(false);
   const [isCoreEntryOpen, setIsCoreEntryOpen] = useState(false);
   const [isRestorationOpen, setIsRestorationOpen] = useState(false);
@@ -68,10 +69,15 @@ export const PlayerGamePage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoadError(null);
-      const [stateData, storyData] = await Promise.all([
+      const [stateData, storyData, scoreData] = await Promise.all([
         fetchPlayerGameState(),
         fetchStoryline(),
+        fetchPlayerScore(),
       ]);
+
+      if (scoreData) {
+        setTeamScore(scoreData);
+      }
 
       if (!stateData) {
         throw new Error('AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
@@ -145,7 +151,7 @@ export const PlayerGamePage: React.FC = () => {
     onRankChanged: (newRank) => setLiveRank(newRank),
   });
 
-  const { teamSummary, lastAlert } = useAntiCheat({
+  const { lastAlert } = useAntiCheat({
     isActive: serverState?.gameStatus === 'IN_PROGRESS',
     onViolationAlert: () => soundService.playError(),
   });
@@ -528,14 +534,35 @@ export const PlayerGamePage: React.FC = () => {
                 </div>
               )}
 
-              {teamSummary && teamSummary.totalPenaltyPoints > 0 && (
+              {teamScore && (
+                <div className="matrix-row" style={{ borderLeft: '3px solid var(--accent-cyan)', backgroundColor: 'rgba(6, 182, 212, 0.08)' }}>
+                  <span className="terminal-text flex items-center gap-2 font-bold" style={{ color: 'var(--accent-cyan)' }}>
+                    <Activity size={14} /> SCORE
+                  </span>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className="terminal-text font-bold" style={{ color: 'var(--accent-cyan)', fontSize: '15px' }}>
+                      {teamScore.finalScore} PTS
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      Base: {teamScore.baseScore} | Solved: {teamScore.completedMiniGames}/18
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {teamScore && teamScore.totalPenalties > 0 && (
                 <div className="matrix-row" style={{ borderLeft: '3px solid var(--accent-crimson)', backgroundColor: 'rgba(225, 29, 72, 0.08)' }}>
                   <span className="terminal-text flex items-center gap-2 font-bold" style={{ color: 'var(--accent-crimson)' }}>
-                    <ShieldAlert size={14} /> PENALTIES
+                    <ShieldAlert size={14} /> DEDUCTIONS
                   </span>
-                  <span className="terminal-text font-bold" style={{ color: 'var(--accent-crimson)' }}>
-                    -{teamSummary.totalPenaltyPoints} PTS ({teamSummary.totalViolations} inf)
-                  </span>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className="terminal-text font-bold" style={{ color: 'var(--accent-crimson)', fontSize: '12px' }}>
+                      -{teamScore.totalPenalties} PTS
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      Wrong: -{teamScore.wrongAttemptPenalty} | Hints: -{teamScore.hintPenalty} | AC: -{teamScore.antiCheatPenalty}
+                    </div>
+                  </div>
                 </div>
               )}
 

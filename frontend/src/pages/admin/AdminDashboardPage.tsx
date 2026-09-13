@@ -67,11 +67,13 @@ import {
 import { AdminMissionHeader } from '../../components/admin/AdminMissionHeader';
 import { AdminSystemHealth } from '../../components/admin/AdminSystemHealth';
 import { webSocketService } from '../../services/websocketService';
+import { fetchLeaderboard, LeaderboardEntry } from '../../services/resultsService';
 
 export const AdminDashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'teams' | 'sessions' | 'anticheat' | 'controls' | 'results' | 'audit'>('dashboard');
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [teams, setTeams] = useState<AdminTeamProgress[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [activeSessions, setActiveSessions] = useState<AdminActiveSession[]>([]);
   const [sessionSearch, setSessionSearch] = useState('');
   const [sessionFilter, setSessionFilter] = useState<'ALL' | 'ACTIVE_ONLY' | 'BOTH_ONLINE' | 'WAITING' | 'OFFLINE'>('ALL');
@@ -125,9 +127,10 @@ export const AdminDashboardPage: React.FC = () => {
         fetchActiveSessions(eventId),
         fetchAdminAntiCheatEvents(eventId),
         fetchAdminAntiCheatSummaries(eventId),
+        fetchLeaderboard(eventId),
       ]);
 
-      const [statsRes, teamsRes, logsRes, contentRes, validationRes, sessionsRes, acEventsRes, acSummRes] = results;
+      const [statsRes, teamsRes, logsRes, contentRes, validationRes, sessionsRes, acEventsRes, acSummRes, lbRes] = results;
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value);
       if (teamsRes.status === 'fulfilled') setTeams(teamsRes.value);
@@ -137,6 +140,7 @@ export const AdminDashboardPage: React.FC = () => {
       if (sessionsRes.status === 'fulfilled') setActiveSessions(sessionsRes.value);
       if (acEventsRes && acEventsRes.status === 'fulfilled') setAntiCheatEvents(acEventsRes.value);
       if (acSummRes && acSummRes.status === 'fulfilled') setAntiCheatSummaries(acSummRes.value);
+      if (lbRes && lbRes.status === 'fulfilled') setLeaderboard(lbRes.value);
 
       const isAuthError = results.some(
         (r) => r.status === 'rejected' && (r.reason?.message?.includes('401') || r.reason?.message?.includes('unauthorized') || r.reason?.message?.includes('UNAUTHORIZED'))
@@ -2098,50 +2102,87 @@ export const AdminDashboardPage: React.FC = () => {
                   <tr>
                     <th className="">Rank</th>
                     <th className="">Team</th>
-                    <th className="">Player 1</th>
-                    <th className="">Player 2</th>
+                    <th className="">Players</th>
                     <th className="">Status</th>
-                    <th className="">Penalties</th>
-                    <th className="">Completed At</th>
+                    <th className="">Mini-Games</th>
+                    <th className="">Base</th>
+                    <th className="">Deductions</th>
+                    <th className="">Final Score</th>
+                    <th className="">Review</th>
+                    <th className="">Duration / Completed</th>
                   </tr>
                 </thead>
                 <tbody className="">
-                  {teams.length === 0 ? (
+                  {leaderboard.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="">
+                      <td colSpan={10} className="" style={{ textAlign: 'center', padding: '2rem' }}>
                         No team results recorded.
                       </td>
                     </tr>
                   ) : (
-                    teams.map((t, idx) => {
-                      const summary = antiCheatSummaries.find((s) => s.teamId === t.teamId);
+                    leaderboard.map((entry) => {
+                      const totalDeductions = (entry.wrongAttemptPenalty ?? 0) + (entry.hintPenalty ?? 0) + (entry.antiCheatPenalty ?? 0);
                       return (
-                        <tr key={t.teamId} className="admin-btn-secondary">
-                          <td className="text-warning">
-                            {t.gameState === 'COMPLETED' ? `#${idx + 1}` : '-'}
+                        <tr key={entry.teamId} className="admin-btn-secondary" style={entry.isFlaggedForReview ? { borderLeft: '3px solid var(--accent-danger)' } : undefined}>
+                          <td className="text-warning" style={{ fontWeight: 800, fontSize: '15px' }}>
+                            #{entry.rank ?? '-'}
                           </td>
                           <td className="text-primary">
-                            <div>{t.teamName}</div>
-                            <div className="text-accent">{t.teamCode}</div>
+                            <div style={{ fontWeight: 600 }}>{entry.teamName}</div>
+                            <div className="text-accent" style={{ fontSize: '11px' }}>{entry.teamCode}</div>
                           </td>
-                          <td className="">{t.player1Name}</td>
-                          <td className="">{t.player2Name}</td>
+                          <td className="text-secondary" style={{ fontSize: '12px' }}>
+                            <div>{entry.player1Name}</div>
+                            <div>{entry.player2Name}</div>
+                          </td>
                           <td className="">
-                            <span className="admin-dynamic-element">
-                              {t.gameState}
+                            <span className="admin-dynamic-element" style={{ fontSize: '11px' }}>
+                              {entry.gameState}
                             </span>
                           </td>
+                          <td className="" style={{ fontWeight: 600 }}>
+                            <span style={{ color: 'var(--accent-cyan)' }}>{entry.completedMiniGames ?? 0}</span>
+                            <span className="text-secondary" style={{ fontSize: '11px' }}> / 18</span>
+                          </td>
+                          <td className="text-secondary" style={{ fontWeight: 600 }}>
+                            {entry.baseScore ?? 0}
+                          </td>
                           <td className="">
-                            {summary && summary.totalPenaltyPoints > 0 ? (
-                              <span style={{ color: 'var(--accent-danger)', fontWeight: 800, fontSize: '11px' }}>
-                                -{summary.totalPenaltyPoints} pts ({summary.totalViolations} viol.)
-                              </span>
+                            {totalDeductions > 0 ? (
+                              <div>
+                                <span style={{ color: 'var(--accent-danger)', fontWeight: 700, fontSize: '12px' }}>
+                                  -{totalDeductions} pts
+                                </span>
+                                <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                                  W: -{entry.wrongAttemptPenalty ?? 0} | H: -{entry.hintPenalty ?? 0} | AC: -{entry.antiCheatPenalty ?? 0}
+                                </div>
+                              </div>
                             ) : (
                               <span style={{ color: 'var(--status-success)', fontSize: '11px' }}>0 pts (Clean)</span>
                             )}
                           </td>
-                          <td className="text-secondary">
-                            {t.completedAt ? new Date(t.completedAt).toLocaleString() : '-'}
+                          <td className="">
+                            <span style={{ color: 'var(--accent-cyan)', fontWeight: 900, fontSize: '16px' }}>
+                              {entry.finalScore ?? 0}
+                            </span>
+                            <span className="text-secondary" style={{ fontSize: '10px', marginLeft: '4px' }}>pts</span>
+                          </td>
+                          <td className="">
+                            {entry.isFlaggedForReview ? (
+                              <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 800, border: '1px solid #ef4444' }}>
+                                ⚠️ REVIEW ({entry.securityIncidentCount ?? 1})
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--status-success)', fontSize: '11px' }}>✓ Normal</span>
+                            )}
+                          </td>
+                          <td className="text-secondary" style={{ fontSize: '11px' }}>
+                            <div>{entry.formattedDuration || '-'}</div>
+                            {entry.completedAt && (
+                              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                {new Date(entry.completedAt).toLocaleTimeString()}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );

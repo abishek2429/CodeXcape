@@ -13,5 +13,7 @@ public interface AnswerAttemptRepository extends JpaRepository<AnswerAttempt, Lo
     long countByTeamIdAndPlayerIdAndLevelIdAndQuestionId(Long teamId, Long playerId, Long levelId, Long questionId);
     boolean existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
             Long teamId, Long playerId, Long levelId, Long questionId);
+    java.util.Optional<AnswerAttempt> findFirstByTeamIdAndPlayerIdAndQuestionIdOrderBySubmittedAtDesc(
+            Long teamId, Long playerId, Long questionId);
     void deleteByTeamId(Long teamId);
 }

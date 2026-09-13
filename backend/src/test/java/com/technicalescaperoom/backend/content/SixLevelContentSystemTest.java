@@ -123,7 +123,7 @@ class SixLevelContentSystemTest {
     void testLevelQuestionStructure() {
         List<Level> levels = levelRepository.findByIsActiveTrueOrderByLevelNumberAsc();
         assertEquals(6, levels.size());
-        int[] expectedStageCounts = {2, 2, 3, 2, 3, 3};
+        int[] expectedStageCounts = {3, 3, 3, 3, 3, 3};
 
         for (Level level : levels) {
             List<Question> questions = questionRepository.findByLevelIdAndIsActiveTrue(level.getId());

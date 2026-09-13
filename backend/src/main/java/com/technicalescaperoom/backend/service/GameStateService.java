@@ -234,6 +234,8 @@ public class GameStateService {
         progress.setCompletedAt(Instant.now());
         teamLevelProgressRepository.save(progress);
 
+        team.setCompletedLevels(team.getCompletedLevels() != null ? team.getCompletedLevels() + 1 : 1);
+
         // Unlock next level sequentially or transition to FINAL_PASSKEY
         if (levelNumber < 6) {
             Optional<Level> nextLevelOpt = levelRepository.findByLevelNumber(levelNumber + 1);
