@@ -72,6 +72,45 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
     }
   }, [selectedNode, selectedProcess, selectedSequence, interaction.interaction]);
 
+  // Sync selected operation to answer
+  React.useEffect(() => {
+    if (selectedOperation) {
+      if (selectedOperation === 'hex-to-text') {
+        setAnswer('RECOVERY FRAGMENT 02');
+      } else if (selectedOperation === 'shift-3') {
+        setAnswer('RECOVERY FRAGMENT 04');
+      }
+    }
+  }, [selectedOperation]);
+
+  // Sync ordered items to answer
+  React.useEffect(() => {
+    if (!orderedItems || orderedItems.length === 0) return;
+    if (interaction.interaction === 'sequence-reconstruction') {
+      const isCorrectOrder = orderedItems[0]?.startsWith('1.') && orderedItems[1]?.startsWith('2.')
+        && orderedItems[2]?.startsWith('3.') && orderedItems[3]?.startsWith('4.')
+        && orderedItems[4]?.startsWith('5.') && orderedItems[5]?.startsWith('6.');
+      if (isCorrectOrder) {
+        setAnswer('CORE SEQUENCE VERIFIED');
+      }
+    } else if (interaction.interaction === 'packet-reassembly') {
+      const orderStr = orderedItems.join(' ');
+      if (orderStr.indexOf('Header') < orderStr.indexOf('Payload') && orderStr.indexOf('Payload') < orderStr.indexOf('Checksum')) {
+        setAnswer('RECOVERY FRAGMENT 03');
+      }
+    } else if (interaction.interaction === 'fragment-assembly') {
+      const orderStr = orderedItems.join(' ');
+      if (orderStr.includes('C3') && orderStr.indexOf('C3') < orderStr.indexOf('B7') && orderStr.indexOf('B7') < orderStr.indexOf('41')) {
+        setAnswer('HEX-TO-TEXT');
+      }
+    } else if (interaction.interaction === 'evidence-board') {
+      const orderStr = orderedItems.join(' ');
+      if (orderStr.indexOf('F-12') < orderStr.indexOf('R-4') && orderStr.indexOf('R-4') < orderStr.indexOf('N-9')) {
+        setAnswer('CHAIN F-12/R-4/N-9');
+      }
+    }
+  }, [orderedItems, interaction.interaction]);
+
   // Sync 6-digit inputs to answer
   const handleDigitChange = (index: number, val: string) => {
     const clean = val.replace(/\D/g, '').slice(-1);

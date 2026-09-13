@@ -32,12 +32,12 @@ import { soundService } from '../../services/soundService';
 import './PlayerGamePage.css';
 
 const FRAGMENT_TITLES: Record<number, string> = {
-  1: 'SYSTEM TRACE: K-17',
-  2: 'HIDDEN ROUTE',
-  3: 'GHOST SIGNAL',
-  4: 'PROJECT SIX',
-  5: 'FAILSAFE PURPOSE',
-  6: 'FINAL ACCESS SEQUENCE',
+  1: 'RECOVERY FRAGMENT 01',
+  2: 'RECOVERY FRAGMENT 02',
+  3: 'RECOVERY FRAGMENT 03',
+  4: 'RECOVERY FRAGMENT 04',
+  5: 'RECOVERY FRAGMENT 05',
+  6: 'FINAL PROTOCOL UNLOCKED',
 };
 
 export const PlayerGamePage: React.FC = () => {

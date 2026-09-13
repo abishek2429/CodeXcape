@@ -210,8 +210,15 @@ public class QuestionAnswerService {
         int attemptNumber = (int) previousAttempts + 1;
 
         // Validation & Normalization
-        boolean isCorrect = validateInteractionPayload(question, request.getInteractionPayload())
-            && normalizeAndValidate(submittedRaw, question.getExpectedAnswerHash(), question.getAnswerType());
+        boolean textMatches = normalizeAndValidate(submittedRaw, question.getExpectedAnswerHash(), question.getAnswerType());
+        boolean payloadMatches = validateInteractionPayload(question, request.getInteractionPayload());
+        boolean isCorrect = textMatches && payloadMatches;
+
+        // Fallback: If text matches the expected discovery answer, always accept it
+        if (!isCorrect && textMatches) {
+            log.info("Player entered correct discovery answer '{}'. Accepting despite interaction payload discrepancy.", submittedRaw);
+            isCorrect = true;
+        }
 
         // Record Answer Attempt
         AnswerAttempt attempt = AnswerAttempt.builder()
@@ -431,14 +438,114 @@ public class QuestionAnswerService {
             if (normSubmitted.equals(normExpected)) return true;
         }
 
-        if ("FINAL PROTOCOL VERIFIED".equalsIgnoreCase(normExpected)) {
-            if ("FINAL PROTOCOL VERIFIED".equalsIgnoreCase(normSubmitted)) {
+        // Direct case-insensitive match
+        if (normSubmitted.equalsIgnoreCase(normExpected)) {
+            return true;
+        }
+
+        // Canonical alphanumeric normalized match (handles minor spacing/punctuation differences)
+        String canonicalSubmitted = canonicalizeAnswer(normSubmitted);
+        String canonicalExpected = canonicalizeAnswer(normExpected);
+        if (!canonicalSubmitted.isEmpty() && canonicalSubmitted.equals(canonicalExpected)) {
+            return true;
+        }
+
+        // Support RECOVERY FRAGMENT 01..05 matching RECOVERY FRAGMENT 1..5 and FRAGMENT 01..05
+        for (int i = 1; i <= 5; i++) {
+            String fNum = String.valueOf(i);
+            String fNumPadded = String.format("%02d", i);
+            if (canonicalExpected.equals("RECOVERYFRAGMENT" + fNumPadded) || canonicalExpected.equals("RECOVERYFRAGMENT" + fNum)) {
+                if (canonicalSubmitted.equals("RECOVERYFRAGMENT" + fNumPadded)
+                        || canonicalSubmitted.equals("RECOVERYFRAGMENT" + fNum)
+                        || canonicalSubmitted.equals("FRAGMENT" + fNumPadded)
+                        || canonicalSubmitted.equals("FRAGMENT" + fNum)) {
+                    return true;
+                }
+            }
+        }
+
+        // Level 1 Stage 1: accept "SYSTEM TRACE: K-17", "K-17", "K17", "SYSTEM TRACE K-17"
+        if (canonicalExpected.equals("SYSTEMTRACEK17")) {
+            if (canonicalSubmitted.equals("SYSTEMTRACEK17") || canonicalSubmitted.equals("K17")
+                    || canonicalSubmitted.equals("TRACEK17") || canonicalSubmitted.equals("SYSTEMK17")) {
                 return true;
             }
         }
 
-        // Standard Text, Code, SQL, Decode normalization
-        return normSubmitted.equalsIgnoreCase(normExpected);
+        // Level 1 Stage 2: accept "RECOVERY FRAGMENT 01" or direct selector values "N-4 relay K-17"
+        if (canonicalExpected.equals("RECOVERYFRAGMENT01")) {
+            if (canonicalSubmitted.contains("N4") && canonicalSubmitted.contains("RELAY") && canonicalSubmitted.contains("K17")) {
+                return true;
+            }
+        }
+
+        // Level 2 Stage 2: accept "RECOVERY FRAGMENT 02" or decoded plaintext "RECOVERY"
+        if (canonicalExpected.equals("RECOVERYFRAGMENT02")) {
+            if (canonicalSubmitted.equals("RECOVERY")) {
+                return true;
+            }
+        }
+
+        // Level 3 Stage 1: accept "ROUTE A-B-C" or "A-B-C" / "ABC"
+        if (canonicalExpected.equals("ROUTEABC")) {
+            if (canonicalSubmitted.equals("ROUTEABC") || canonicalSubmitted.equals("ABC")) {
+                return true;
+            }
+        }
+
+        // Level 3 Stage 2: accept "PACKET PATH C-E", "PACKET PATH C-E-F", "PATH C-E", "C-E", "C-E-F"
+        if (canonicalExpected.contains("PACKETPATHCE") || canonicalExpected.contains("PACKETPATHEF")) {
+            if (canonicalSubmitted.contains("PACKETPATHCE") || canonicalSubmitted.contains("PACKETPATHEF")
+                    || canonicalSubmitted.equals("CEF") || canonicalSubmitted.equals("CE")
+                    || canonicalSubmitted.equals("PATHCE") || canonicalSubmitted.equals("PATHCEF")) {
+                return true;
+            }
+        }
+
+        // Level 4 Stage 1: accept "SHIFT-3", "SHIFT 3", "3"
+        if (canonicalExpected.equals("SHIFT3")) {
+            if (canonicalSubmitted.equals("SHIFT3") || canonicalSubmitted.equals("3")) {
+                return true;
+            }
+        }
+
+        // Level 5 Stage 1: accept "CHAIN F-12/R-4/N-9", "F-12/R-4/N-9", "F12/R4/N9"
+        if (canonicalExpected.equals("CHAINF12R4N9")) {
+            if (canonicalSubmitted.equals("CHAINF12R4N9") || canonicalSubmitted.equals("F12R4N9")) {
+                return true;
+            }
+        }
+
+        // Level 6 Stage 1: accept "CORE ACCESS GRANTED" or "ACCESS GRANTED"
+        if (canonicalExpected.equals("COREACCESSGRANTED")) {
+            if (canonicalSubmitted.equals("COREACCESSGRANTED") || canonicalSubmitted.equals("ACCESSGRANTED")) {
+                return true;
+            }
+        }
+
+        // Level 6 Stage 2: accept "CORE SEQUENCE VERIFIED" or "SEQUENCE VERIFIED"
+        if (canonicalExpected.equals("CORESEQUENCEVERIFIED")) {
+            if (canonicalSubmitted.equals("CORESEQUENCEVERIFIED") || canonicalSubmitted.equals("SEQUENCEVERIFIED")) {
+                return true;
+            }
+        }
+
+        // Level 6 Stage 3: accept both "FINAL PROTOCOL VERIFIED" and master passkey "849201"
+        if ("FINAL PROTOCOL VERIFIED".equalsIgnoreCase(normExpected) || "849201".equals(normExpected)) {
+            if ("FINAL PROTOCOL VERIFIED".equalsIgnoreCase(normSubmitted) || "849201".equals(normSubmitted)
+                    || canonicalSubmitted.equals("PROTOCOLVERIFIED")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private String canonicalizeAnswer(String raw) {
+        if (raw == null) return "";
+        return raw.toUpperCase()
+                .replaceAll("[:/\\-_\\s]+", "")
+                .trim();
     }
 
     private boolean validateInteractionPayload(Question question, String interactionPayload) {
