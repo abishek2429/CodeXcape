@@ -7,9 +7,21 @@ interface UseGameWebSocketProps {
   onRefreshData?: () => void;
   onRankChanged?: (newRank: number) => void;
   onEventStarted?: (payload: WebSocketEventPayload) => void;
+  onStoryStarted?: (payload: WebSocketEventPayload) => void;
+  onStorySkipped?: (payload: WebSocketEventPayload) => void;
+  onStoryCompleted?: (payload: WebSocketEventPayload) => void;
 }
 
-export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankChanged, onEventStarted }: UseGameWebSocketProps) {
+export function useGameWebSocket({
+  teamId,
+  playerNumber,
+  onRefreshData,
+  onRankChanged,
+  onEventStarted,
+  onStoryStarted,
+  onStorySkipped,
+  onStoryCompleted,
+}: UseGameWebSocketProps) {
   const [partnerStatus, setPartnerStatus] = useState<ConnectionStatus>('DISCONNECTED');
   const [wsConnectionStatus, setWsConnectionStatus] = useState<ConnectionStatus>('DISCONNECTED');
   const [latestNotification, setLatestNotification] = useState<string | null>(null);
@@ -22,6 +34,15 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
 
   const onEventStartedRef = useRef(onEventStarted);
   onEventStartedRef.current = onEventStarted;
+
+  const onStoryStartedRef = useRef(onStoryStarted);
+  onStoryStartedRef.current = onStoryStarted;
+
+  const onStorySkippedRef = useRef(onStorySkipped);
+  onStorySkippedRef.current = onStorySkipped;
+
+  const onStoryCompletedRef = useRef(onStoryCompleted);
+  onStoryCompletedRef.current = onStoryCompleted;
 
   const refreshTimerRef = useRef<any>(null);
 
@@ -128,6 +149,26 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
       triggerCoalescedRefresh();
     });
 
+    const unsubStoryStarted = webSocketService.subscribe('STORY_STARTED', (payload: WebSocketEventPayload) => {
+      if (onStoryStartedRef.current) {
+        onStoryStartedRef.current(payload);
+      }
+    });
+
+    const unsubStorySkipped = webSocketService.subscribe('STORY_SKIPPED', (payload: WebSocketEventPayload) => {
+      if (onStorySkippedRef.current) {
+        onStorySkippedRef.current(payload);
+      }
+      triggerCoalescedRefresh();
+    });
+
+    const unsubStoryCompleted = webSocketService.subscribe('STORY_COMPLETED', (payload: WebSocketEventPayload) => {
+      if (onStoryCompletedRef.current) {
+        onStoryCompletedRef.current(payload);
+      }
+      triggerCoalescedRefresh();
+    });
+
     return () => {
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
@@ -147,6 +188,9 @@ export function useGameWebSocket({ teamId, playerNumber, onRefreshData, onRankCh
       unsubEventStarted();
       unsubAntiCheatAlert();
       unsubScoreUpdated();
+      unsubStoryStarted();
+      unsubStorySkipped();
+      unsubStoryCompleted();
       webSocketService.disconnect();
     };
   }, [teamId, playerNumber]);

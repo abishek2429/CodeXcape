@@ -404,7 +404,11 @@ public class LeaderboardService {
         Instant endTime = (team.getCompletedAt() != null) ? team.getCompletedAt() : Instant.now();
 
         long diff = Duration.between(startTime, endTime).getSeconds();
-        return Math.max(0, diff);
+        long storyPauseSeconds = (team.getTotalStoryPauseSeconds() != null) ? team.getTotalStoryPauseSeconds() : 0L;
+        if (team.isStoryActive() && team.getStoryPausedAt() != null && team.getCompletedAt() == null) {
+            storyPauseSeconds += Math.max(0, Duration.between(team.getStoryPausedAt(), Instant.now()).getSeconds());
+        }
+        return Math.max(0, diff - storyPauseSeconds);
     }
 
     private String formatDuration(Long totalSeconds) {

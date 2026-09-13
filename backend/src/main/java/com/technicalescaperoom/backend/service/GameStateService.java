@@ -44,6 +44,7 @@ public class GameStateService {
     private final EventRepository eventRepository;
     private final com.technicalescaperoom.backend.service.admin.LeaderboardService leaderboardService;
     private final GameWebSocketPublisher webSocketPublisher;
+    private final CinematicStoryService cinematicStoryService;
 
     @Transactional
     public List<TeamLevelProgress> initializeTeamGameState(Team team) {
@@ -89,6 +90,7 @@ public class GameStateService {
 
         team.setGameState(TeamGameState.IN_PROGRESS);
         teamRepository.save(team);
+        cinematicStoryService.triggerStory(team, "STORY_PROLOGUE");
 
         log.info("Initialized 6-level game state for team ID {} ({})", team.getId(), team.getTeamCode());
         return newProgressList;
@@ -107,7 +109,11 @@ public class GameStateService {
         Event event = team.getEvent();
         Instant serverTime = Instant.now();
         Instant teamStartTime = team.getStartedAt() != null ? team.getStartedAt() : (event != null ? event.getStartTime() : null);
-        Instant deadline = teamStartTime == null ? null : teamStartTime.plusSeconds(90 * 60L);
+        long totalStoryPause = team.getTotalStoryPauseSeconds() != null ? team.getTotalStoryPauseSeconds() : 0L;
+        if (team.isStoryActive() && team.getStoryPausedAt() != null) {
+            totalStoryPause += Math.max(0, java.time.Duration.between(team.getStoryPausedAt(), serverTime).getSeconds());
+        }
+        Instant deadline = teamStartTime == null ? null : teamStartTime.plusSeconds(90 * 60L + totalStoryPause);
 
         if (team.getGameState() == TeamGameState.NOT_STARTED) {
             return PlayerGameStateDto.builder()
@@ -253,9 +259,11 @@ public class GameStateService {
                 }
             }
             team.setGameState(TeamGameState.IN_PROGRESS);
+            cinematicStoryService.triggerStory(team, "STORY_L" + (levelNumber + 1) + "_INTRO");
         } else if (levelNumber == 6) {
             log.info("Level 6 completed for team {}. Transitioning to FINAL_PASSKEY state.", teamId);
             team.setGameState(TeamGameState.FINAL_PASSKEY);
+            cinematicStoryService.triggerStory(team, "STORY_FINAL_PROTOCOL");
         }
 
         teamRepository.save(team);

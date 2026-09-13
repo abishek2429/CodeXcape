@@ -203,4 +203,47 @@ public class GameWebSocketPublisher {
                 .build();
         broadcastToTeam(teamId, event);
     }
+
+    public void notifyStoryStarted(Long teamId, String storyKey, com.technicalescaperoom.backend.dto.story.ActiveStoryStateDto storyState) {
+        if (teamId == null) return;
+        WebSocketEventDto event = WebSocketEventDto.builder()
+                .type(WebSocketEventType.STORY_STARTED)
+                .teamId(teamId)
+                .storyKey(storyKey)
+                .storyState(storyState)
+                .message("Story sequence initiated: " + storyKey)
+                .timestamp(Instant.now())
+                .build();
+        broadcastToTeam(teamId, event);
+    }
+
+    public void notifyStorySkipped(Long teamId, Long playerId, Integer playerNumber, String storyKey, com.technicalescaperoom.backend.dto.story.ActiveStoryStateDto storyState) {
+        if (teamId == null) return;
+        WebSocketEventDto event = WebSocketEventDto.builder()
+                .type(WebSocketEventType.STORY_SKIPPED)
+                .teamId(teamId)
+                .playerId(playerId)
+                .playerNumber(playerNumber)
+                .storyKey(storyKey)
+                .storyState(storyState)
+                .message("Story sequence skipped by Operator " + (playerNumber != null ? playerNumber : ""))
+                .timestamp(Instant.now())
+                .build();
+        broadcastToTeam(teamId, event);
+    }
+
+    public void notifyStoryCompleted(Long teamId, Long playerId, Integer playerNumber, String storyKey, com.technicalescaperoom.backend.dto.story.ActiveStoryStateDto storyState) {
+        if (teamId == null) return;
+        WebSocketEventDto event = WebSocketEventDto.builder()
+                .type(WebSocketEventType.STORY_COMPLETED)
+                .teamId(teamId)
+                .playerId(playerId)
+                .playerNumber(playerNumber)
+                .storyKey(storyKey)
+                .storyState(storyState)
+                .message("Story sequence completed: " + storyKey)
+                .timestamp(Instant.now())
+                .build();
+        broadcastToTeam(teamId, event);
+    }
 }

@@ -89,6 +89,16 @@ public class Team {
     @Builder.Default
     private Integer securityIncidentCount = 0;
 
+    @Column(name = "current_story_key", length = 50)
+    private String currentStoryKey;
+
+    @Column(name = "story_paused_at")
+    private Instant storyPausedAt;
+
+    @Column(name = "total_story_pause_seconds", nullable = false)
+    @Builder.Default
+    private Long totalStoryPauseSeconds = 0L;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -96,4 +106,8 @@ public class Team {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    public boolean isStoryActive() {
+        return currentStoryKey != null;
+    }
 }

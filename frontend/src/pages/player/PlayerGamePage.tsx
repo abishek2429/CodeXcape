@@ -27,6 +27,9 @@ import { LevelTransitionModal } from '../../components/game/LevelTransitionModal
 import { CoreEntryModal } from '../../components/game/CoreEntryModal';
 import { FinalRestorationModal } from '../../components/game/FinalRestorationModal';
 import { InvestigationDossier } from '../../components/game/InvestigationDossier';
+import { CinematicStoryModal } from '../../components/game/CinematicStoryModal';
+import { fetchCurrentStory, skipStory, completeStory } from '../../services/storySyncService';
+import { STORY_SEQUENCES, StorySequence } from '../../config/storyConfig';
 import { CodeXcapeBackground } from '../../components/cinematic/CodeXcapeBackground';
 import { SpotlightCard } from '../../components/cinematic/SpotlightCard';
 import { soundService } from '../../services/soundService';
@@ -58,6 +61,8 @@ export const PlayerGamePage: React.FC = () => {
   const [isBriefingOpen, setIsBriefingOpen] = useState(false);
   const [isCoreEntryOpen, setIsCoreEntryOpen] = useState(false);
   const [isRestorationOpen, setIsRestorationOpen] = useState(false);
+  const [activeStory, setActiveStory] = useState<StorySequence | null>(null);
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [transitionInfo, setTransitionInfo] = useState<{
     completedLevel: number;
     nextLevel: number;
@@ -69,14 +74,23 @@ export const PlayerGamePage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoadError(null);
-      const [stateData, storyData, scoreData] = await Promise.all([
+      const [stateData, storyData, scoreData, activeStoryData] = await Promise.all([
         fetchPlayerGameState(),
         fetchStoryline(),
         fetchPlayerScore(),
+        fetchCurrentStory(),
       ]);
 
       if (scoreData) {
         setTeamScore(scoreData);
+      }
+
+      if (activeStoryData && activeStoryData.isStoryActive && activeStoryData.storyKey) {
+        const seq = activeStoryData.sequence || STORY_SEQUENCES[activeStoryData.storyKey];
+        if (seq) {
+          setActiveStory(seq);
+          setIsStoryModalOpen(true);
+        }
       }
 
       if (!stateData) {
@@ -144,11 +158,42 @@ export const PlayerGamePage: React.FC = () => {
     }
   };
 
+  const handleStorySkip = async () => {
+    setIsStoryModalOpen(false);
+    setActiveStory(null);
+    soundService.playClick();
+    await skipStory();
+    loadData();
+  };
+
+  const handleStoryComplete = async () => {
+    setIsStoryModalOpen(false);
+    setActiveStory(null);
+    await completeStory();
+    loadData();
+  };
+
   const { partnerStatus, wsConnectionStatus, latestNotification } = useGameWebSocket({
     teamId: player?.teamId,
     playerNumber: player?.playerNumber,
     onRefreshData: loadData,
     onRankChanged: (newRank) => setLiveRank(newRank),
+    onStoryStarted: (payload) => {
+      const key = payload.storyKey;
+      const seq = payload.storyState?.sequence || (key ? STORY_SEQUENCES[key] : null);
+      if (seq) {
+        setActiveStory(seq);
+        setIsStoryModalOpen(true);
+      }
+    },
+    onStorySkipped: () => {
+      setIsStoryModalOpen(false);
+      setActiveStory(null);
+    },
+    onStoryCompleted: () => {
+      setIsStoryModalOpen(false);
+      setActiveStory(null);
+    },
   });
 
   const { lastAlert } = useAntiCheat({
@@ -632,6 +677,13 @@ export const PlayerGamePage: React.FC = () => {
           setIsRestorationOpen(false);
           sessionStorage.setItem('codexcape_restoration_seen', 'true');
         }}
+      />
+
+      <CinematicStoryModal
+        sequence={activeStory}
+        isOpen={isStoryModalOpen}
+        onSkip={handleStorySkip}
+        onComplete={handleStoryComplete}
       />
     </div>
   );

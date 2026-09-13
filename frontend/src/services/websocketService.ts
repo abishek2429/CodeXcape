@@ -16,12 +16,18 @@ export type WebSocketEventType =
   | 'ANTI_CHEAT_ALERT'
   | 'ANTI_CHEAT_EVENT'
   | 'SCORE_UPDATED'
-  | 'SECURITY_INCIDENT';
+  | 'SECURITY_INCIDENT'
+  | 'STORY_STARTED'
+  | 'STORY_SKIPPED'
+  | 'STORY_COMPLETED'
+  | 'STORY_STATE_SYNC';
 
 export interface WebSocketEventPayload {
   type: WebSocketEventType;
   teamId: number;
   teamCode?: string;
+  storyKey?: string;
+  storyState?: any;
   playerId?: number;
   playerNumber?: number;
   displayName?: string;

@@ -40,6 +40,7 @@ public class QuestionAnswerService {
     private final DiscoverySubmissionRepository discoverySubmissionRepository;
     private final TeamStageProgressRepository teamStageProgressRepository;
     private final ScoringService scoringService;
+    private final CinematicStoryService cinematicStoryService;
     private final jakarta.persistence.EntityManager entityManager;
 
     @Transactional(readOnly = true)
@@ -302,6 +303,7 @@ public class QuestionAnswerService {
             }
             if (bothCompleted && !finalStage) {
                 webSocketPublisher.notifyStageCompleted(team.getId(), currentLevel.getLevelNumber(), currentStage, currentStage + 1);
+                cinematicStoryService.triggerStory(team, "STORY_L" + currentLevel.getLevelNumber() + "_DISCOVERY");
             }
             if (bothCompleted && finalStage) {
                 progressToUpdate.setPlayer1Completed(true);
