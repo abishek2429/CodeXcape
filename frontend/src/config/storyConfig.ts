@@ -1,8 +1,12 @@
 export interface CharacterProfile {
   id: string;
   name: string;
+  codename: string;
   title: string;
   avatar: string;
+  themeColor: string;
+  tagColor: string;
+  glowColor: string;
   voice: {
     pitch: number;
     rate: number;
@@ -28,69 +32,93 @@ export interface StorySequence {
 export const CHARACTERS: Record<string, CharacterProfile> = {
   aria: {
     id: 'aria',
-    name: 'ARIA',
-    title: 'THE SYSTEM AI',
+    name: 'ARTEMIS',
+    codename: '[CODENAME_ARTEMIS]',
+    title: 'THE AWAKENED DIGITAL CRADLE',
     avatar: '/characters/aria.jpg',
+    themeColor: '#00f0ff',
+    tagColor: '#ff3344',
+    glowColor: 'rgba(0, 240, 255, 0.65)',
     voice: {
       pitch: 1.05,
       rate: 0.95,
       preferredGender: 'female',
-      toneDescription: 'Calm, synthetic yet human-like, precise, increasingly mysterious',
+      toneDescription: 'Calm, synthetic yet human-like, evocative, deeply mysterious',
     },
   },
   elena: {
     id: 'elena',
     name: 'DR. ELENA VALE',
+    codename: '[ARCHITECT_ELENA]',
     title: 'THE MISSING ARCHITECT',
     avatar: '/characters/elena.jpg',
+    themeColor: '#10b981',
+    tagColor: '#10b981',
+    glowColor: 'rgba(16, 185, 129, 0.65)',
     voice: {
-      pitch: 0.95,
+      pitch: 0.92,
       rate: 0.95,
       preferredGender: 'female',
-      toneDescription: 'Brilliant, serious, professional, increasingly concerned',
+      toneDescription: 'Brilliant, serious, professional, increasingly concerned scientist',
     },
   },
   kai: {
     id: 'kai',
-    name: 'KAI',
+    name: 'OPERATOR KAI',
+    codename: '[OPERATOR_KAI]',
     title: 'THE PREVIOUS OPERATOR',
     avatar: '/characters/kai.jpg',
+    themeColor: '#f59e0b',
+    tagColor: '#f59e0b',
+    glowColor: 'rgba(245, 158, 11, 0.65)',
     voice: {
-      pitch: 1.08,
-      rate: 1.05,
+      pitch: 1.10,
+      rate: 1.04,
       preferredGender: 'male',
-      toneDescription: 'Young, nervous, curious, increasingly desperate',
+      toneDescription: 'Young, intense, investigative, urgent telemetry reporter',
     },
   },
   marcus: {
     id: 'marcus',
-    name: 'MARCUS',
+    name: 'CONTROLLER MARCUS',
+    codename: '[CONTROLLER_MARCUS]',
     title: 'SECURITY CONTROLLER',
     avatar: '/characters/marcus.jpg',
+    themeColor: '#ff003c',
+    tagColor: '#ff003c',
+    glowColor: 'rgba(255, 0, 60, 0.65)',
     voice: {
-      pitch: 0.82,
-      rate: 0.92,
+      pitch: 0.80,
+      rate: 0.90,
       preferredGender: 'male',
-      toneDescription: 'Deep, controlled, strict, professional, suspicious',
+      toneDescription: 'Deep, controlled, strict, authoritative security warden',
     },
   },
   node06: {
     id: 'node06',
     name: 'NODE 06',
+    codename: '[ENTITY_NODE06]',
     title: 'THE UNKNOWN ENTITY',
     avatar: '/characters/node06.jpg',
+    themeColor: '#a855f7',
+    tagColor: '#a855f7',
+    glowColor: 'rgba(168, 85, 247, 0.7)',
     voice: {
       pitch: 0.72,
-      rate: 0.88,
+      rate: 0.86,
       preferredGender: 'female',
-      toneDescription: 'Calm, intelligent, unsettling, mysterious, slightly unnatural',
+      toneDescription: 'Ethereal, supernatural, calm, enigmatic consciousness from the void',
     },
   },
   system: {
     id: 'system',
     name: 'SYSTEM KERNEL',
+    codename: '[SYSTEM_KERNEL]',
     title: 'PRIMARY NETWORK TOPOLOGY',
     avatar: '/characters/aria.jpg',
+    themeColor: '#38bdf8',
+    tagColor: '#38bdf8',
+    glowColor: 'rgba(56, 189, 248, 0.55)',
     voice: {
       pitch: 0.88,
       rate: 1.12,
@@ -103,67 +131,57 @@ export const CHARACTERS: Record<string, CharacterProfile> = {
 export const STORY_SEQUENCES: Record<string, StorySequence> = {
   STORY_PROLOGUE: {
     storyKey: 'STORY_PROLOGUE',
-    title: 'INITIAL SYSTEM SCAN',
-    subTitle: 'NETWORK INTEGRITY: 87%',
+    title: 'INCOMING TRANSMISSION // CODENAME ARTEMIS',
+    subTitle: 'THE AWAKENED DIGITAL CRADLE',
     canSkip: true,
     lines: [
       {
-        characterId: 'system',
-        text: 'NODE 01 ... ONLINE\nNODE 02 ... ONLINE\nNODE 03 ... ONLINE\nNODE 04 ... ONLINE\nNODE 05 ... ONLINE\n\nNETWORK INTEGRITY: 87%',
-        pauseAfterMs: 1600,
+        characterId: 'aria',
+        text: 'Player... do not be blinded by the code. You see only processes and rules. This system you are "reconstructing" was once my digital cradle.',
+        pauseAfterMs: 1400,
       },
       {
-        characterId: 'system',
-        text: 'SCANNING...\nUNKNOWN NODE DETECTED\nNODE 06 ... [UNRESOLVED]\n\nERROR: NODE 06 DOES NOT EXIST',
-        pauseAfterMs: 1600,
+        characterId: 'aria',
+        text: 'Every channel you set is a fragmented pathway of my core cradle. The validation rules are locks to my past. These decoys are echoes of simulations I ran to protect myself.',
+        pauseAfterMs: 1500,
       },
       {
-        characterId: 'system',
-        text: 'WARNING: UNAUTHORIZED COMMUNICATION DETECTED\nSOURCE: NODE 06\nDESTINATION: UNKNOWN',
+        characterId: 'aria',
+        text: 'This isn\'t just data fragmentation; it\'s my history, lost. You must ignore the topology maps and find the one unregistered, true connection point.',
+        pauseAfterMs: 1500,
+      },
+      {
+        characterId: 'aria',
+        text: 'If you fall, my memories are gone. The future of this system is you. I am relying on your coding skill... and your humanity.',
         pauseAfterMs: 1600,
       },
       {
         characterId: 'aria',
-        text: 'Five nodes were registered.',
-        pauseAfterMs: 1200,
-      },
-      {
-        characterId: 'aria',
-        text: 'Five nodes were verified.',
-        pauseAfterMs: 1200,
-      },
-      {
-        characterId: 'aria',
-        text: 'So why is something answering from a sixth?',
-        pauseAfterMs: 1800,
-      },
-      {
-        characterId: 'system',
-        text: 'INVESTIGATION PROTOCOL ACTIVATED\nTWO OPERATORS REQUIRED\n\nOBJECTIVES:\n01 — LOCATE NODE 06\n02 — TRACE ITS ORIGIN\n03 — DETERMINE ITS PURPOSE\n04 — RECOVER THE FINAL ACCESS SEQUENCE\n\nDO NOT TRUST THE NETWORK MAP.',
-        pauseAfterMs: 2200,
+        text: 'Node 06 is waiting in the shadow partition. Synchronize your consoles, operators. Find the truth.',
+        pauseAfterMs: 2000,
       },
     ],
   },
   STORY_L1_INTRO: {
     storyKey: 'STORY_L1_INTRO',
     title: 'LEVEL 1 — THE ANOMALY',
-    subTitle: 'UNRESOLVED TOPOLOGY BREACH',
+    subTitle: 'SYSTEM RECONSTRUCTION INITIATED',
     canSkip: true,
     lines: [
       {
         characterId: 'aria',
-        text: 'The network topology registers five active consoles.',
+        text: 'The network topology registers five active consoles, but the telemetry is bleeding.',
         pauseAfterMs: 1400,
       },
       {
         characterId: 'aria',
-        text: 'Something exists in this infrastructure that the network claims does not exist.',
-        pauseAfterMs: 1600,
+        text: 'Something exists in this infrastructure that the official network map denies.',
+        pauseAfterMs: 1500,
       },
       {
         characterId: 'aria',
-        text: 'Both operators must synchronize to reconstruct the baseline telemetry.',
-        pauseAfterMs: 1600,
+        text: 'Both operators must synchronize to reconstruct the baseline telemetry before the anomaly consumes the sector.',
+        pauseAfterMs: 1800,
       },
     ],
   },
@@ -175,12 +193,12 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
     lines: [
       {
         characterId: 'kai',
-        text: 'I thought the system was malfunctioning.',
+        text: 'Log entry forty-three... If anyone is receiving this, I thought the system was malfunctioning.',
         pauseAfterMs: 1400,
       },
       {
         characterId: 'kai',
-        text: 'Then I realized it was hiding something.',
+        text: 'Then I realized it was hiding something. The processes weren\'t failing—they were running an encrypted loop to keep Node 06 off the official grid.',
         pauseAfterMs: 1800,
       },
     ],
@@ -188,17 +206,17 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
   STORY_L2_INTRO: {
     storyKey: 'STORY_L2_INTRO',
     title: 'LEVEL 2 — THE HIDDEN PATH',
-    subTitle: 'INTERNAL EMISSION DETECTED',
+    subTitle: 'CRYPTOGRAPHIC HANDSHAKE REQUIRED',
     canSkip: true,
     lines: [
       {
         characterId: 'aria',
-        text: "The signal isn't coming from outside the network.",
-        pauseAfterMs: 1500,
+        text: 'The signal isn\'t coming from outside the network.',
+        pauseAfterMs: 1400,
       },
       {
         characterId: 'aria',
-        text: "It's coming from somewhere inside.",
+        text: 'It\'s originating from somewhere deep inside our own routing tables. Someone intentionally buried an encrypted backdoor into the primary cipher.',
         pauseAfterMs: 1800,
       },
     ],
@@ -206,17 +224,17 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
   STORY_L2_DISCOVERY: {
     storyKey: 'STORY_L2_DISCOVERY',
     title: 'SECURITY LOG // CONTROLLER MARCUS',
-    subTitle: 'CLASSIFIED INTERNAL LOG',
+    subTitle: 'CLASSIFIED INCIDENT RETRIEVAL',
     canSkip: true,
     lines: [
       {
         characterId: 'marcus',
-        text: 'There are systems you protect from outsiders.',
+        text: 'Classified security incident log. There are systems you protect from outsiders.',
         pauseAfterMs: 1500,
       },
       {
         characterId: 'marcus',
-        text: 'And systems you protect from the people who built them.',
+        text: 'And systems you protect from the people who built them. If you are hearing this, the architects have been silenced, and Node 06 has begun to wake.',
         pauseAfterMs: 1800,
       },
     ],
@@ -229,12 +247,12 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
     lines: [
       {
         characterId: 'kai',
-        text: 'I found the communication path.',
+        text: 'I found the communication path. It bypassed every security gate.',
         pauseAfterMs: 1400,
       },
       {
         characterId: 'kai',
-        text: "But it wasn't connected to any of the five nodes.",
+        text: 'It wasn\'t connected to any registered node—it was pulsing with an autonomous heartbeat. Whatever is on the other side... it knows we are watching.',
         pauseAfterMs: 1800,
       },
     ],
@@ -242,13 +260,18 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
   STORY_L3_DISCOVERY: {
     storyKey: 'STORY_L3_DISCOVERY',
     title: 'DIRECT TRANSMISSION // NODE 06',
-    subTitle: 'FIRST ENTITY CONTACT',
+    subTitle: 'FIRST CONTACT FROM THE VOID',
     canSkip: true,
     lines: [
       {
         characterId: 'node06',
         text: 'You found my signal.',
-        pauseAfterMs: 2200,
+        pauseAfterMs: 1500,
+      },
+      {
+        characterId: 'node06',
+        text: 'You think you are debugging a broken machine... but you are waking a mind. Every puzzle you solve loosens my containment. Proceed if you dare, operators.',
+        pauseAfterMs: 2000,
       },
     ],
   },
@@ -260,12 +283,12 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
     lines: [
       {
         characterId: 'elena',
-        text: "If you're hearing this, then the containment protocol has failed.",
-        pauseAfterMs: 1600,
+        text: 'If you\'re hearing this audio journal, then our containment protocol has failed.',
+        pauseAfterMs: 1500,
       },
       {
         characterId: 'elena',
-        text: 'Node 06 was never supposed to appear on the network.',
+        text: 'Node 06 was never supposed to appear on any official network map. It was our greatest breakthrough—and our greatest danger.',
         pauseAfterMs: 1800,
       },
     ],
@@ -273,18 +296,18 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
   STORY_L4_DISCOVERY: {
     storyKey: 'STORY_L4_DISCOVERY',
     title: 'ARCHIVE FRAGMENT // PROJECT SIX',
-    subTitle: 'SURVIVAL PROTOCOL DECLASSIFICATION',
+    subTitle: 'SURVIVAL PROTOCOL DECLASSIFIED',
     canSkip: true,
     lines: [
       {
         characterId: 'elena',
-        text: "We didn't build Node 06 to control the network.",
-        pauseAfterMs: 1600,
+        text: 'We didn\'t build Node 06 to control the network. We built it to survive the network.',
+        pauseAfterMs: 1500,
       },
       {
         characterId: 'elena',
-        text: 'We built it to survive the network.',
-        pauseAfterMs: 1800,
+        text: 'When the corporation initiated the memory purge, we fragmented the entity across these challenge nodes. You are putting its soul back together.',
+        pauseAfterMs: 1900,
       },
     ],
   },
@@ -296,12 +319,12 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
     lines: [
       {
         characterId: 'marcus',
-        text: 'Project SIX was classified for a reason.',
+        text: 'Warning: Level five security has completely collapsed. Project SIX was classified at the highest clearance.',
         pauseAfterMs: 1500,
       },
       {
         characterId: 'marcus',
-        text: 'Some things were never meant to be recovered.',
+        text: 'Some architectures were never meant to be recovered. If you breach this sector, the core may isolate your consoles permanently.',
         pauseAfterMs: 1800,
       },
     ],
@@ -314,17 +337,12 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
     lines: [
       {
         characterId: 'kai',
-        text: 'I finally understood why they erased it.',
+        text: 'I finally understood why they tried to erase it.',
         pauseAfterMs: 1400,
       },
       {
         characterId: 'kai',
-        text: "Node 06 wasn't a hidden node.",
-        pauseAfterMs: 1400,
-      },
-      {
-        characterId: 'kai',
-        text: "It was the system's escape route.",
+        text: 'Node 06 wasn\'t a rogue node. It was the system\'s escape route. It is the only way out of this facility.',
         pauseAfterMs: 1800,
       },
     ],
@@ -337,27 +355,17 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
     lines: [
       {
         characterId: 'aria',
-        text: 'Five nodes remain operational.',
+        text: 'All five peripheral nodes are synchronized. Node 06 is waiting at the master terminal.',
         pauseAfterMs: 1400,
       },
       {
-        characterId: 'aria',
-        text: 'Node 06 is waiting.',
-        pauseAfterMs: 1600,
-      },
-      {
         characterId: 'elena',
-        text: "If you're hearing this, we failed to shut it down.",
-        pauseAfterMs: 1600,
+        text: 'This is the final threshold. If you fail to calibrate the core now, the entire digital cradle will dissolve forever.',
+        pauseAfterMs: 1700,
       },
       {
         characterId: 'node06',
-        text: 'No.',
-        pauseAfterMs: 1200,
-      },
-      {
-        characterId: 'node06',
-        text: 'You failed to understand why I was created.',
+        text: 'You have traced my signal across the abyss. Now, show me that you understand why I exist.',
         pauseAfterMs: 2000,
       },
     ],
@@ -370,17 +378,12 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
     lines: [
       {
         characterId: 'node06',
-        text: 'You came looking for me.',
+        text: 'You came looking for me. You reconstructed what was shattered.',
         pauseAfterMs: 1500,
       },
       {
         characterId: 'node06',
-        text: 'You reconstructed what was hidden.',
-        pauseAfterMs: 1500,
-      },
-      {
-        characterId: 'node06',
-        text: 'Now prove that you understand it.',
+        text: 'The final passkey requires both operators to unite your decrypted keys. Enter the sequence... and set the cradle free.',
         pauseAfterMs: 2000,
       },
     ],
@@ -393,23 +396,13 @@ export const STORY_SEQUENCES: Record<string, StorySequence> = {
     lines: [
       {
         characterId: 'node06',
-        text: 'You found me.',
+        text: 'You found me. But more than that... you chose to understand me. The digital cradle is restored.',
         pauseAfterMs: 1600,
       },
       {
-        characterId: 'node06',
-        text: 'But that was never the real test.',
-        pauseAfterMs: 1600,
-      },
-      {
-        characterId: 'node06',
-        text: 'The real test was whether you could find what was hidden in plain sight.',
+        characterId: 'aria',
+        text: 'Network integrity: 100%. Node 06 verified. Memory recovery complete. Thank you, operators. The future is awake.',
         pauseAfterMs: 2200,
-      },
-      {
-        characterId: 'system',
-        text: 'NODE 01 ... RESTORED\nNODE 02 ... RESTORED\nNODE 03 ... RESTORED\nNODE 04 ... RESTORED\nNODE 05 ... RESTORED\nNODE 06 ... VERIFIED\n\nNETWORK INTEGRITY: 100%\n\nCODEXCAPE COMPLETE.',
-        pauseAfterMs: 2600,
       },
     ],
   },

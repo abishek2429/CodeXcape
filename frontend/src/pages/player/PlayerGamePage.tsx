@@ -89,7 +89,9 @@ export const PlayerGamePage: React.FC = () => {
         const seq = activeStoryData.sequence || STORY_SEQUENCES[activeStoryData.storyKey];
         if (seq) {
           setActiveStory(seq);
-          setIsStoryModalOpen(true);
+          if (sessionStorage.getItem('codexcape_briefing_seen')) {
+            setIsStoryModalOpen(true);
+          }
         }
       }
 
@@ -630,7 +632,13 @@ export const PlayerGamePage: React.FC = () => {
 
             <InvestigationDossier
               storyline={storyline}
-              onOpenBriefing={() => setIsBriefingOpen(true)}
+              onOpenBriefing={() => {
+                const prologue = STORY_SEQUENCES.STORY_PROLOGUE;
+                if (prologue) {
+                  setActiveStory(prologue);
+                  setIsStoryModalOpen(true);
+                }
+              }}
             />
 
             <HintPanel
@@ -648,6 +656,12 @@ export const PlayerGamePage: React.FC = () => {
         onClose={() => {
           setIsBriefingOpen(false);
           sessionStorage.setItem('codexcape_briefing_seen', 'true');
+          // Launch the opening Artemis holographic transmission
+          const storyToPlay = activeStory || STORY_SEQUENCES.STORY_PROLOGUE;
+          if (storyToPlay) {
+            setActiveStory(storyToPlay);
+            setIsStoryModalOpen(true);
+          }
         }}
         playerNumber={player.playerNumber}
       />

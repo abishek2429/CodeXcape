@@ -1,20 +1,38 @@
 import React from 'react';
-import { Terminal, ShieldAlert, CheckCircle2, Radio } from 'lucide-react';
+import { Headphones, Radio, Sparkles } from 'lucide-react';
+import { soundService } from '../../services/soundService';
+import { voiceNarratorService } from '../../services/voiceNarratorService';
 
 interface OpeningBriefingModalProps {
   isOpen: boolean;
   onClose: () => void;
   playerNumber: number;
+  onCommence?: (withAudio: boolean) => void;
 }
 
 export const OpeningBriefingModal: React.FC<OpeningBriefingModalProps> = ({
   isOpen,
   onClose,
   playerNumber,
+  onCommence,
 }) => {
+
   if (!isOpen) return null;
 
-  const handleConfirm = () => {
+  const handleCommence = (enableAudio: boolean) => {
+    if (enableAudio) {
+      voiceNarratorService.setMuted(false);
+      soundService.setMuted(false);
+      // Play tactile futuristic chime to unlock audio context smoothly
+      soundService.playFindWayOutUnlock(0.5);
+    } else {
+      voiceNarratorService.setMuted(true);
+      soundService.setMuted(true);
+    }
+
+    if (onCommence) {
+      onCommence(enableAudio);
+    }
     onClose();
   };
 
@@ -22,187 +40,221 @@ export const OpeningBriefingModal: React.FC<OpeningBriefingModalProps> = ({
     <div
       style={{
         position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'rgba(3, 7, 18, 0.88)',
-        backdropFilter: 'blur(10px)',
+        inset: 0,
+        backgroundColor: 'rgba(2, 6, 12, 0.88)',
+        backdropFilter: 'blur(12px)',
         zIndex: 9999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px',
+        padding: '24px',
+        animation: 'fadeIn 0.3s ease-out',
       }}
+      role="dialog"
+      aria-modal="true"
     >
       <div
-        className="cyber-panel animate-scale-up"
+        className="cyber-panel"
         style={{
-          maxWidth: '720px',
+          maxWidth: '640px',
           width: '100%',
-          backgroundColor: 'var(--bg-void)',
-          border: '1px solid var(--accent-cyan)',
-          boxShadow: '0 0 50px rgba(0, 217, 255, 0.25)',
-          padding: '32px',
+          backgroundColor: 'rgba(6, 13, 24, 0.95)',
+          border: '1.5px solid var(--accent-cyan, #00f0ff)',
+          boxShadow: '0 0 50px rgba(0, 240, 255, 0.3), inset 0 0 30px rgba(0, 240, 255, 0.05)',
+          borderRadius: '12px',
+          padding: '36px 32px',
           position: 'relative',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-mono, monospace)',
+          textAlign: 'center',
         }}
       >
-        {/* Terminal Header */}
+        {/* Top Telemetry Header */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid var(--border-cyan)',
-            paddingBottom: '16px',
-            marginBottom: '20px',
+            borderBottom: '1px solid rgba(0, 240, 255, 0.25)',
+            paddingBottom: '14px',
+            marginBottom: '28px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Radio size={14} className="animate-pulse" color="#00f0ff" />
+            <span
               style={{
-                padding: '6px',
-                borderRadius: '4px',
-                backgroundColor: 'var(--accent-cyan-faded)',
-                color: 'var(--accent-cyan)',
+                fontSize: '11px',
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                color: '#00f0ff',
               }}
             >
-              <Terminal size={20} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                  letterSpacing: '0.15em',
-                  color: 'var(--accent-cyan)',
-                }}
-              >
-                CODEXCAPE // SECURE NETWORK BRIEFING
-              </div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                INVESTIGATION PROTOCOL: THE SIXTH NODE
-              </div>
-            </div>
+              AUDIO TELEMETRY CALIBRATION
+            </span>
           </div>
 
-          <span className="badge badge-cyan">
-            OPERATOR 0{playerNumber} CONSOLE
+          <span
+            style={{
+              fontSize: '10px',
+              padding: '4px 10px',
+              borderRadius: '4px',
+              backgroundColor: 'rgba(0, 240, 255, 0.1)',
+              border: '1px solid rgba(0, 240, 255, 0.3)',
+              color: '#00f0ff',
+              letterSpacing: '0.08em',
+              fontWeight: 700,
+            }}
+          >
+            OPERATOR 0{playerNumber}
           </span>
         </div>
 
-        {/* Narrative Terminal Output */}
+        {/* Headphones Visual Icon with Pulsing Halo */}
         <div
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            border: '1px solid var(--border-dim)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '24px',
-            fontSize: '13px',
-            lineHeight: 1.8,
-            color: 'var(--text-primary)',
-            boxShadow: 'inset 0 0 30px rgba(0, 0, 0, 0.9)',
+            position: 'relative',
+            width: '100px',
+            height: '100px',
+            margin: '0 auto 24px auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
-            CODEXCAPE // SECURE NETWORK
-          </div>
-          <div style={{ marginTop: '8px' }}>
-            NODE 01 ... <span style={{ color: 'var(--status-success)' }}>ONLINE</span><br />
-            NODE 02 ... <span style={{ color: 'var(--status-success)' }}>ONLINE</span><br />
-            NODE 03 ... <span style={{ color: 'var(--status-success)' }}>ONLINE</span><br />
-            NODE 04 ... <span style={{ color: 'var(--status-success)' }}>ONLINE</span><br />
-            NODE 05 ... <span style={{ color: 'var(--status-success)' }}>ONLINE</span>
-          </div>
-
-          <div style={{ marginTop: '12px', color: 'var(--accent-cyan)' }}>
-            NETWORK INTEGRITY: 87%
-          </div>
-
-          <div style={{ marginTop: '8px', color: 'var(--text-muted)' }}>
-            SCANNING...
-          </div>
-
           <div
             style={{
-              marginTop: '16px',
-              padding: '12px 16px',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid var(--status-error)',
-              borderRadius: '4px',
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(0, 240, 255, 0.25) 0%, transparent 70%)',
+              animation: 'pulseGlow 2.5s infinite alternate',
             }}
-          >
-            <div style={{ color: 'var(--status-error)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldAlert size={16} />
-              UNKNOWN NODE DETECTED
-            </div>
-            <div style={{ marginTop: '4px' }}>
-              NODE 06 ... <span style={{ color: 'var(--status-error)' }}>[UNRESOLVED]</span><br />
-              <strong style={{ color: 'var(--status-error)' }}>ERROR: NODE 06 DOES NOT EXIST IN ANY OFFICIAL NETWORK MAP</strong>
-            </div>
-          </div>
-
+          />
           <div
             style={{
-              marginTop: '16px',
-              padding: '12px 16px',
-              backgroundColor: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid var(--status-warning)',
-              borderRadius: '4px',
+              position: 'relative',
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(0, 240, 255, 0.08)',
+              border: '1.5px solid rgba(0, 240, 255, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 25px rgba(0, 240, 255, 0.35)',
             }}
           >
-            <div style={{ color: 'var(--status-warning)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Radio size={16} />
-              WARNING: UNAUTHORIZED COMMUNICATION DETECTED
-            </div>
-            <div style={{ marginTop: '4px', fontSize: '12px' }}>
-              SOURCE: <strong>NODE 06</strong><br />
-              DESTINATION: <strong>UNKNOWN</strong><br />
-              STATUS: <strong>INVESTIGATION PROTOCOL ACTIVATED</strong><br />
-              PERSONNEL: <strong>TWO OPERATORS REQUIRED</strong>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '20px' }}>
-            <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', letterSpacing: '0.1em' }}>
-              MISSION OBJECTIVES:
-            </div>
-            <div style={{ marginTop: '8px', paddingLeft: '8px' }}>
-              <div>01 — LOCATE NODE 06</div>
-              <div>02 — TRACE ITS ORIGIN</div>
-              <div>03 — DETERMINE ITS PURPOSE</div>
-              <div>04 — RECOVER THE FINAL ACCESS SEQUENCE</div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              marginTop: '20px',
-              paddingTop: '16px',
-              borderTop: '1px dashed var(--border-dim)',
-              color: 'var(--status-warning)',
-              fontWeight: 'bold',
-              letterSpacing: '0.1em',
-              textAlign: 'center',
-            }}
-          >
-            &gt; DO NOT TRUST THE NETWORK MAP.
+            <Headphones size={40} color="#00f0ff" />
           </div>
         </div>
 
-        {/* Action button */}
-        <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+        {/* Advisory Title & Narrative */}
+        <h1
+          style={{
+            fontSize: '19px',
+            fontWeight: 900,
+            letterSpacing: '0.08em',
+            color: '#ffffff',
+            margin: '0 0 12px 0',
+            textShadow: '0 0 16px rgba(0, 240, 255, 0.4)',
+          }}
+        >
+          WEAR EARPHONES FOR THE BEST EXPERIENCE
+        </h1>
+
+        <p
+          style={{
+            fontSize: '13px',
+            lineHeight: 1.7,
+            color: '#c0d8ec',
+            maxWidth: '520px',
+            margin: '0 auto 24px auto',
+            letterSpacing: '0.02em',
+          }}
+        >
+          Incoming encrypted quantum feed from <strong style={{ color: '#00f0ff' }}>Artemis</strong> and{' '}
+          <strong style={{ color: '#ff3344' }}>Node 06</strong>. This escape simulation utilizes synchronized
+          character voice narration, spatial alarms, and binaural audio telemetry.
+        </p>
+
+        {/* Ambient Waveform Preview */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            height: '24px',
+            marginBottom: '28px',
+          }}
+        >
+          {[8, 14, 20, 12, 18, 24, 16, 10, 22, 14, 8].map((h, idx) => (
+            <div
+              key={idx}
+              style={{
+                width: '3px',
+                height: `${h}px`,
+                backgroundColor: '#00f0ff',
+                borderRadius: '1px',
+                opacity: 0.8,
+              }}
+            />
+          ))}
+          <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.5)', marginLeft: '10px' }}>
+            ACOUSTIC HARMONICS OPTIMIZED
+          </span>
+        </div>
+
+        {/* Action Buttons */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            alignItems: 'center',
+          }}
+        >
           <button
             type="button"
+            onClick={() => handleCommence(true)}
             className="btn btn-primary"
-            onClick={handleConfirm}
-            style={{ padding: '14px 28px', fontSize: '13px' }}
+            style={{
+              padding: '15px 36px',
+              fontSize: '13px',
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              boxShadow: '0 0 30px rgba(0, 240, 255, 0.4)',
+              cursor: 'pointer',
+              width: '100%',
+              maxWidth: '380px',
+              justifyContent: 'center',
+            }}
           >
-            <CheckCircle2 size={16} />
-            <span>ACKNOWLEDGE & COMMENCE INVESTIGATION</span>
+            <Headphones size={16} />
+            <span>COMMENCE TRANSMISSION</span>
+            <Sparkles size={14} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleCommence(false)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255, 255, 255, 0.4)',
+              fontSize: '11px',
+              letterSpacing: '0.08em',
+              cursor: 'pointer',
+              padding: '6px 12px',
+              transition: 'color 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#ffffff')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255, 255, 255, 0.4)')}
+          >
+            [PROCEED MUTED WITHOUT AUDIO]
           </button>
         </div>
       </div>
