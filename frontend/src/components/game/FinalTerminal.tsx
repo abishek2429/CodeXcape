@@ -220,7 +220,7 @@ export const FinalTerminal: React.FC<FinalTerminalProps> = ({ isUnlocked, isComp
             <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed var(--border-dim)', color: 'var(--text-muted)' }}>
               RECOVERY PROTOCOL: <strong style={{ color: 'var(--status-success)' }}>READY</strong><br />
               PERSONNEL: <strong style={{ color: 'var(--accent-cyan)' }}>TWO OPERATORS REQUIRED</strong><br />
-              FINAL PROTOCOL: <strong style={{ color: 'var(--status-success)' }}>ALL RECOVERY FRAGMENTS VERIFIED</strong><br />
+              FINAL PROTOCOL: <strong style={{ color: 'var(--status-success)' }}>ALL SYSTEM PROTOCOLS VERIFIED</strong><br />
               SYSTEM LOCKED: <strong style={{ color: 'var(--accent-crimson)' }}>ENTER SIX-DIGIT ACCESS CODE</strong>
             </div>
           </div>
@@ -230,7 +230,7 @@ export const FinalTerminal: React.FC<FinalTerminalProps> = ({ isUnlocked, isComp
               ENTER SIX-DIGIT MASTER OVERRIDE PASSKEY
             </h3>
             <p style={{ fontSize: '12px', color: 'var(--accent-cyan)', margin: 0, opacity: 0.9 }}>
-              &gt; SYNTHESIZE ALL 5 RECOVERED FRAGMENTS AND LEVEL 6 PROTOCOLS TO CALCULATE THE FINAL CODE_
+              &gt; ENTER THE MASTER SIX-DIGIT PASSKEY TO COMPLETE THE ESCAPE SEQUENCE_
             </p>
           </div>
 

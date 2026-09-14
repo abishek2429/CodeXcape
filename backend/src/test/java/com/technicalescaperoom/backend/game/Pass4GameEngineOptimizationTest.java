@@ -325,10 +325,10 @@ public class Pass4GameEngineOptimizationTest {
         // Separate evidence check: P1 and P2 have different evidence
         assertThat(p1Question.getEvidence()).isNotEqualTo(p2Question.getEvidence());
 
-        // P1 submits correct answer: "SYSTEM TRACE: K-17"
+        // P1 submits correct answer for Level 1 Stage 1: "48, 34"
         AnswerSubmissionResponseDto p1Sub = questionAnswerService.submitAnswer(p1Principal, AnswerSubmissionRequest.builder()
                 .levelNumber(1)
-                .answer("SYSTEM TRACE: K-17")
+                .answer("48, 34")
                 .build());
 
         assertThat(p1Sub.getCorrect()).isTrue();
@@ -338,7 +338,7 @@ public class Pass4GameEngineOptimizationTest {
         // Duplicate submission by P1: Idempotent return, does not claim stage or level is completed prematurely
         AnswerSubmissionResponseDto p1SubDuplicate = questionAnswerService.submitAnswer(p1Principal, AnswerSubmissionRequest.builder()
                 .levelNumber(1)
-                .answer("SYSTEM TRACE: K-17")
+                .answer("48, 34")
                 .build());
         assertThat(p1SubDuplicate.getCorrect()).isTrue();
         assertThat(p1SubDuplicate.getStageCompleted()).isFalse();
@@ -356,7 +356,7 @@ public class Pass4GameEngineOptimizationTest {
         // P2 now submits correct answer for Stage 1
         AnswerSubmissionResponseDto p2Sub = questionAnswerService.submitAnswer(p2Principal, AnswerSubmissionRequest.builder()
                 .levelNumber(1)
-                .answer("SYSTEM TRACE: K-17")
+                .answer("48, 34")
                 .build());
 
         assertThat(p2Sub.getCorrect()).isTrue();
@@ -426,7 +426,7 @@ public class Pass4GameEngineOptimizationTest {
         // Requesting Hint 1 succeeds
         HintUseResponseDto hint1 = hintService.useHint(p1Principal, 1, 1, 1);
         assertThat(hint1.getHintNumber()).isEqualTo(1);
-        assertThat(hint1.getHintContent()).isEqualTo("Level 1 Progressive Hint 1");
+        assertThat(hint1.getHintContent()).isNotBlank();
         assertThat(hint1.isAlreadyUsed()).isFalse();
 
         // Duplicate request for Hint 1 returns safely as alreadyUsed

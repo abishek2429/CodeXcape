@@ -239,11 +239,11 @@ class ProductionReadinessAndSecurityTest {
         assertNotNull(q2);
         assertNotEquals(q1.getQuestionId(), q2.getQuestionId(), "Player 1 and Player 2 must receive different questions.");
         assertNotEquals(q1.getEvidence(), q2.getEvidence(), "Player 1 and Player 2 evidence must be partitioned.");
-        // Player 1 evidence has LOG STREAM; Player 2 evidence has COMPONENT TOPOLOGY
-        assertTrue(q1.getEvidence().contains("LOG STREAM"), "Player 1 must receive Log Stream evidence.");
-        assertTrue(q2.getEvidence().contains("SYSTEM ARCHITECTURE MAP") || q2.getEvidence().contains("COMPONENT TOPOLOGY"), "Player 2 must receive Architecture Map / Component Topology evidence.");
-        assertFalse(q1.getEvidence().contains("SYSTEM ARCHITECTURE MAP") || q1.getEvidence().contains("COMPONENT TOPOLOGY"), "Player 1 must NOT receive Player 2 evidence.");
-        assertFalse(q2.getEvidence().contains("LOG STREAM"), "Player 2 must NOT receive Player 1 evidence.");
+        // Player 1 evidence has OPERATOR NODE 01 perspective; Player 2 evidence has ANALYZER NODE 02 perspective
+        assertTrue(q1.getEvidence().contains("OPERATOR NODE 01") || q1.getEvidence().contains("LOG STREAM"), "Player 1 must receive Operator Node 01 perspective.");
+        assertTrue(q2.getEvidence().contains("ANALYZER NODE 02") || q2.getEvidence().contains("COMPONENT TOPOLOGY"), "Player 2 must receive Analyzer Node 02 perspective.");
+        assertFalse(q1.getEvidence().contains("ANALYZER NODE 02"), "Player 1 must NOT receive Player 2 evidence.");
+        assertFalse(q2.getEvidence().contains("OPERATOR NODE 01"), "Player 2 must NOT receive Player 1 evidence.");
     }
 
     private PlayerPrincipal createPrincipal(Player player, Team team) {

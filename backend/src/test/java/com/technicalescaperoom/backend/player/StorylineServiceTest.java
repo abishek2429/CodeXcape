@@ -140,7 +140,6 @@ class StorylineServiceTest {
 
         List<RecoveryFragmentDto> fragments = story.getFragments();
         assertEquals("UNLOCKED", fragments.get(0).getStatus());
-        assertTrue(fragments.get(0).getNarrativeContent().contains("K-17"));
         assertTrue(fragments.get(0).getNarrativeContent().contains("Someone removed this node from the map."));
 
         assertEquals("ENCRYPTED", fragments.get(1).getStatus());

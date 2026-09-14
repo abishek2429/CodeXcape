@@ -128,7 +128,7 @@ export const LevelTransitionModal: React.FC<LevelTransitionModalProps> = ({
             }}
           >
             <div style={{ fontSize: '10px', color: 'var(--status-success)', fontWeight: 800, letterSpacing: '0.1em' }}>
-              ACQUIRED RECOVERY FRAGMENT 0{completedLevelNumber}:
+              SYSTEM SECURITY CLEARANCE 0{completedLevelNumber}:
             </div>
             <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--accent-cyan)', marginTop: '4px' }}>
               {recoveryFragmentTitle}

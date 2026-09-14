@@ -63,14 +63,14 @@ class QuestionBankValidationTest {
 
     @Test
     void testAnswersAreDeterministicAndNormalized() {
-        // Just verify some answers from the migration (Stage 1)
+        // Verify answer for Level 1 Stage 1 from authoritative puzzle set
         Optional<Question> level1P1 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(1L, 1, QuestionPlayer.PLAYER_1);
         assertThat(level1P1).isPresent();
-        assertThat(level1P1.get().getExpectedAnswerHash()).isEqualTo("SYSTEM TRACE: K-17");
+        assertThat(level1P1.get().getExpectedAnswerHash()).isEqualTo("48, 34");
 
         Optional<Question> level1P2 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(1L, 1, QuestionPlayer.PLAYER_2);
         assertThat(level1P2).isPresent();
-        assertThat(level1P2.get().getExpectedAnswerHash()).isEqualTo("SYSTEM TRACE: K-17");
+        assertThat(level1P2.get().getExpectedAnswerHash()).isEqualTo("48, 34");
     }
 
     @Test

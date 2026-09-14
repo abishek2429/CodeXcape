@@ -181,11 +181,11 @@ public class StorylineService {
         boolean f1Unlocked = completedLevels >= 1;
         fragments.add(RecoveryFragmentDto.builder()
                 .fragmentNumber(1)
-                .title("SYSTEM TRACE: K-17")
+                .title("CORE RECOVERY FRAGMENT 01")
                 .status(f1Unlocked ? "UNLOCKED" : "ENCRYPTED")
-                .technicalArtifact(f1Unlocked ? "SYSTEM TRACE: K-17" : "[ENCRYPTED]")
+                .technicalArtifact(f1Unlocked ? "LOG INTEGRITY VERIFIED" : "[ENCRYPTED]")
                 .narrativeContent(f1Unlocked
-                        ? "> TRACE COMPLETE\n> EVENT SOURCE: K-17\n> NODE REGISTRY: NO MATCH\n> NETWORK MAP: NO MATCH\n> SOURCE STATUS: UNKNOWN\n> Someone removed this node from the map."
+                        ? "> TRACE COMPLETE\n> EVENT SOURCE: CORE TELEMETRY\n> NODE REGISTRY: NO MATCH\n> NETWORK MAP: NO MATCH\n> SOURCE STATUS: UNKNOWN\n> Someone removed this node from the map."
                         : "[ENCRYPTED // COMPLETE LEVEL 1 TO DECRYPT]")
                 .build());
 

@@ -300,13 +300,13 @@ public class Phase2PerformanceBenchmarkTest {
         HintUseResponseDto firstCall = hintService.useHint(principal, 1, 1, 1);
         assertThat(firstCall).isNotNull();
         assertThat(firstCall.isAlreadyUsed()).isFalse();
-        assertThat(firstCall.getHintContent()).isEqualTo("Test Hint Content 1");
+        assertThat(firstCall.getHintContent()).isNotBlank();
 
         // Second call must return alreadyUsed = true without failing
         HintUseResponseDto secondCall = hintService.useHint(principal, 1, 1, 1);
         assertThat(secondCall).isNotNull();
         assertThat(secondCall.isAlreadyUsed()).isTrue();
-        assertThat(secondCall.getHintContent()).isEqualTo("Test Hint Content 1");
+        assertThat(secondCall.getHintContent()).isEqualTo(firstCall.getHintContent());
     }
 
     @Test

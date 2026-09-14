@@ -5,5 +5,6 @@ public enum AnswerType {
     NUMERIC,
     CODE,
     SQL,
-    DECODE
+    DECODE,
+    MULTIPLE_CHOICE
 }

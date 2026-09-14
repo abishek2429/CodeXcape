@@ -2,22 +2,14 @@ import React from 'react';
 import {
   Terminal,
   Code2,
-  FileSearch,
   Network,
   Lock,
   Binary,
-  Share2,
-  KeyRound,
   ShieldCheck,
-  Cpu,
   Layers,
-  Radio,
-  ShieldAlert,
-  Activity,
 } from 'lucide-react';
 import { ChallengeData } from '../../types/game';
 import { SpotlightCard } from '../cinematic/SpotlightCard';
-import { RadarScan } from '../cinematic/RadarScan';
 
 interface ChallengePanelProps {
   challenge: ChallengeData;
@@ -29,25 +21,24 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
   const lvl = challenge.levelNumber;
   const stg = challenge.stageNumber || 1;
 
-  // Determine technical system archetype metadata
+  // Determine technical system archetype metadata based on the level curriculum
   const getSystemArchetype = () => {
-    if (lvl === 1 && stg === 1) return { title: 'FORENSIC LOG COLLISION ANALYZER', code: 'LOG-COLLISION-SYS', icon: <FileSearch size={18} color="var(--accent-crimson-bright)" /> };
-    if (lvl === 1 && stg === 2) return { title: 'RESTRICTED CIRCUIT ACCESS PANEL', code: 'CIRCUIT-OVERRIDE', icon: <Layers size={18} color="var(--accent-crimson-bright)" /> };
-    if (lvl === 2 && stg === 1) return { title: 'BYTE FRAGMENT VAULT', code: 'VAULT-VX17', icon: <Binary size={18} color="var(--accent-crimson-bright)" /> };
-    if (lvl === 2 && stg === 2) return { title: 'TRANSFORMATION CHAMBER', code: 'TRANS-CHAMBER', icon: <Cpu size={18} color="var(--accent-crimson-bright)" /> };
-    if (lvl === 3 && stg === 1) return { title: 'NETWORK TOPOLOGY ROUTER', code: 'TOPOLOGY-ROUTER', icon: <Network size={18} color="var(--accent-crimson-bright)" /> };
-    if (lvl === 3 && stg === 2) return { title: 'TRAFFIC FORENSICS ANALYZER', code: 'TRAFFIC-SNIFFER', icon: <Share2 size={18} color="var(--accent-crimson-bright)" /> };
-    if (lvl === 4 && stg === 1) return { title: 'ENCRYPTED ARCHIVE CIPHER', code: 'ARCHIVE-CIPHER', icon: <Lock size={18} color="var(--accent-crimson)" /> };
-    if (lvl === 4 && stg === 2) return { title: 'SECURE DECRYPTION TERMINAL', code: 'DECRYPT-ENGINE', icon: <Lock size={18} color="var(--accent-crimson)" /> };
-    if (lvl === 4 && stg === 3) return { title: 'CIPHER CHAMBER KEYSTONE SEAL', code: 'CIPHER-SEAL', icon: <Lock size={18} color="var(--accent-crimson)" /> };
-    if (lvl === 5 && stg === 1) return { title: 'FORENSIC CORRELATION MATRIX', code: 'CORRELATION-WALL', icon: <Share2 size={18} color="var(--status-warning)" /> };
-    if (lvl === 5 && stg === 2) return { title: 'EVIDENCE CHAIN TIMELINE', code: 'CHAIN-TIMELINE', icon: <Layers size={18} color="var(--status-warning)" /> };
-    if (lvl === 5 && stg === 3) return { title: 'PARITY EXTRACTION ENGINE', code: 'EXTRACTION-ENGINE', icon: <Binary size={18} color="var(--status-warning)" /> };
-    if (lvl === 6 && stg === 1) return { title: 'DUAL-OPERATOR KEY SYNCHRONIZER', code: 'DUAL-KEY-AUTH', icon: <KeyRound size={18} color="var(--accent-crimson-bright)" /> };
-    if (lvl === 6 && stg === 2) return { title: 'CORE SEQUENCE RECONSTRUCTION', code: 'CORE-MAINFRAME', icon: <ShieldCheck size={18} color="var(--accent-crimson-bright)" /> };
-    if (lvl === 6 && stg === 3) return { title: 'EMERGENCY PROTOCOL CONSOLE', code: 'EMERGENCY-CORE', icon: <Terminal size={18} color="var(--accent-crimson-bright)" /> };
-
-    return { title: 'TECHNICAL WORKSPACE', code: 'SYS-WORKSPACE', icon: <Terminal size={18} color="var(--accent-crimson-bright)" /> };
+    switch (lvl) {
+      case 1:
+        return { title: 'PROGRAMMING CORE // CODE WORKSPACE', code: `PRG-L1-S${stg}`, icon: <Code2 size={18} color="var(--accent-crimson-bright)" /> };
+      case 2:
+        return { title: 'DATA STRUCTURES & ALGORITHMS // LOGIC TERMINAL', code: `DSA-L2-S${stg}`, icon: <Binary size={18} color="var(--accent-crimson-bright)" /> };
+      case 3:
+        return { title: 'SYSTEMS & NETWORKS // PROTOCOL SUITE', code: `NET-L3-S${stg}`, icon: <Network size={18} color="var(--accent-crimson-bright)" /> };
+      case 4:
+        return { title: 'DATABASES, WEB & VERSION CONTROL // DEV DIAGNOSTICS', code: `DEV-L4-S${stg}`, icon: <Layers size={18} color="var(--accent-crimson)" /> };
+      case 5:
+        return { title: 'SECURITY, CRYPTOGRAPHY & COMPUTING // CIPHER STATION', code: `SEC-L5-S${stg}`, icon: <Lock size={18} color="var(--status-warning)" /> };
+      case 6:
+        return { title: 'ADVANCED TECHNICAL CHALLENGES // SYSTEM CORE', code: `ADV-L6-S${stg}`, icon: <ShieldCheck size={18} color="var(--accent-crimson-bright)" /> };
+      default:
+        return { title: 'TECHNICAL WORKSPACE // DIAGNOSTIC TERMINAL', code: `SYS-L${lvl}-S${stg}`, icon: <Terminal size={18} color="var(--accent-crimson-bright)" /> };
+    }
   };
 
   const archetype = getSystemArchetype();
@@ -144,7 +135,7 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
               border: '1px solid var(--border-dim)',
             }}
           >
-            <span style={{ color: 'var(--text-secondary)' }}>SYSTEM SPEC:</span>
+            <span style={{ color: 'var(--text-secondary)' }}>SUBSYSTEM SPEC:</span>
             <span style={{ color: 'var(--accent-crimson-bright)', fontWeight: 700 }}>
               {challenge.puzzleContext}
             </span>
@@ -152,78 +143,51 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
         )}
       </div>
 
-      {/* STAGE-SPECIFIC FORENSIC WORKSPACE VISUALS */}
-      {/* Level 3 Stage 1: Interactive Radar Network Topology */}
-      {lvl === 3 && stg === 1 && (
-        <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: 'rgba(5, 5, 5, 0.9)', border: '1px solid var(--border-crimson)', borderRadius: 'var(--radius-sm)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-            <span style={{ color: 'var(--accent-crimson-bright)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Activity size={14} />
-              RADAR TOPOLOGY SCANNER // SUBNET NODES
-            </span>
-            <span style={{ color: 'var(--accent-crimson)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Radio size={12} className="animate-pulse" />
-              ANOMALY DETECTED IN SECTOR 06
-            </span>
-          </div>
-          <RadarScan />
+      {/* Asymmetric Intelligence Cooperative Notice */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px',
+          padding: '10px 14px',
+          marginBottom: '16px',
+          borderRadius: 'var(--radius-xs)',
+          backgroundColor: isP1 ? 'rgba(225, 6, 19, 0.08)' : 'rgba(157, 78, 221, 0.08)',
+          border: `1px solid ${isP1 ? 'rgba(225, 6, 19, 0.35)' : 'rgba(157, 78, 221, 0.35)'}`,
+          fontFamily: 'var(--font-mono)',
+          fontSize: '11px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              fontWeight: 800,
+              color: isP1 ? 'var(--accent-crimson-bright)' : '#d0aaff',
+              letterSpacing: '0.08em',
+            }}
+          >
+            [YOUR INTELLIGENCE // FRAGMENT {isP1 ? 'A' : 'B'}]
+          </span>
+          <span style={{ color: 'var(--text-secondary)' }}>
+            You recovered Fragment {isP1 ? 'A' : 'B'}. Your teammate holds Fragment {isP1 ? 'B' : 'A'}.
+          </span>
         </div>
-      )}
-
-      {/* Level 3 Stage 3: Damaged Packet Frame Reconstructor Header */}
-      {lvl === 3 && stg === 3 && (
         <div
           style={{
-            marginBottom: '16px',
-            padding: '12px 16px',
-            borderRadius: 'var(--radius-xs)',
-            backgroundColor: 'rgba(225, 6, 19, 0.1)',
-            border: '1px solid var(--border-crimson)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            fontSize: '10px',
+            fontWeight: 800,
+            color: 'var(--text-cold-white)',
+            letterSpacing: '0.12em',
+            opacity: 0.9,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-crimson-bright)', fontWeight: 700 }}>
-            <ShieldAlert size={14} />
-            <span>PACKET // 7A-19 [CORRUPTED HEADER DETECTED]</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>RECOVERY GAUGE:</span>
-            <span style={{ color: 'var(--status-warning)', fontWeight: 800 }}>82%</span>
-          </div>
+          COMMUNICATE &bull; COMBINE &bull; ESCAPE
         </div>
-      )}
+      </div>
 
-      {/* Level 6 Stage 1: Dual Key Synchronization Header */}
-      {lvl === 6 && stg === 1 && (
-        <div
-          style={{
-            marginBottom: '16px',
-            padding: '12px 16px',
-            borderRadius: 'var(--radius-xs)',
-            backgroundColor: 'rgba(225, 6, 19, 0.12)',
-            border: '1px solid var(--accent-crimson)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-crimson-bright)', fontWeight: 800 }}>
-            <KeyRound size={14} />
-            <span>TWO-OPERATOR AUTHORIZATION BARRIER ACTIVE</span>
-          </div>
-          <div style={{ color: 'var(--text-cold-white)', backgroundColor: 'rgba(8, 8, 10, 0.8)', padding: '2px 8px', borderRadius: '2px', border: '1px solid var(--border-dim)' }}>
-            CORE ACCESS: <strong style={{ color: 'var(--accent-crimson-bright)' }}>LOCKED</strong>
-          </div>
-        </div>
-      )}
-
-      {/* Forensic Evidence & Instruction Workspaces */}
+      {/* Technical Evidence & Directive Workspaces */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Evidence Block with SpotlightCard */}
         <SpotlightCard
@@ -252,15 +216,25 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
               justifyContent: 'space-between',
             }}
           >
-            <span>&gt; EVIDENCE / ARTIFACT TELEMETRY STREAM</span>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>AUTHORIZED CAPTURE</span>
+            <span>&gt; SYSTEM TELEMETRY / PROBLEM STATEMENT</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>ACTIVE CHALLENGE</span>
           </div>
-          <p style={{ whiteSpace: 'pre-line', margin: 0, color: 'var(--text-cold-white)' }}>
+          <pre
+            style={{
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              margin: 0,
+              color: 'var(--text-cold-white)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '13px',
+              lineHeight: 1.7,
+            }}
+          >
             {challenge.evidence}
-          </p>
+          </pre>
         </SpotlightCard>
 
-        {/* Cooperative Instructions Directive */}
+        {/* Instructions Directive */}
         {challenge.instructions && (
           <div
             style={{
@@ -283,7 +257,7 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
                 opacity: 0.9,
               }}
             >
-              DIRECTIVE // VERBAL SYNCHRONIZATION REQUIRED:
+              DIRECTIVE // TASK REQUIREMENTS:
             </div>
             <p style={{ whiteSpace: 'pre-line', margin: 0, color: 'var(--text-primary)' }}>
               {challenge.instructions}
@@ -309,7 +283,7 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Code2 size={13} color="var(--accent-crimson-bright)" />
           <span>
-            INPUT FORMAT:{' '}
+            ANSWER TYPE:{' '}
             <strong
               style={{
                 color: 'var(--accent-crimson-bright)',

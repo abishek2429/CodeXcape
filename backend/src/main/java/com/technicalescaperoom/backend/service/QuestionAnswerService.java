@@ -168,6 +168,18 @@ public class QuestionAnswerService {
                 .orElseThrow(() -> new InvalidLevelTransitionException("No active level available for answer submission."));
 
         if (request.getLevelNumber() != null && !request.getLevelNumber().equals(activeProgress.getLevel().getLevelNumber())) {
+            TeamLevelProgress completedProgress = progressList.stream()
+                    .filter(p -> p.getLevel().getLevelNumber().equals(request.getLevelNumber()) && p.getLevelStatus() == LevelStatus.COMPLETED)
+                    .findFirst()
+                    .orElse(null);
+            if (completedProgress != null) {
+                return AnswerSubmissionResponseDto.builder()
+                        .correct(true)
+                        .isCompleted(true)
+                        .stageCompleted(true)
+                        .message("Level completed. Both players solved the final stage.")
+                        .build();
+            }
             throw new InvalidLevelTransitionException("Submitted level number does not match current active level " + activeProgress.getLevel().getLevelNumber() + ".");
         }
 
@@ -185,24 +197,24 @@ public class QuestionAnswerService {
         Question question = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(currentLevel.getId(), currentStage, qPlayerRole)
             .orElseThrow(() -> new ResourceNotFoundException("Question not found for Level " + currentLevel.getLevelNumber() + ", Stage " + currentStage));
 
-        boolean alreadyCompleted = answerAttemptRepository
-            .existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
+        boolean playerAlreadyCompleted = answerAttemptRepository.existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
                 team.getId(), player.getId(), currentLevel.getId(), question.getId());
-        if (alreadyCompleted || progressToUpdate.getLevelStatus() == LevelStatus.COMPLETED) {
-            boolean bothCompleted = stageCompletedForBoth(team, currentLevel, currentStage);
+        boolean bothCompleted = stageCompletedForBoth(team, currentLevel, currentStage);
+
+        if (playerAlreadyCompleted || bothCompleted || progressToUpdate.getLevelStatus() == LevelStatus.COMPLETED) {
             boolean finalStage = currentStage >= getTotalStages(currentLevel);
-            boolean isLevelCompleted = progressToUpdate.getLevelStatus() == LevelStatus.COMPLETED || (finalStage && bothCompleted);
+            boolean isLevelCompleted = progressToUpdate.getLevelStatus() == LevelStatus.COMPLETED || (bothCompleted && finalStage);
             return AnswerSubmissionResponseDto.builder()
                     .correct(true)
                     .isCompleted(true)
                     .stageCompleted(bothCompleted)
                     .stageNumber(currentStage)
                     .nextStageNumber(bothCompleted && !finalStage ? currentStage + 1 : null)
-                    .message(isLevelCompleted
-                            ? "Level completed. Both players solved the final stage."
-                            : bothCompleted
-                            ? "Stage completed. The next cooperative stage is now available."
-                            : "Your challenge for this level is already completed.")
+                    .message(bothCompleted
+                            ? (isLevelCompleted
+                                    ? "Level completed. Both players solved the final stage."
+                                    : "Stage completed. The next cooperative stage is now available.")
+                            : "ACCESS GRANTED: EVIDENCE VERIFIED. AWAITING PARTNER SYNCHRONIZATION.")
                     .build();
         }
 
@@ -221,6 +233,28 @@ public class QuestionAnswerService {
         if (!isCorrect && textMatches) {
             log.info("Player entered correct discovery answer '{}'. Accepting despite interaction payload discrepancy.", submittedRaw);
             isCorrect = true;
+        }
+
+        // If not matching current stage, check if it matches a previously completed stage on this level
+        // (handling concurrent submission or test repeat from partner)
+        if (!isCorrect && currentStage > 1) {
+            for (int prevStage = currentStage - 1; prevStage >= 1; prevStage--) {
+                final int ps = prevStage;
+                Optional<Question> prevQOpt = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(currentLevel.getId(), ps, qPlayerRole);
+                if (prevQOpt.isPresent() && normalizeAndValidate(submittedRaw, prevQOpt.get().getExpectedAnswerHash(), prevQOpt.get().getAnswerType())) {
+                    boolean prevStageCompleted = stageCompletedForBoth(team, currentLevel, ps);
+                    if (prevStageCompleted) {
+                        return AnswerSubmissionResponseDto.builder()
+                                .correct(true)
+                                .isCompleted(false)
+                                .stageCompleted(true)
+                                .stageNumber(ps)
+                                .nextStageNumber(currentStage)
+                                .message("Stage completed. The next cooperative stage is now available.")
+                                .build();
+                    }
+                }
+            }
         }
 
         // Check for duplicate wrong attempt to debounce rapid double-clicks
@@ -251,32 +285,43 @@ public class QuestionAnswerService {
 
             teamLevelProgressRepository.saveAndFlush(progressToUpdate);
 
-                String discoveryHash = hashDiscovery(submittedRaw);
-                DiscoverySubmission discoverySubmission = discoverySubmissionRepository
-                    .findByTeamIdAndLevelIdAndStageNumberAndPlayerId(team.getId(), currentLevel.getId(), currentStage, player.getId())
-                    .orElseGet(() -> DiscoverySubmission.builder()
-                        .team(team)
-                        .level(currentLevel)
-                        .player(player)
-                        .stageNumber(currentStage)
-                        .build());
-                discoverySubmission.setDiscoveryValueHash(discoveryHash);
-                discoverySubmission.setIsCorrect(true);
-                discoverySubmissionRepository.saveAndFlush(discoverySubmission);
+            String discoveryHash = hashDiscovery(submittedRaw);
 
-                    TeamStageProgress stageProgress = teamStageProgressRepository
-                        .findByTeamIdAndLevelIdAndStageNumber(team.getId(), currentLevel.getId(), currentStage)
-                        .orElseGet(() -> teamStageProgressRepository.saveAndFlush(TeamStageProgress.builder()
-                            .team(team)
-                            .level(currentLevel)
-                            .stageNumber(currentStage)
-                            .discoveryKey("DISCOVERY-L" + currentLevel.getLevelNumber() + "-S" + currentStage)
-                            .build()));
-                    if (player.getPlayerNumber() == 1) stageProgress.setPlayer1Completed(true);
-                    else stageProgress.setPlayer2Completed(true);
-                    teamStageProgressRepository.saveAndFlush(stageProgress);
+            TeamStageProgress stageProgress = teamStageProgressRepository
+                .findByTeamIdAndLevelIdAndStageNumber(team.getId(), currentLevel.getId(), currentStage)
+                .orElseGet(() -> teamStageProgressRepository.saveAndFlush(TeamStageProgress.builder()
+                    .team(team)
+                    .level(currentLevel)
+                    .stageNumber(currentStage)
+                    .discoveryKey("DISCOVERY-L" + currentLevel.getLevelNumber() + "-S" + currentStage)
+                    .build()));
 
-            boolean bothCompleted = stageCompletedForBoth(team, currentLevel, currentStage);
+            if (player.getPlayerNumber() == 1) {
+                stageProgress.setPlayer1Completed(true);
+            } else {
+                stageProgress.setPlayer2Completed(true);
+            }
+
+            boolean stageCompleted = Boolean.TRUE.equals(stageProgress.getPlayer1Completed())
+                    && Boolean.TRUE.equals(stageProgress.getPlayer2Completed());
+
+            if (stageCompleted) {
+                stageProgress.setCompletedAt(Instant.now());
+            }
+            stageProgress.setDiscoveryKey("DISCOVERY-L" + currentLevel.getLevelNumber() + "-S" + currentStage);
+            teamStageProgressRepository.saveAndFlush(stageProgress);
+
+            DiscoverySubmission discoverySubmission = discoverySubmissionRepository
+                .findByTeamIdAndLevelIdAndStageNumberAndPlayerId(team.getId(), currentLevel.getId(), currentStage, player.getId())
+                .orElseGet(() -> DiscoverySubmission.builder()
+                    .team(team)
+                    .level(currentLevel)
+                    .player(player)
+                    .stageNumber(currentStage)
+                    .build());
+            discoverySubmission.setDiscoveryValueHash(discoveryHash);
+            discoverySubmission.setIsCorrect(true);
+            discoverySubmissionRepository.saveAndFlush(discoverySubmission);
 
             auditService.logEvent(
                     GameEventType.ANSWER_CORRECT,
@@ -287,54 +332,44 @@ public class QuestionAnswerService {
                     "PLAYER"
             );
 
-            log.info("Player {} (P{}) correctly solved Level {} challenge on attempt #{}", player.getId(), player.getPlayerNumber(), currentLevel.getLevelNumber(), attemptNumber);
+            log.info("Team {} Player {} solved Level {} Stage {} on attempt #{}",
+                    team.getTeamCode(), player.getPlayerNumber(), currentLevel.getLevelNumber(), currentStage, attemptNumber);
 
-            // Real-Time STOMP Notifications & Game State Progression
             webSocketPublisher.notifyPartnerChallengeCompleted(team.getId(), currentLevel.getLevelNumber(), currentStage, player.getPlayerNumber());
 
             boolean finalStage = currentStage >= getTotalStages(currentLevel);
-            if (bothCompleted) {
-                stageProgress.setCompletedAt(Instant.now());
-                stageProgress.setDiscoveryKey("DISCOVERY-L" + currentLevel.getLevelNumber() + "-S" + currentStage);
-                teamStageProgressRepository.saveAndFlush(stageProgress);
+
+            if (stageCompleted) {
                 scoringService.recordMiniGameCompletion(team.getId(), currentLevel.getLevelNumber(), currentStage);
-            }
-            if (getTotalStages(currentLevel) == 1) {
-                if (player.getPlayerNumber() == 1) {
-                    progressToUpdate.setPlayer1Completed(true);
+
+                if (!finalStage) {
+                    webSocketPublisher.notifyStageCompleted(team.getId(), currentLevel.getLevelNumber(), currentStage, currentStage + 1);
+                    cinematicStoryService.triggerStory(team, "STORY_L" + currentLevel.getLevelNumber() + "_DISCOVERY");
                 } else {
+                    progressToUpdate.setPlayer1Completed(true);
                     progressToUpdate.setPlayer2Completed(true);
-                }
-                teamLevelProgressRepository.saveAndFlush(progressToUpdate);
-            }
-            if (bothCompleted && !finalStage) {
-                webSocketPublisher.notifyStageCompleted(team.getId(), currentLevel.getLevelNumber(), currentStage, currentStage + 1);
-                cinematicStoryService.triggerStory(team, "STORY_L" + currentLevel.getLevelNumber() + "_DISCOVERY");
-            }
-            if (bothCompleted && finalStage) {
-                progressToUpdate.setPlayer1Completed(true);
-                progressToUpdate.setPlayer2Completed(true);
-                teamLevelProgressRepository.saveAndFlush(progressToUpdate);
-                log.info("Both players completed Level {} for Team {}. Executing level progression...", currentLevel.getLevelNumber(), team.getTeamCode());
-                gameStateService.completeLevel(team.getId(), currentLevel.getLevelNumber());
-                webSocketPublisher.notifyLevelCompleted(team.getId(), currentLevel.getLevelNumber());
-                webSocketPublisher.notifyHintUnlocked(team.getId(), currentLevel.getLevelNumber(), currentLevel.getLevelNumber());
-                if (currentLevel.getLevelNumber() < 6) {
-                    webSocketPublisher.notifyNextLevelUnlocked(team.getId(), currentLevel.getLevelNumber() + 1);
+                    teamLevelProgressRepository.saveAndFlush(progressToUpdate);
+                    log.info("Team {} completed all stages of Level {}. Executing level progression...", team.getTeamCode(), currentLevel.getLevelNumber());
+                    gameStateService.completeLevel(team.getId(), currentLevel.getLevelNumber());
+                    webSocketPublisher.notifyLevelCompleted(team.getId(), currentLevel.getLevelNumber());
+                    webSocketPublisher.notifyHintUnlocked(team.getId(), currentLevel.getLevelNumber(), currentLevel.getLevelNumber());
+                    if (currentLevel.getLevelNumber() < 6) {
+                        webSocketPublisher.notifyNextLevelUnlocked(team.getId(), currentLevel.getLevelNumber() + 1);
+                    }
                 }
             }
 
             return AnswerSubmissionResponseDto.builder()
                     .correct(true)
-                    .isCompleted(finalStage && bothCompleted)
-                    .stageCompleted(bothCompleted)
+                    .isCompleted(stageCompleted && finalStage)
+                    .stageCompleted(stageCompleted)
                     .stageNumber(currentStage)
-                    .nextStageNumber(bothCompleted && !finalStage ? currentStage + 1 : null)
-                    .message(finalStage && bothCompleted
-                        ? "Level completed. Both players solved the final stage."
-                        : bothCompleted
-                        ? "Stage completed. The next cooperative stage is now available."
-                        : "Correct. Your evidence is verified; compare findings with your teammate.")
+                    .nextStageNumber(stageCompleted && !finalStage ? currentStage + 1 : null)
+                    .message(stageCompleted
+                        ? (finalStage
+                            ? "Level completed. Both players solved the final stage."
+                            : "Stage completed. The next cooperative stage is now available.")
+                        : "ACCESS GRANTED: EVIDENCE VERIFIED. AWAITING PARTNER SYNCHRONIZATION.")
                     .build();
         } else {
             if (!isDuplicateWrongAttempt) {
@@ -387,40 +422,26 @@ public class QuestionAnswerService {
     }
 
     private boolean stageCompletedForBoth(Long teamId, Level level, int stageNumber) {
-        List<Question> questions = questionRepository.findByLevelIdAndStageNumberAndIsActiveTrue(level.getId(), stageNumber);
-        if (questions.size() < 2) return false;
-
-        boolean playersCorrect = questions.stream().allMatch(question -> {
-            Long playerId = question.getPlayerNumber() == QuestionPlayer.PLAYER_1
-                    ? findPlayerId(teamId, 1)
-                    : findPlayerId(teamId, 2);
-            return playerId != null && answerAttemptRepository
-                    .existsByTeamIdAndPlayerIdAndLevelIdAndQuestionIdAndIsCorrectTrue(
-                            teamId, playerId, level.getId(), question.getId());
-        });
-                if (!playersCorrect) return false;
-
-                List<DiscoverySubmission> submissions = questions.stream()
-                    .map(question -> findPlayerId(teamId, question.getPlayerNumber() == QuestionPlayer.PLAYER_1 ? 1 : 2))
-                    .map(playerId -> playerId == null ? null : discoverySubmissionRepository
-                        .findByTeamIdAndLevelIdAndStageNumberAndPlayerId(teamId, level.getId(), stageNumber, playerId)
-                        .orElse(null))
-                    .toList();
-                return submissions.size() == 2
-                    && submissions.stream().allMatch(s -> s != null && Boolean.TRUE.equals(s.getIsCorrect()));
+        Optional<TeamStageProgress> spOpt = teamStageProgressRepository
+                .findByTeamIdAndLevelIdAndStageNumber(teamId, level.getId(), stageNumber);
+        if (spOpt.isPresent()) {
+            TeamStageProgress sp = spOpt.get();
+            return Boolean.TRUE.equals(sp.getPlayer1Completed()) && Boolean.TRUE.equals(sp.getPlayer2Completed());
+        }
+        return false;
     }
 
-                private String hashDiscovery(String value) {
-                try {
-                    byte[] digest = MessageDigest.getInstance("SHA-256")
-                        .digest(value.trim().toUpperCase().getBytes(StandardCharsets.UTF_8));
-                    StringBuilder result = new StringBuilder();
-                    for (byte item : digest) result.append(String.format("%02x", item));
-                    return result.toString();
-                } catch (NoSuchAlgorithmException exception) {
-                    throw new IllegalStateException("Discovery hashing is unavailable.", exception);
-                }
-                }
+    private String hashDiscovery(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(value.trim().toUpperCase().getBytes(StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder();
+            for (byte item : digest) result.append(String.format("%02x", item));
+            return result.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("Discovery hashing is unavailable.", exception);
+        }
+    }
 
     private Long findPlayerId(Long teamId, int playerNumber) {
         return playerRepository.findByTeamIdAndPlayerNumber(teamId, playerNumber)
@@ -467,108 +488,143 @@ public class QuestionAnswerService {
         String normSubmitted = submitted.trim();
         String normExpected = expected.trim();
 
+        // 1. Numeric normalization (strip whitespace and commas)
         if (answerType == AnswerType.NUMERIC) {
-            normSubmitted = normSubmitted.replaceAll("[\\s,]", "");
-            normExpected = normExpected.replaceAll("[\\s,]", "");
-            if (normSubmitted.equals(normExpected)) return true;
+            String numSub = normSubmitted.replaceAll("[\\s,]", "");
+            String numExp = normExpected.replaceAll("[\\s,]", "");
+            if (numSub.equals(numExp)) return true;
         }
 
-        // Direct case-insensitive match
+        // 2. Direct case-insensitive match
         if (normSubmitted.equalsIgnoreCase(normExpected)) {
             return true;
         }
 
-        // Canonical alphanumeric normalized match (handles minor spacing/punctuation differences)
+        // 3. Canonical alphanumeric normalized match (handles punctuation/whitespace variations)
         String canonicalSubmitted = canonicalizeAnswer(normSubmitted);
         String canonicalExpected = canonicalizeAnswer(normExpected);
         if (!canonicalSubmitted.isEmpty() && canonicalSubmitted.equals(canonicalExpected)) {
             return true;
         }
 
-        // Support RECOVERY FRAGMENT 01..05 matching RECOVERY FRAGMENT 1..5 and FRAGMENT 01..05
-        for (int i = 1; i <= 5; i++) {
-            String fNum = String.valueOf(i);
-            String fNumPadded = String.format("%02d", i);
-            if (canonicalExpected.equals("RECOVERYFRAGMENT" + fNumPadded) || canonicalExpected.equals("RECOVERYFRAGMENT" + fNum)) {
-                if (canonicalSubmitted.equals("RECOVERYFRAGMENT" + fNumPadded)
-                        || canonicalSubmitted.equals("RECOVERYFRAGMENT" + fNum)
-                        || canonicalSubmitted.equals("FRAGMENT" + fNumPadded)
-                        || canonicalSubmitted.equals("FRAGMENT" + fNum)) {
-                    return true;
-                }
-            }
-        }
-
-        // Level 1 Stage 1: accept "SYSTEM TRACE: K-17", "K-17", "K17", "SYSTEM TRACE K-17"
-        if (canonicalExpected.equals("SYSTEMTRACEK17")) {
-            if (canonicalSubmitted.equals("SYSTEMTRACEK17") || canonicalSubmitted.equals("K17")
-                    || canonicalSubmitted.equals("TRACEK17") || canonicalSubmitted.equals("SYSTEMK17")) {
+        // 4. Multiple-choice option matching (letters A-D or option text)
+        if (normExpected.length() == 1 && Character.isLetter(normExpected.charAt(0))) {
+            char expChar = Character.toUpperCase(normExpected.charAt(0));
+            if (canonicalSubmitted.equals(String.valueOf(expChar))
+                    || canonicalSubmitted.equals("OPTION" + expChar)
+                    || canonicalSubmitted.equals("CHOICE" + expChar)) {
                 return true;
             }
         }
 
-        // Level 1 Stage 2: accept "RECOVERY FRAGMENT 01" or direct selector values "N-4 relay K-17"
-        if (canonicalExpected.equals("RECOVERYFRAGMENT01")) {
-            if (canonicalSubmitted.contains("N4") && canonicalSubmitted.contains("RELAY") && canonicalSubmitted.contains("K17")) {
+        // 5. Level 1 Stage 1: Corrupted Execution Trace (x=48, y=34)
+        if (canonicalExpected.contains("48") && canonicalExpected.contains("34")) {
+            if (canonicalSubmitted.contains("48") && canonicalSubmitted.contains("34")) {
                 return true;
             }
         }
 
-        // Level 2 Stage 2: accept "RECOVERY FRAGMENT 02" or decoded plaintext "RECOVERY"
-        if (canonicalExpected.equals("RECOVERYFRAGMENT02")) {
-            if (canonicalSubmitted.equals("RECOVERY")) {
+        // 6. Level 1 Stage 2: Python Trace Reconstruction ([4, 7, 8, 9, 5, 8])
+        if (canonicalExpected.equals("478958")) {
+            if (canonicalSubmitted.equals("478958")) {
                 return true;
             }
         }
 
-        // Level 3 Stage 1: accept "ROUTE A-B-C" or "A-B-C" / "ABC"
-        if (canonicalExpected.equals("ROUTEABC")) {
-            if (canonicalSubmitted.equals("ROUTEABC") || canonicalSubmitted.equals("ABC")) {
+        // 7. Level 2 Stage 1: Stack + Queue Transmission (7, 5, 8)
+        if (canonicalExpected.equals("758")) {
+            if (canonicalSubmitted.equals("758")) {
                 return true;
             }
         }
 
-        // Level 3 Stage 2: accept "PACKET PATH C-E", "PACKET PATH C-E-F", "PATH C-E", "C-E", "C-E-F"
-        if (canonicalExpected.contains("PACKETPATHCE") || canonicalExpected.contains("PACKETPATHEF")) {
-            if (canonicalSubmitted.contains("PACKETPATHCE") || canonicalSubmitted.contains("PACKETPATHEF")
-                    || canonicalSubmitted.equals("CEF") || canonicalSubmitted.equals("CE")
-                    || canonicalSubmitted.equals("PATHCE") || canonicalSubmitted.equals("PATHCEF")) {
+        // 8. Level 2 Stage 2: Binary Search Interrogation (63 | O(log n))
+        if (canonicalExpected.contains("63")) {
+            if (canonicalSubmitted.equals("63") || canonicalSubmitted.startsWith("63")
+                    || (canonicalSubmitted.contains("63") && (canonicalSubmitted.contains("LOGN") || canonicalSubmitted.contains("OLOGN")))) {
                 return true;
             }
         }
 
-        // Level 4 Stage 1: accept "SHIFT-3", "SHIFT 3", "3"
-        if (canonicalExpected.equals("SHIFT3")) {
-            if (canonicalSubmitted.equals("SHIFT3") || canonicalSubmitted.equals("3")) {
+        // 9. Level 3 Stage 1: Packet Path Reconstruction (10.0.2.15 -> 10.0.2.1 -> 10.0.3.1 -> 10.0.5.1 -> 10.0.5.20 | TCP)
+        if (canonicalExpected.contains("100215") && canonicalExpected.contains("TCP")) {
+            if (canonicalSubmitted.contains("TCP")
+                    && (canonicalSubmitted.contains("100215") || canonicalSubmitted.contains("100520") || canonicalSubmitted.contains("10.0.2.15"))) {
                 return true;
             }
         }
 
-        // Level 5 Stage 1: accept "CHAIN F-12/R-4/N-9", "F-12/R-4/N-9", "F12/R4/N9"
-        if (canonicalExpected.equals("CHAINF12R4N9")) {
-            if (canonicalSubmitted.equals("CHAINF12R4N9") || canonicalSubmitted.equals("F12R4N9")) {
+        // 10. Level 3 Stage 2: Subnet Forensics (172.16.40.65 - 172.16.40.94 | C)
+        if (canonicalExpected.contains("172164065") || canonicalExpected.contains("172164094") || canonicalExpected.endsWith("C")) {
+            if (canonicalSubmitted.equals("C") || canonicalSubmitted.equals("OPTIONC") || canonicalSubmitted.contains("USABLEHOST")
+                    || (canonicalSubmitted.contains("172164065") && canonicalSubmitted.contains("172164094"))) {
                 return true;
             }
         }
 
-        // Level 6 Stage 1: accept "CORE ACCESS GRANTED" or "ACCESS GRANTED"
-        if (canonicalExpected.equals("COREACCESSGRANTED")) {
-            if (canonicalSubmitted.equals("COREACCESSGRANTED") || canonicalSubmitted.equals("ACCESSGRANTED")) {
+        // 11. Level 4 Stage 1: SQL Evidence Merge (ASHA, CHITRA)
+        if (canonicalExpected.contains("ASHA") && canonicalExpected.contains("CHITRA")) {
+            if ((canonicalSubmitted.contains("ASHA") && canonicalSubmitted.contains("CHITRA"))
+                    || (canonicalSubmitted.contains("101") && canonicalSubmitted.contains("103"))
+                    || (canonicalSubmitted.contains("SELECT") && canonicalSubmitted.contains("HAVING") && canonicalSubmitted.contains("80"))) {
                 return true;
             }
         }
 
-        // Level 6 Stage 2: accept "CORE SEQUENCE VERIFIED" or "SEQUENCE VERIFIED"
-        if (canonicalExpected.equals("CORESEQUENCEVERIFIED")) {
-            if (canonicalSubmitted.equals("CORESEQUENCEVERIFIED") || canonicalSubmitted.equals("SEQUENCEVERIFIED")) {
+        // 12. Level 4 Stage 2: Web Request Autopsy (500)
+        if (canonicalExpected.equals("500")) {
+            if (canonicalSubmitted.equals("500") || canonicalSubmitted.contains("500") || canonicalSubmitted.contains("INTERNALSERVERERROR")) {
                 return true;
             }
         }
 
-        // Level 6 Stage 3: accept both "FINAL PROTOCOL VERIFIED" and master passkey "849201"
-        if ("FINAL PROTOCOL VERIFIED".equalsIgnoreCase(normExpected) || "849201".equals(normExpected)) {
-            if ("FINAL PROTOCOL VERIFIED".equalsIgnoreCase(normSubmitted) || "849201".equals(normSubmitted)
-                    || canonicalSubmitted.equals("PROTOCOLVERIFIED")) {
+        // 13. Level 4 Stage 3: Git Branch Collision (A)
+        if (canonicalExpected.equals("A")) {
+            if (canonicalSubmitted.equals("A") || canonicalSubmitted.equals("OPTIONA") || canonicalSubmitted.contains("RESOLVECONFLICT")) {
+                return true;
+            }
+        }
+
+        // 14. Level 5 Stage 1: Multi-Layer Encoding Forensics (Hello)
+        if (canonicalExpected.equalsIgnoreCase("HELLO")) {
+            if (canonicalSubmitted.equalsIgnoreCase("HELLO")) {
+                return true;
+            }
+        }
+
+        // 15. Level 5 Stage 2: Security Incident Correlation (AUTHORIZATION)
+        if (canonicalExpected.contains("AUTHORIZATION")) {
+            if (canonicalSubmitted.contains("AUTHORIZATION") || canonicalSubmitted.equals("AUTHZ")
+                    || canonicalSubmitted.contains("ACCESSCONTROL") || canonicalSubmitted.contains("RBAC")) {
+                return true;
+            }
+        }
+
+        // 16. Level 5 Stage 3: Cipher Chain (HEKKO / HELLO)
+        if (canonicalExpected.equalsIgnoreCase("HEKKO") || canonicalExpected.equalsIgnoreCase("HELLO")) {
+            if (canonicalSubmitted.equalsIgnoreCase("HEKKO") || canonicalSubmitted.equalsIgnoreCase("HELLO")) {
+                return true;
+            }
+        }
+
+        // 17. Level 6 Stage 1: Java Polymorphism Trace (CCX)
+        if (canonicalExpected.equals("CCX")) {
+            if (canonicalSubmitted.equals("CCX")) {
+                return true;
+            }
+        }
+
+        // 18. Level 6 Stage 2: Docker Deployment Failure (A / 3000:8080)
+        if (canonicalExpected.equals("A") || canonicalExpected.contains("30008080")) {
+            if (canonicalSubmitted.equals("A") || canonicalSubmitted.equals("OPTIONA")
+                    || canonicalSubmitted.contains("30008080") || canonicalSubmitted.contains("3000:8080")) {
+                return true;
+            }
+        }
+
+        // 19. Level 6 Stage 3: NODE ZERO: Final Distributed Logic Breach (CHITRA / ASHA)
+        if (canonicalExpected.contains("CHITRA") || canonicalExpected.contains("ASHA")) {
+            if (canonicalSubmitted.contains("CHITRA") || canonicalSubmitted.contains("ASHA")) {
                 return true;
             }
         }
