@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface TeamStageProgressRepository extends JpaRepository<TeamStageProgress, Long> {
     List<TeamStageProgress> findByTeamIdAndLevelIdOrderByStageNumberAsc(Long teamId, Long levelId);
     Optional<TeamStageProgress> findByTeamIdAndLevelIdAndStageNumber(Long teamId, Long levelId, Integer stageNumber);
+    List<TeamStageProgress> findByTeamId(Long teamId);
+    void deleteByTeamId(Long teamId);
 }

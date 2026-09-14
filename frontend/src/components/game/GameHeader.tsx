@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Terminal, LogOut, Cpu, Clock, Volume2, VolumeX, ShieldAlert } from 'lucide-react';
+import { Terminal, LogOut, Cpu, Clock, Volume2, VolumeX, ShieldAlert, Radio } from 'lucide-react';
 import { PlayerInfo } from '../../types/player';
 import { SystemConnectionStatus } from '../../types/game';
 import { StatusDot } from '../ui/StatusDot';
@@ -32,6 +32,7 @@ interface GameHeaderProps {
   partnerStatus?: string;
   onLogout: () => void;
   onOpenBriefing?: () => void;
+  onOpenTransmission?: () => void;
   onTimerExpire?: () => void;
 }
 
@@ -50,6 +51,7 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
   partnerStatus = 'CONNECTED',
   onLogout,
   onOpenBriefing,
+  onOpenTransmission,
   onTimerExpire,
 }) => {
   const isPlayer1 = player.playerNumber === 1;
@@ -207,6 +209,19 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
             OP 02
           </span>
         </div>
+
+        {onOpenTransmission && (
+          <CinematicButton
+            variant="primary"
+            onClick={onOpenTransmission}
+            showBrackets={false}
+            style={{ padding: '6px 12px', fontSize: '10px', letterSpacing: '0.08em', backgroundColor: 'rgba(0, 240, 255, 0.12)', borderColor: 'var(--accent-cyan)', color: 'var(--accent-cyan)' }}
+            title="Open Holographic Story Transmission"
+          >
+            <Radio size={12} className="animate-pulse" color="#00f0ff" />
+            <span>TRANSMISSION</span>
+          </CinematicButton>
+        )}
 
         {onOpenBriefing && (
           <CinematicButton

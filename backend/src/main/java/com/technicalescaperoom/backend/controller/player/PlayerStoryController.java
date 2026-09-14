@@ -48,6 +48,16 @@ public class PlayerStoryController {
         return ResponseEntity.ok(state);
     }
 
+    @PostMapping("/replay")
+    public ResponseEntity<ActiveStoryStateDto> replayStory(@AuthenticationPrincipal PlayerPrincipal principal, @RequestParam String storyKey) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        log.info("Player {} (Team {}) requested STORY REPLAY for key {}", principal.getPlayerId(), principal.getTeamId(), storyKey);
+        ActiveStoryStateDto state = cinematicStoryService.replayStory(principal.getTeamId(), storyKey);
+        return ResponseEntity.ok(state);
+    }
+
     @GetMapping("/history")
     public ResponseEntity<List<String>> getResolvedStories(@AuthenticationPrincipal PlayerPrincipal principal) {
         if (principal == null) {

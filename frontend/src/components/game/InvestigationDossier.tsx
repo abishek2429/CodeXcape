@@ -6,11 +6,13 @@ import { soundService } from '../../services/soundService';
 interface InvestigationDossierProps {
   storyline: StorylineData | null;
   onOpenBriefing?: () => void;
+  onPlayFragmentStory?: (fragmentNumber: number) => void;
 }
 
 export const InvestigationDossier: React.FC<InvestigationDossierProps> = ({
   storyline,
   onOpenBriefing,
+  onPlayFragmentStory,
 }) => {
   const [selectedFragment, setSelectedFragment] = useState<RecoveryFragment | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -280,6 +282,31 @@ export const InvestigationDossier: React.FC<InvestigationDossierProps> = ({
                         >
                           {frag.narrativeContent}
                         </div>
+
+                        {onPlayFragmentStory && (
+                          <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                soundService.playClick();
+                                onPlayFragmentStory(frag.fragmentNumber);
+                              }}
+                              className="btn btn-primary"
+                              style={{
+                                fontSize: '10px',
+                                padding: '5px 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                letterSpacing: '0.08em',
+                              }}
+                            >
+                              <Radio size={12} className="animate-pulse" />
+                              <span>PLAY HOLOGRAPHIC LOG</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

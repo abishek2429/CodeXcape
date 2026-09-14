@@ -7,8 +7,11 @@ import com.technicalescaperoom.backend.enums.LevelStatus;
 import com.technicalescaperoom.backend.enums.TeamGameState;
 import com.technicalescaperoom.backend.exception.ResourceNotFoundException;
 import com.technicalescaperoom.backend.repository.AnswerAttemptRepository;
-import com.technicalescaperoom.backend.repository.TeamLevelProgressRepository;
 import com.technicalescaperoom.backend.repository.TeamRepository;
+import com.technicalescaperoom.backend.repository.TeamLevelProgressRepository;
+import com.technicalescaperoom.backend.repository.TeamStageProgressRepository;
+import com.technicalescaperoom.backend.repository.TeamStoryProgressRepository;
+import com.technicalescaperoom.backend.entity.TeamStageProgress;
 import com.technicalescaperoom.backend.service.GameWebSocketPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +28,8 @@ public class AdminTeamResetService {
 
     private final TeamRepository teamRepository;
     private final TeamLevelProgressRepository teamLevelProgressRepository;
+    private final TeamStageProgressRepository teamStageProgressRepository;
+    private final TeamStoryProgressRepository teamStoryProgressRepository;
     private final AnswerAttemptRepository answerAttemptRepository;
     private final GameWebSocketPublisher webSocketPublisher;
     private final AdminAuditService adminAuditService;
@@ -52,12 +57,27 @@ public class AdminTeamResetService {
 
         teamLevelProgressRepository.saveAll(progressList);
 
+        // Reset stage progress for team
+        List<TeamStageProgress> stageProgressList = teamStageProgressRepository.findByTeamId(team.getId());
+        for (TeamStageProgress sp : stageProgressList) {
+            sp.setPlayer1Completed(false);
+            sp.setPlayer2Completed(false);
+            sp.setCompletedAt(null);
+        }
+        teamStageProgressRepository.saveAll(stageProgressList);
+
         // Delete answer attempts for team
         answerAttemptRepository.deleteByTeamId(team.getId());
+
+        // Reset story progression so team can experience the full narrative freshly
+        teamStoryProgressRepository.deleteByTeamId(team.getId());
 
         // Reset team state
         team.setGameState(TeamGameState.IN_PROGRESS);
         team.setCompletedAt(null);
+        team.setCurrentStoryKey(null);
+        team.setStoryPausedAt(null);
+        team.setTotalStoryPauseSeconds(0L);
         teamRepository.saveAndFlush(team);
 
         adminAuditService.logAction(

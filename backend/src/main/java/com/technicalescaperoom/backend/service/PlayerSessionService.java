@@ -483,11 +483,12 @@ public class PlayerSessionService {
             webSocketPublisher.notifyPlayerConnection(teamId, player.getId(), player.getPlayerNumber(), player.getDisplayName(), false);
         }
 
-        // 3. Purge team progress, attempts, and hint usages
+        // 3. Purge team progress, attempts, story progress, and hint usages
         entityManager.createQuery("DELETE FROM AnswerAttempt a WHERE a.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
         entityManager.createQuery("DELETE FROM DiscoverySubmission d WHERE d.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
         entityManager.createQuery("DELETE FROM TeamStageProgress s WHERE s.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
         entityManager.createQuery("DELETE FROM TeamLevelProgress l WHERE l.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
+        entityManager.createQuery("DELETE FROM TeamStoryProgress sp WHERE sp.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
         entityManager.createQuery("DELETE FROM HintUsage h WHERE h.team.id = :teamId").setParameter("teamId", teamId).executeUpdate();
 
         // 4. Reset team state back to clean initial state
@@ -495,6 +496,9 @@ public class PlayerSessionService {
         team.setGameState(TeamGameState.NOT_STARTED);
         team.setStartedAt(null);
         team.setCompletedAt(null);
+        team.setCurrentStoryKey(null);
+        team.setStoryPausedAt(null);
+        team.setTotalStoryPauseSeconds(0L);
         teamRepository.saveAndFlush(team);
 
         // 5. Broadcast reset event over WebSocket
@@ -539,6 +543,9 @@ public class PlayerSessionService {
             team.setGameState(TeamGameState.NOT_STARTED);
             team.setStartedAt(null);
             team.setCompletedAt(null);
+            team.setCurrentStoryKey(null);
+            team.setStoryPausedAt(null);
+            team.setTotalStoryPauseSeconds(0L);
             teamRepository.save(team);
             webSocketPublisher.notifyEventStatusChange(team.getId(), "Event session reset by administrator.");
         }
@@ -549,6 +556,7 @@ public class PlayerSessionService {
         entityManager.createQuery("DELETE FROM DiscoverySubmission").executeUpdate();
         entityManager.createQuery("DELETE FROM TeamStageProgress").executeUpdate();
         entityManager.createQuery("DELETE FROM TeamLevelProgress").executeUpdate();
+        entityManager.createQuery("DELETE FROM TeamStoryProgress").executeUpdate();
         entityManager.createQuery("DELETE FROM HintUsage").executeUpdate();
 
         auditService.logEvent(

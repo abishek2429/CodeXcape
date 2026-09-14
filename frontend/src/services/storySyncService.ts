@@ -59,6 +59,20 @@ export async function completeStory(): Promise<ActiveStoryStateResponse | null> 
   }
 }
 
+export async function replayStory(storyKey: string): Promise<ActiveStoryStateResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE}/replay?storyKey=${encodeURIComponent(storyKey)}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+
 export async function fetchStoryHistory(): Promise<string[]> {
   try {
     const res = await fetch(`${API_BASE}/history`, {

@@ -129,8 +129,10 @@ export const PlayerGamePage: React.FC = () => {
         setLiveRank(stateData.currentRank);
       }
 
-      // Mark briefing as seen so opening briefing modal is bypassed during player flow
-      sessionStorage.setItem('codexcape_briefing_seen', 'true');
+      // Check if player hasn't completed the earphones/briefing calibration yet
+      if (!sessionStorage.getItem('codexcape_briefing_seen')) {
+        setIsBriefingOpen(true);
+      }
 
       // Trigger Core Entry Modal on Level 6 entry
       if (stateData.currentLevel === 6 && stateData.gameStatus !== 'COMPLETED' && !sessionStorage.getItem('codexcape_core_seen')) {
@@ -162,18 +164,34 @@ export const PlayerGamePage: React.FC = () => {
     }
   };
 
+  const handlePlayStoryByKey = (storyKey: string) => {
+    const seq = STORY_SEQUENCES[storyKey];
+    if (seq) {
+      setActiveStory(seq);
+      setIsStoryModalOpen(true);
+    }
+  };
+
   const handleStorySkip = async () => {
+    const prevKey = activeStory?.storyKey;
     setIsStoryModalOpen(false);
     setActiveStory(null);
     soundService.playClick();
     await skipStory();
+    if (prevKey === 'STORY_PROLOGUE') {
+      handlePlayStoryByKey('STORY_L1_INTRO');
+    }
     loadData();
   };
 
   const handleStoryComplete = async () => {
+    const prevKey = activeStory?.storyKey;
     setIsStoryModalOpen(false);
     setActiveStory(null);
     await completeStory();
+    if (prevKey === 'STORY_PROLOGUE') {
+      handlePlayStoryByKey('STORY_L1_INTRO');
+    }
     loadData();
   };
 
@@ -234,8 +252,10 @@ export const PlayerGamePage: React.FC = () => {
       <SystemInitializationLoader
         onComplete={() => {
           sessionStorage.setItem('codexcape_initialized', 'true');
-          sessionStorage.setItem('codexcape_briefing_seen', 'true');
           setIsSystemInitialized(true);
+          if (!sessionStorage.getItem('codexcape_briefing_seen')) {
+            setIsBriefingOpen(true);
+          }
         }}
       />
     );
@@ -373,6 +393,7 @@ export const PlayerGamePage: React.FC = () => {
           connectionStatus={gameState.connectionStatus}
           partnerStatus={partnerStatus}
           onLogout={logout}
+          onOpenTransmission={() => handlePlayStoryByKey('STORY_COMPLETION')}
           onOpenBriefing={() => setIsBriefingOpen(true)}
         />
         <main className="game-main centered-main" style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 20px' }}>
@@ -479,6 +500,10 @@ export const PlayerGamePage: React.FC = () => {
         connectionStatus={gameState.connectionStatus}
         partnerStatus={partnerStatus}
         onLogout={logout}
+        onOpenTransmission={() => {
+          const key = activeStory?.storyKey || (gameState.currentLevel === 6 ? 'STORY_L6_INTRO' : `STORY_L${gameState.currentLevel}_INTRO`);
+          handlePlayStoryByKey(key);
+        }}
         onOpenBriefing={() => setIsBriefingOpen(true)}
       />
 
@@ -621,11 +646,19 @@ export const PlayerGamePage: React.FC = () => {
             <InvestigationDossier
               storyline={storyline}
               onOpenBriefing={() => {
-                const prologue = STORY_SEQUENCES.STORY_PROLOGUE;
-                if (prologue) {
-                  setActiveStory(prologue);
-                  setIsStoryModalOpen(true);
-                }
+                handlePlayStoryByKey('STORY_PROLOGUE');
+              }}
+              onPlayFragmentStory={(fragNum) => {
+                const fragStoryKeys: Record<number, string> = {
+                  1: 'STORY_L1_DISCOVERY',
+                  2: 'STORY_L2_DISCOVERY',
+                  3: 'STORY_L3_DISCOVERY',
+                  4: 'STORY_L4_DISCOVERY',
+                  5: 'STORY_L5_DISCOVERY',
+                  6: 'STORY_FINAL_PROTOCOL',
+                };
+                const k = fragStoryKeys[fragNum];
+                if (k) handlePlayStoryByKey(k);
               }}
             />
 
@@ -660,7 +693,12 @@ export const PlayerGamePage: React.FC = () => {
         nextLevelNumber={transitionInfo?.nextLevel || 2}
         nextLevelName={transitionInfo?.nextName || ''}
         recoveryFragmentTitle={transitionInfo?.fragmentTitle || ''}
-        onClose={() => setTransitionInfo(null)}
+        onClose={() => {
+          const nextLvl = transitionInfo?.nextLevel || 2;
+          setTransitionInfo(null);
+          const nextKey = nextLvl === 6 ? 'STORY_L6_INTRO' : `STORY_L${nextLvl}_INTRO`;
+          handlePlayStoryByKey(nextKey);
+        }}
       />
 
       <CoreEntryModal

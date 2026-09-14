@@ -132,7 +132,6 @@ export const PlayerLobbyPage: React.FC = () => {
       <SystemInitializationLoader
         onComplete={() => {
           sessionStorage.setItem('codexcape_initialized', 'true');
-          sessionStorage.setItem('codexcape_briefing_seen', 'true');
           navigate('/player/game', { replace: true });
         }}
       />

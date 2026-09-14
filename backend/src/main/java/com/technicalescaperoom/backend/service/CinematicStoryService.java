@@ -167,6 +167,38 @@ public class CinematicStoryService {
                 storyKey, team.getTeamCode(), pauseDuration);
 
         webSocketPublisher.notifyStoryCompleted(teamId, playerId, playerNum, storyKey, state);
+
+        // Chain Prologue directly into Level 1 Intro narrative if not yet resolved
+        if ("STORY_PROLOGUE".equals(storyKey) && !teamStoryProgressRepository.existsByTeamIdAndStoryKey(teamId, "STORY_L1_INTRO")) {
+            return triggerStory(team, "STORY_L1_INTRO");
+        }
+
+        return state;
+    }
+
+    @Transactional
+    public ActiveStoryStateDto replayStory(Long teamId, String storyKey) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found: " + teamId));
+
+        if (storyKey == null) {
+            return buildActiveState(team);
+        }
+
+        Optional<StorySequenceDto> seqOpt = storySequenceConfig.getSequence(storyKey);
+        if (seqOpt.isEmpty()) {
+            log.warn("Unknown story sequence key for replay: {}", storyKey);
+            return buildActiveState(team);
+        }
+
+        Instant now = Instant.now();
+        team.setCurrentStoryKey(storyKey);
+        team.setStoryPausedAt(now);
+        teamRepository.save(team);
+
+        ActiveStoryStateDto state = buildActiveState(team);
+        log.info("▶ Replaying story sequence [{}] for Team {}", storyKey, team.getTeamCode());
+        webSocketPublisher.notifyStoryStarted(team.getId(), storyKey, state);
         return state;
     }
 

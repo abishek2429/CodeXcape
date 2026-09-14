@@ -12,4 +12,5 @@ public interface TeamStoryProgressRepository extends JpaRepository<TeamStoryProg
     Optional<TeamStoryProgress> findByTeamIdAndStoryKey(Long teamId, String storyKey);
     boolean existsByTeamIdAndStoryKey(Long teamId, String storyKey);
     List<TeamStoryProgress> findByTeamIdOrderByStartedAtAsc(Long teamId);
+    void deleteByTeamId(Long teamId);
 }
