@@ -40,6 +40,7 @@ export const ChallengePanel: React.FC<ChallengePanelProps> = ({ challenge, playe
     if (lvl === 3 && stg === 3) return { title: 'PACKET FRAME RECONSTRUCTOR', code: 'FRAME-RECON', icon: <Binary size={18} color="var(--accent-crimson-bright)" /> };
     if (lvl === 4 && stg === 1) return { title: 'ENCRYPTED ARCHIVE CIPHER', code: 'ARCHIVE-CIPHER', icon: <Lock size={18} color="var(--accent-crimson)" /> };
     if (lvl === 4 && stg === 2) return { title: 'SECURE DECRYPTION TERMINAL', code: 'DECRYPT-ENGINE', icon: <Lock size={18} color="var(--accent-crimson)" /> };
+    if (lvl === 4 && stg === 3) return { title: 'CIPHER CHAMBER KEYSTONE SEAL', code: 'CIPHER-SEAL', icon: <Lock size={18} color="var(--accent-crimson)" /> };
     if (lvl === 5 && stg === 1) return { title: 'FORENSIC CORRELATION MATRIX', code: 'CORRELATION-WALL', icon: <Share2 size={18} color="var(--status-warning)" /> };
     if (lvl === 5 && stg === 2) return { title: 'EVIDENCE CHAIN TIMELINE', code: 'CHAIN-TIMELINE', icon: <Layers size={18} color="var(--status-warning)" /> };
     if (lvl === 5 && stg === 3) return { title: 'PARITY EXTRACTION ENGINE', code: 'EXTRACTION-ENGINE', icon: <Binary size={18} color="var(--status-warning)" /> };
