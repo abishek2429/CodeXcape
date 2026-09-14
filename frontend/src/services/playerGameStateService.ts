@@ -70,6 +70,7 @@ export interface PlayerScoreResponse {
   totalPenalties: number;
   finalScore: number;
   completedMiniGames: number;
+  totalMiniGames?: number;
   completedLevels: number;
 }
 

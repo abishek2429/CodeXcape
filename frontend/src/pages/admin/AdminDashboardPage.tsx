@@ -2142,7 +2142,7 @@ export const AdminDashboardPage: React.FC = () => {
                           </td>
                           <td className="" style={{ fontWeight: 600 }}>
                             <span style={{ color: 'var(--accent-cyan)' }}>{entry.completedMiniGames ?? 0}</span>
-                            <span className="text-secondary" style={{ fontSize: '11px' }}> / 18</span>
+                            <span className="text-secondary" style={{ fontSize: '11px' }}> / {entry.totalMiniGames || 15}</span>
                           </td>
                           <td className="text-secondary" style={{ fontWeight: 600 }}>
                             {entry.baseScore ?? 0}

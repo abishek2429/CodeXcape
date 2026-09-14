@@ -16,18 +16,26 @@ public class ScoringConfig {
 
     // Total Game Structure
     public static final int TOTAL_LEVELS = 6;
-    public static final int MINI_GAMES_PER_LEVEL = 3;
-    public static final int TOTAL_MINI_GAMES = 18;
+    public static final int TOTAL_MINI_GAMES = 15;
     public static final int MAX_BASE_SCORE = 1000;
 
-    // Mini-game Base Points by Level
-    public static final int LEVEL_1_MINI_GAME_POINTS = 50; // 3 * 50 = 150
-    public static final int LEVEL_2_MINI_GAME_POINTS = 50; // 3 * 50 = 150
-    public static final int LEVEL_3_MINI_GAME_POINTS = 55; // 3 * 55 = 165
-    public static final int LEVEL_4_MINI_GAME_POINTS = 55; // 3 * 55 = 165
-    public static final int LEVEL_5_MINI_GAME_POINTS = 60; // 3 * 60 = 180
-    public static final int LEVEL_6_MINI_GAME_POINTS = 60; // 3 * 60 = 180
-    public static final int FINAL_PROTOCOL_POINTS = 10;    // 150 + 150 + 165 + 165 + 180 + 180 + 10 = 1000
+    // Mini-game Base Points by Level (15 total stages across 6 levels)
+    // Level 1 (2 stages): 2 * 60 = 120
+    // Level 2 (2 stages): 2 * 60 = 120
+    // Level 3 (2 stages): 2 * 65 = 130
+    // Level 4 (3 stages): 3 * 65 = 195
+    // Level 5 (3 stages): 3 * 70 = 210
+    // Level 6 (3 stages): 3 * 70 = 210
+    // Subtotal: 120 + 120 + 130 + 195 + 210 + 210 = 985
+    // Final Protocol: 15
+    // Total Base Score: 985 + 15 = 1000 points
+    public static final int LEVEL_1_MINI_GAME_POINTS = 60;
+    public static final int LEVEL_2_MINI_GAME_POINTS = 60;
+    public static final int LEVEL_3_MINI_GAME_POINTS = 65;
+    public static final int LEVEL_4_MINI_GAME_POINTS = 65;
+    public static final int LEVEL_5_MINI_GAME_POINTS = 70;
+    public static final int LEVEL_6_MINI_GAME_POINTS = 70;
+    public static final int FINAL_PROTOCOL_POINTS = 15;
 
     // Wrong Attempt Penalty
     public static final int WRONG_ATTEMPT_PENALTY = 5; // -5 points per valid incorrect submission

@@ -237,17 +237,6 @@ public class StorylineService {
                         : "[ENCRYPTED // COMPLETE LEVEL 5 TO DECRYPT]")
                 .build());
 
-        // Fragment 06 - Level 6 / Completion
-        fragments.add(RecoveryFragmentDto.builder()
-                .fragmentNumber(6)
-                .title("FINAL ACCESS SEQUENCE")
-                .status(isCompleted ? "UNLOCKED" : "ENCRYPTED")
-                .technicalArtifact(isCompleted ? "RECOVERY SEQUENCE VERIFIED" : "[ENCRYPTED]")
-                .narrativeContent(isCompleted
-                        ? "ACCESS GRANTED\nSYSTEM RECOVERY INITIATED\nNODE 01 ... RESTORED\nNODE 02 ... RESTORED\nNODE 03 ... RESTORED\nNODE 04 ... RESTORED\nNODE 05 ... RESTORED\nNODE 06 ... VERIFIED\nNETWORK INTEGRITY: 100%\nCODEXCAPE COMPLETE\n\nYOU FOUND ME.\nBUT THAT WAS NEVER THE REAL TEST.\nTHE REAL TEST WAS WHETHER YOU COULD FIND WHAT WAS HIDDEN IN PLAIN SIGHT."
-                        : "[ENCRYPTED // AWAITING DUAL OPERATOR MASTER OVERRIDE SYNTHESIS]")
-                .build());
-
         return fragments;
     }
 }

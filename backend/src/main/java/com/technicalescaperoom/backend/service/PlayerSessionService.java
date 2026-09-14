@@ -335,7 +335,11 @@ public class PlayerSessionService {
 
         // Idempotency: if already started, ensure start time integrity and return current state
         if (team.getGameState() != TeamGameState.NOT_STARTED) {
-            if (team.getStartedAt() == null || team.getStartedAt().plusSeconds(90 * 60L).isBefore(Instant.now())) {
+            long totalStoryPause = team.getTotalStoryPauseSeconds() != null ? team.getTotalStoryPauseSeconds() : 0L;
+            if (team.isStoryActive() && team.getStoryPausedAt() != null) {
+                totalStoryPause += Math.max(0, java.time.Duration.between(team.getStoryPausedAt(), Instant.now()).getSeconds());
+            }
+            if (team.getStartedAt() == null || team.getStartedAt().plusSeconds(100 * 60L + totalStoryPause).isBefore(Instant.now())) {
                 List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
                 boolean hasCompletedLevels = progressList.stream().anyMatch(p -> p.getLevelStatus() == com.technicalescaperoom.backend.enums.LevelStatus.COMPLETED);
                 if (!hasCompletedLevels) {

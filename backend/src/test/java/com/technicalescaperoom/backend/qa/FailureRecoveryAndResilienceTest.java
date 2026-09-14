@@ -210,15 +210,6 @@ public class FailureRecoveryAndResilienceTest {
         assertThat(r3.getCorrect()).isTrue();
         assertThat(r4.getCorrect()).isTrue();
         assertThat(r4.getStageCompleted()).isTrue();
-
-        Question q1s3 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), 3, QuestionPlayer.PLAYER_1).orElseThrow();
-        Question q2s3 = questionRepository.findByLevelIdAndStageNumberAndPlayerNumberAndIsActiveTrue(level1.getId(), 3, QuestionPlayer.PLAYER_2).orElseThrow();
-
-        AnswerSubmissionResponseDto r5 = questionAnswerService.submitAnswer(p1Princ, AnswerSubmissionRequest.builder().levelNumber(1).answer(q1s3.getExpectedAnswerHash()).build());
-        AnswerSubmissionResponseDto r6 = questionAnswerService.submitAnswer(p2Princ, AnswerSubmissionRequest.builder().levelNumber(1).answer(q2s3.getExpectedAnswerHash()).build());
-
-        assertThat(r5.getCorrect()).isTrue();
-        assertThat(r6.getCorrect()).isTrue();
-        assertThat(r6.getIsCompleted()).isTrue();
+        assertThat(r4.getIsCompleted()).isTrue();
     }
 }

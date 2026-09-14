@@ -30,6 +30,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -46,6 +48,8 @@ public class GameStateService {
     private final GameWebSocketPublisher webSocketPublisher;
     private final CinematicStoryService cinematicStoryService;
 
+    public static final long GAME_DURATION_SECONDS = 100 * 60L; // 6000 seconds = 100 minutes authoritative event clock
+
     @Transactional
     public List<TeamLevelProgress> initializeTeamGameState(Team team) {
         List<TeamLevelProgress> existing = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
@@ -60,40 +64,53 @@ public class GameStateService {
             throw new ResourceNotFoundException("No active game levels configured in the system.");
         }
 
-        List<TeamLevelProgress> newProgressList = new ArrayList<>();
+        List<TeamLevelProgress> progressList = new ArrayList<>();
         Instant now = Instant.now();
 
-        for (Level level : activeLevels) {
-            boolean isFirstLevel = level.getLevelNumber() == 1;
+        for (int i = 0; i < activeLevels.size(); i++) {
+            Level level = activeLevels.get(i);
+            LevelStatus status = (i == 0) ? LevelStatus.AVAILABLE : LevelStatus.LOCKED;
+            Instant startedAt = (i == 0) ? now : null;
+
             TeamLevelProgress progress = TeamLevelProgress.builder()
                     .team(team)
                     .level(level)
-                    .player1Completed(false)
-                    .player2Completed(false)
-                    .levelStatus(isFirstLevel ? LevelStatus.AVAILABLE : LevelStatus.LOCKED)
-                    .startedAt(isFirstLevel ? now : null)
+                    .levelStatus(status)
+                    .startedAt(startedAt)
                     .build();
 
-            newProgressList.add(teamLevelProgressRepository.save(progress));
-
-                questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
-                    .map(question -> question.getStageNumber())
-                    .distinct()
-                    .sorted()
-                    .forEach(stageNumber -> teamStageProgressRepository.save(TeamStageProgress.builder()
-                        .team(team)
-                        .level(level)
-                        .stageNumber(stageNumber)
-                        .discoveryKey("L" + level.getLevelNumber() + "-S" + stageNumber)
-                        .build()));
+            progressList.add(progress);
         }
 
+        teamLevelProgressRepository.saveAll(progressList);
+
+        team.setStartedAt(now);
+        team.setTotalStoryPauseSeconds(0L);
+        team.setStoryPausedAt(null);
         team.setGameState(TeamGameState.IN_PROGRESS);
         teamRepository.save(team);
+
+        // Seed initial stage progress rows for all stages of all active levels so stage progress tracking is reliable
+        for (Level lvl : activeLevels) {
+            List<com.technicalescaperoom.backend.entity.Question> lvlQuestions = questionRepository.findByLevelIdAndIsActiveTrue(lvl.getId());
+            Set<Integer> stageNumbers = lvlQuestions.stream().map(com.technicalescaperoom.backend.entity.Question::getStageNumber).collect(Collectors.toSet());
+            for (Integer stg : stageNumbers) {
+                if (!teamStageProgressRepository.existsByTeamIdAndLevelIdAndStageNumber(team.getId(), lvl.getId(), stg)) {
+                    teamStageProgressRepository.save(TeamStageProgress.builder()
+                            .team(team)
+                            .level(lvl)
+                            .stageNumber(stg)
+                            .discoveryKey("DISCOVERY-L" + lvl.getLevelNumber() + "-S" + stg)
+                            .build());
+                }
+            }
+        }
+
+        // Trigger opening Prologue narrative sequence and pause timer during initial story cinematic
         cinematicStoryService.triggerStory(team, "STORY_PROLOGUE");
 
-        log.info("Initialized 6-level game state for team ID {} ({})", team.getId(), team.getTeamCode());
-        return newProgressList;
+        log.info("Initialized 6-level game state for team {}. Level 1 is AVAILABLE. Story prologue initiated.", team.getTeamCode());
+        return progressList;
     }
 
     @Transactional
@@ -136,11 +153,11 @@ public class GameStateService {
 
         // For active escape simulations (IN_PROGRESS or FINAL_PASSKEY):
         // Ensure authoritative timer integrity. If startedAt is missing, or expired before completing any levels
-        // (e.g. starting a fresh attempt or leftover stale session), renew it so the team receives a fresh 90-minute clock.
+        // (e.g. starting a fresh attempt or leftover stale session), renew it so the team receives a fresh 100-minute clock.
         if (team.getGameState() == TeamGameState.IN_PROGRESS || team.getGameState() == TeamGameState.FINAL_PASSKEY) {
             boolean needsStartRefresh = (teamStartTime == null);
             if (!needsStartRefresh) {
-                Instant prospectiveDeadline = teamStartTime.plusSeconds(90 * 60L + totalStoryPause);
+                Instant prospectiveDeadline = teamStartTime.plusSeconds(GAME_DURATION_SECONDS + totalStoryPause);
                 boolean hasCompletedLevels = progressList.stream().anyMatch(p -> p.getLevelStatus() == LevelStatus.COMPLETED);
                 if (prospectiveDeadline.isBefore(serverTime) && !hasCompletedLevels) {
                     needsStartRefresh = true;
@@ -148,7 +165,7 @@ public class GameStateService {
             }
 
             if (needsStartRefresh) {
-                log.info("Team {} initializing/renewing authoritative escape clock to serverTime.", team.getTeamCode());
+                log.info("Team {} initializing/renewing authoritative escape clock to serverTime (100-minute window).", team.getTeamCode());
                 team.setStartedAt(serverTime);
                 team.setTotalStoryPauseSeconds(0L);
                 team.setStoryPausedAt(null);
@@ -158,7 +175,7 @@ public class GameStateService {
             }
         }
 
-        Instant deadline = teamStartTime == null ? null : teamStartTime.plusSeconds(90 * 60L + totalStoryPause);
+        Instant deadline = teamStartTime == null ? null : teamStartTime.plusSeconds(GAME_DURATION_SECONDS + totalStoryPause);
 
         Integer currentLevelNumber = 1;
         boolean allCompleted = true;

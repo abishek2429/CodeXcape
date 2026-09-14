@@ -389,7 +389,7 @@ public class LeaderboardService {
                 .antiCheatPenalty(finalAcPenalty)
                 .finalScore(team.getFinalScore())
                 .completedMiniGames(team.getCompletedMiniGames())
-                .totalMiniGames(18)
+                .totalMiniGames(com.technicalescaperoom.backend.config.ScoringConfig.TOTAL_MINI_GAMES)
                 .completedLevels(team.getCompletedLevels())
                 .totalLevels(6)
                 .isFlaggedForReview(team.getIsFlaggedForReview())

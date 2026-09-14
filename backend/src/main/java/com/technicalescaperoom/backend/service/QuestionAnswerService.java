@@ -21,6 +21,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -61,7 +62,7 @@ public class QuestionAnswerService {
         }
 
         Event event = team.getEvent();
-        enforceDeadline(event);
+        enforceDeadline(event, team);
         if (event.getStatus() != EventStatus.RUNNING && event.getStatus() != EventStatus.READY) {
             throw new EventUnavailableException("The event is not currently active.");
         }
@@ -142,7 +143,7 @@ public class QuestionAnswerService {
         }
 
         Event event = team.getEvent();
-        enforceDeadline(event);
+        enforceDeadline(event, team);
         if (event.getStatus() != EventStatus.RUNNING && event.getStatus() != EventStatus.READY) {
             throw new EventUnavailableException("The event is not currently active.");
         }
@@ -265,7 +266,12 @@ public class QuestionAnswerService {
 
                     TeamStageProgress stageProgress = teamStageProgressRepository
                         .findByTeamIdAndLevelIdAndStageNumber(team.getId(), currentLevel.getId(), currentStage)
-                        .orElseThrow(() -> new InvalidLevelTransitionException("Stage state is not initialized."));
+                        .orElseGet(() -> teamStageProgressRepository.saveAndFlush(TeamStageProgress.builder()
+                            .team(team)
+                            .level(currentLevel)
+                            .stageNumber(currentStage)
+                            .discoveryKey("DISCOVERY-L" + currentLevel.getLevelNumber() + "-S" + currentStage)
+                            .build()));
                     if (player.getPlayerNumber() == 1) stageProgress.setPlayer1Completed(true);
                     else stageProgress.setPlayer2Completed(true);
                     teamStageProgressRepository.saveAndFlush(stageProgress);
@@ -358,21 +364,22 @@ public class QuestionAnswerService {
     }
 
     private int findCurrentStage(Level level, Long teamId) {
+        int totalStages = getTotalStages(level);
         List<TeamStageProgress> stageProgressList = teamStageProgressRepository.findByTeamIdAndLevelIdOrderByStageNumberAsc(teamId, level.getId());
-        if (!stageProgressList.isEmpty()) {
-            return stageProgressList.stream()
-                    .filter(sp -> !(Boolean.TRUE.equals(sp.getPlayer1Completed()) && Boolean.TRUE.equals(sp.getPlayer2Completed())))
-                    .map(TeamStageProgress::getStageNumber)
-                    .findFirst()
-                    .orElse(stageProgressList.get(stageProgressList.size() - 1).getStageNumber());
+        for (int stage = 1; stage <= totalStages; stage++) {
+            final int s = stage;
+            Optional<TeamStageProgress> spOpt = stageProgressList.stream()
+                    .filter(sp -> sp.getStageNumber() != null && sp.getStageNumber() == s)
+                    .findFirst();
+            if (spOpt.isEmpty()) {
+                return stage;
+            }
+            TeamStageProgress sp = spOpt.get();
+            if (!Boolean.TRUE.equals(sp.getPlayer1Completed()) || !Boolean.TRUE.equals(sp.getPlayer2Completed())) {
+                return stage;
+            }
         }
-        List<Question> stages = questionRepository.findByLevelIdAndIsActiveTrue(level.getId()).stream()
-                .filter(question -> !stageCompletedForBoth(teamId, level, question.getStageNumber()))
-                .toList();
-        return stages.stream()
-                .map(Question::getStageNumber)
-                .min(Integer::compareTo)
-                .orElse(1);
+        return totalStages;
     }
 
     private boolean stageCompletedForBoth(Team team, Level level, int stageNumber) {
@@ -421,9 +428,18 @@ public class QuestionAnswerService {
                 .orElse(null);
     }
 
-    private void enforceDeadline(Event event) {
-        if (event.getStartTime() != null && Instant.now().isAfter(event.getStartTime().plusSeconds(90 * 60L))) {
-            throw new EventUnavailableException("The 90-minute game window has ended.");
+    private void enforceDeadline(Event event, Team team) {
+        if (team != null && team.getStartedAt() != null) {
+            long totalStoryPause = team.getTotalStoryPauseSeconds() != null ? team.getTotalStoryPauseSeconds() : 0L;
+            if (team.isStoryActive() && team.getStoryPausedAt() != null) {
+                totalStoryPause += Math.max(0, java.time.Duration.between(team.getStoryPausedAt(), Instant.now()).getSeconds());
+            }
+            Instant deadline = team.getStartedAt().plusSeconds(100 * 60L + totalStoryPause);
+            if (Instant.now().isAfter(deadline)) {
+                throw new EventUnavailableException("The 100-minute game window has ended. Time expired.");
+            }
+        } else if (event != null && event.getStartTime() != null && Instant.now().isAfter(event.getStartTime().plusSeconds(100 * 60L))) {
+            throw new EventUnavailableException("The 100-minute game window has ended. Time expired.");
         }
     }
 

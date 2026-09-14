@@ -181,11 +181,11 @@ export const InvestigationDossier: React.FC<InvestigationDossierProps> = ({
             </div>
           )}
 
-          {/* 6 Recovery Fragments Tracker */}
+          {/* 5 Recovery Fragments Tracker */}
           <div style={{ marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)', marginBottom: '8px' }}>
               <span>RECOVERY FRAGMENTS:</span>
-              <span>{storyline.fragments.filter(f => f.status === 'UNLOCKED').length} OF 6 RECOVERED</span>
+              <span>{storyline.fragments.filter(f => f.status === 'UNLOCKED').length} OF 5 RECOVERED</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

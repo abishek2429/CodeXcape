@@ -53,8 +53,17 @@ public class FinalPasskeyService {
         entityManager.refresh(team);
 
         Event event = team.getEvent();
-        if (event.getStartTime() != null && Instant.now().isAfter(event.getStartTime().plusSeconds(90 * 60L))) {
-            throw new EventUnavailableException("The 90-minute game window has ended.");
+        long totalStoryPause = team.getTotalStoryPauseSeconds() != null ? team.getTotalStoryPauseSeconds() : 0L;
+        if (team.isStoryActive() && team.getStoryPausedAt() != null) {
+            totalStoryPause += Math.max(0, java.time.Duration.between(team.getStoryPausedAt(), Instant.now()).getSeconds());
+        }
+        if (team.getStartedAt() != null) {
+            Instant deadline = team.getStartedAt().plusSeconds(100 * 60L + totalStoryPause);
+            if (Instant.now().isAfter(deadline)) {
+                throw new EventUnavailableException("The 100-minute game window has ended. Time expired.");
+            }
+        } else if (event.getStartTime() != null && Instant.now().isAfter(event.getStartTime().plusSeconds(100 * 60L))) {
+            throw new EventUnavailableException("The 100-minute game window has ended. Time expired.");
         }
         if (event.getStatus() == EventStatus.PAUSED) {
             throw new EventUnavailableException("The event is currently paused by the organizer.");
@@ -76,13 +85,14 @@ public class FinalPasskeyService {
                     .build();
         }
 
-        // Check eligibility (all 6 levels must be COMPLETED)
+        // Check eligibility (all 6 levels must be COMPLETED and state must be FINAL_PASSKEY)
         long completedLevelsCount = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId()).stream()
                 .filter(p -> p.getLevelStatus() == LevelStatus.COMPLETED)
                 .count();
 
-        if (completedLevelsCount < 6 && team.getGameState() != TeamGameState.FINAL_PASSKEY) {
-            log.warn("Team {} attempted final passkey submission without completing all 6 levels (completed: {}).", team.getTeamCode(), completedLevelsCount);
+        if (completedLevelsCount < 6 || team.getGameState() != TeamGameState.FINAL_PASSKEY) {
+            log.warn("Team {} attempted final passkey submission without completing all 6 levels (completed: {}, state: {}).",
+                    team.getTeamCode(), completedLevelsCount, team.getGameState());
             return FinalPasskeyResponseDto.builder()
                     .status("FINAL_NOT_AVAILABLE")
                     .message("Final passkey terminal is not available. Complete all 6 levels first.")

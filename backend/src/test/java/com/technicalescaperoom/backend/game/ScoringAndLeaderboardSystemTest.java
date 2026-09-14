@@ -43,6 +43,9 @@ class ScoringAndLeaderboardSystemTest {
     private TeamRepository teamRepository;
 
     @Autowired
+    private TeamLevelProgressRepository teamLevelProgressRepository;
+
+    @Autowired
     private PlayerRepository playerRepository;
 
     @Autowired
@@ -141,34 +144,34 @@ class ScoringAndLeaderboardSystemTest {
     }
 
     // ==========================================
-    // 1. MINI-GAME COMPLETION SCORING (L1=50, L3=55, L5=60)
+    // 1. MINI-GAME COMPLETION SCORING (L1=60, L3=65, L5=70)
     // ==========================================
     @Test
-    @DisplayName("01. Base mini-game score awarded on solve: L1=50, L3=55, L5=60")
+    @DisplayName("01. Base mini-game score awarded on solve: L1=60, L3=65, L5=70")
     void test01_BaseMiniGameScoreAwarded() {
-        assertEquals(50, scoringConfig.getPointsForMiniGame(1));
-        assertEquals(50, scoringConfig.getPointsForMiniGame(2));
-        assertEquals(55, scoringConfig.getPointsForMiniGame(3));
-        assertEquals(55, scoringConfig.getPointsForMiniGame(4));
-        assertEquals(60, scoringConfig.getPointsForMiniGame(5));
-        assertEquals(60, scoringConfig.getPointsForMiniGame(6));
+        assertEquals(60, scoringConfig.getPointsForMiniGame(1));
+        assertEquals(60, scoringConfig.getPointsForMiniGame(2));
+        assertEquals(65, scoringConfig.getPointsForMiniGame(3));
+        assertEquals(65, scoringConfig.getPointsForMiniGame(4));
+        assertEquals(70, scoringConfig.getPointsForMiniGame(5));
+        assertEquals(70, scoringConfig.getPointsForMiniGame(6));
 
         scoringService.recordMiniGameCompletion(team.getId(), 1, 1);
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(50, updated.getBaseScore());
-        assertEquals(50, updated.getFinalScore());
+        assertEquals(60, updated.getBaseScore());
+        assertEquals(60, updated.getFinalScore());
         assertEquals(1, updated.getCompletedMiniGames());
 
         scoringService.recordMiniGameCompletion(team.getId(), 3, 1);
         updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(105, updated.getBaseScore());
-        assertEquals(105, updated.getFinalScore());
+        assertEquals(125, updated.getBaseScore());
+        assertEquals(125, updated.getFinalScore());
         assertEquals(2, updated.getCompletedMiniGames());
 
         scoringService.recordMiniGameCompletion(team.getId(), 5, 1);
         updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(165, updated.getBaseScore());
-        assertEquals(165, updated.getFinalScore());
+        assertEquals(195, updated.getBaseScore());
+        assertEquals(195, updated.getFinalScore());
         assertEquals(3, updated.getCompletedMiniGames());
     }
 
@@ -180,13 +183,13 @@ class ScoringAndLeaderboardSystemTest {
     void test02_MiniGameCompletionIdempotency() {
         scoringService.recordMiniGameCompletion(team.getId(), 1, 1);
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(50, updated.getBaseScore());
+        assertEquals(60, updated.getBaseScore());
         assertEquals(1, updated.getCompletedMiniGames());
 
         // Replay / redundant completion
         scoringService.recordMiniGameCompletion(team.getId(), 1, 1);
         updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(50, updated.getBaseScore(), "Duplicate completion must not increase base score.");
+        assertEquals(60, updated.getBaseScore(), "Duplicate completion must not increase base score.");
         assertEquals(1, updated.getCompletedMiniGames(), "Duplicate completion must not increment mini-games count.");
     }
 
@@ -196,13 +199,13 @@ class ScoringAndLeaderboardSystemTest {
     @Test
     @DisplayName("03. Wrong attempt deducts -5 points")
     void test03_WrongAttemptDeductsFivePoints() {
-        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +50 pts
+        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
         scoringService.recordWrongAttempt(team.getId(), player1.getId(), 1, 1, 101L);
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(50, updated.getBaseScore());
+        assertEquals(60, updated.getBaseScore());
         assertEquals(5, updated.getWrongAttemptPenalty());
-        assertEquals(45, updated.getFinalScore());
+        assertEquals(55, updated.getFinalScore());
     }
 
     // ==========================================
@@ -237,37 +240,37 @@ class ScoringAndLeaderboardSystemTest {
     @Test
     @DisplayName("05. Hint 1 usage deducts -5 points")
     void test05_Hint1Penalty() {
-        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +50 pts
+        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
         scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 1);
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
         assertEquals(5, updated.getHintPenalty());
-        assertEquals(45, updated.getFinalScore());
+        assertEquals(55, updated.getFinalScore());
     }
 
     @Test
     @DisplayName("06. Hint 2 usage deducts -10 points")
     void test06_Hint2Penalty() {
-        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +50 pts
+        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
         scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 1); // -5
         scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 2); // -10
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
         assertEquals(15, updated.getHintPenalty());
-        assertEquals(35, updated.getFinalScore());
+        assertEquals(45, updated.getFinalScore());
     }
 
     @Test
     @DisplayName("07. Hint 3 usage deducts -15 points")
     void test07_Hint3Penalty() {
-        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +50 pts
+        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
         scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 1); // -5
         scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 2); // -10
         scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 3); // -15
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
         assertEquals(30, updated.getHintPenalty());
-        assertEquals(20, updated.getFinalScore());
+        assertEquals(30, updated.getFinalScore());
     }
 
     @Test
@@ -458,22 +461,22 @@ class ScoringAndLeaderboardSystemTest {
         scoringService.recordMiniGameCompletion(team.getId(), 1, 1);
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(50, updated.getBaseScore());
-        assertEquals(50, updated.getFinalScore());
+        assertEquals(60, updated.getBaseScore());
+        assertEquals(60, updated.getFinalScore());
     }
 
     @Test
     @DisplayName("21. 2-Player team attribution: Player 2 incurs penalty -> Team final score reduced")
     void test21_Player2IncursPenaltyTeamScoreReduced() {
-        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +50 pts
+        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
         PlayerPrincipal p2 = createPrincipal(player2, team);
 
         antiCheatService.processPlayerEvent(p2, AntiCheatReportRequest.builder().eventType("TAB_SWITCH").build());
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(50, updated.getBaseScore());
+        assertEquals(60, updated.getBaseScore());
         assertEquals(10, updated.getAntiCheatPenalty());
-        assertEquals(40, updated.getFinalScore(), "Player 2 violation must deduct from shared Team score.");
+        assertEquals(50, updated.getFinalScore(), "Player 2 violation must deduct from shared Team score.");
     }
 
     // ==========================================
@@ -482,14 +485,14 @@ class ScoringAndLeaderboardSystemTest {
     @Test
     @DisplayName("22. Security incident flags team for review and logs security incident without modifying points")
     void test22_SecurityIncidentRejectionAndReview() {
-        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +50 pts
+        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
         scoringService.recordSecurityIncident(team.getId(), player1.getId(), "PAYLOAD_TAMPERING", "Unauthorized stage jump attempt detected");
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
         assertTrue(updated.getIsFlaggedForReview(), "Team must be flagged for admin review.");
         assertEquals(1, updated.getSecurityIncidentCount());
-        assertEquals(50, updated.getBaseScore());
-        assertEquals(50, updated.getFinalScore());
+        assertEquals(60, updated.getBaseScore());
+        assertEquals(60, updated.getFinalScore());
 
         List<ScoreEventDto> events = scoringService.getTeamScoreEvents(team.getId());
         boolean hasSecurityEvent = events.stream().anyMatch(e -> e.getEventType() == ScoreEventType.SECURITY_INCIDENT);
@@ -550,23 +553,24 @@ class ScoringAndLeaderboardSystemTest {
     // 25. 1000-POINT PERFECT COMPLETION
     // ==========================================
     @Test
-    @DisplayName("25. 1000-point perfect completion: 18 mini-games (990 pts) + Final Protocol (10 pts) = 1000 pts")
+    @DisplayName("25. 1000-point perfect completion: 15 mini-games (985 pts) + Final Protocol (15 pts) = 1000 pts")
     void test25_PerfectThousandPointCompletion() {
         int totalExpectedMiniGamesScore = 0;
+        int[] stagesPerLevel = {2, 2, 2, 3, 3, 3};
         for (int level = 1; level <= 6; level++) {
-            for (int stage = 1; stage <= 3; stage++) {
+            for (int stage = 1; stage <= stagesPerLevel[level - 1]; stage++) {
                 scoringService.recordMiniGameCompletion(team.getId(), level, stage);
                 totalExpectedMiniGamesScore += scoringConfig.getPointsForMiniGame(level);
             }
         }
 
-        assertEquals(990, totalExpectedMiniGamesScore, "18 mini-games must total exactly 990 base points.");
+        assertEquals(985, totalExpectedMiniGamesScore, "15 mini-games must total exactly 985 base points.");
 
         Team mid = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(990, mid.getBaseScore());
-        assertEquals(18, mid.getCompletedMiniGames());
+        assertEquals(985, mid.getBaseScore());
+        assertEquals(15, mid.getCompletedMiniGames());
 
-        // Final Protocol
+        // Final Protocol (+15 pts)
         scoringService.recordFinalProtocolCompletion(team.getId());
 
         Team completed = teamRepository.findById(team.getId()).orElseThrow();
@@ -578,12 +582,16 @@ class ScoringAndLeaderboardSystemTest {
     }
 
     // ==========================================
-    // 26. FINAL PROTOCOL PASSKEY SUBMISSION (+10 PTS)
+    // 26. FINAL PROTOCOL PASSKEY SUBMISSION (+15 PTS)
     // ==========================================
     @Test
-    @DisplayName("26. Final Protocol passkey submission awards +10 pts and completes game")
+    @DisplayName("26. Final Protocol passkey submission awards +15 pts and completes game")
     void test26_FinalProtocolPasskeySubmission() {
         PlayerPrincipal p1 = createPrincipal(player1, team);
+        teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId()).forEach(p -> {
+            p.setLevelStatus(LevelStatus.COMPLETED);
+            teamLevelProgressRepository.save(p);
+        });
         team.setGameState(TeamGameState.FINAL_PASSKEY);
         teamRepository.saveAndFlush(team);
 
@@ -593,8 +601,8 @@ class ScoringAndLeaderboardSystemTest {
         assertEquals("COMPLETED", response.getStatus());
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(10, updated.getBaseScore());
-        assertEquals(10, updated.getFinalScore());
+        assertEquals(15, updated.getBaseScore());
+        assertEquals(15, updated.getFinalScore());
         assertEquals(TeamGameState.COMPLETED, updated.getGameState());
 
         // Redundant passkey submission is idempotent
@@ -602,7 +610,7 @@ class ScoringAndLeaderboardSystemTest {
         assertEquals("ALREADY_COMPLETED", response2.getStatus());
 
         updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(10, updated.getBaseScore(), "Redundant passkey submission must not award points again.");
+        assertEquals(15, updated.getBaseScore(), "Redundant passkey submission must not award points again.");
     }
 
     // ==========================================
@@ -611,14 +619,14 @@ class ScoringAndLeaderboardSystemTest {
     @Test
     @DisplayName("27. Player vs Admin visibility: Player gets own safe breakdown; Admin gets complete event audit")
     void test27_PlayerVsAdminScoreVisibility() {
-        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +50 pts
+        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
         scoringService.recordWrongAttempt(team.getId(), player1.getId(), 1, 1, 888L); // -5 pts
 
         // 1. Player Safe Score DTO
         TeamScoreDto playerDto = scoringService.getTeamScoreSummary(team.getId());
-        assertEquals(50, playerDto.getBaseScore());
+        assertEquals(60, playerDto.getBaseScore());
         assertEquals(5, playerDto.getWrongAttemptPenalty());
-        assertEquals(45, playerDto.getFinalScore());
+        assertEquals(55, playerDto.getFinalScore());
         assertEquals(1, playerDto.getCompletedMiniGames());
         assertEquals(team.getTeamCode(), playerDto.getTeamCode());
 

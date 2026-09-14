@@ -230,7 +230,7 @@ export const FinalTerminal: React.FC<FinalTerminalProps> = ({ isUnlocked, isComp
               ENTER SIX-DIGIT MASTER OVERRIDE PASSKEY
             </h3>
             <p style={{ fontSize: '12px', color: 'var(--accent-cyan)', margin: 0, opacity: 0.9 }}>
-              &gt; SYNTHESIZE ALL 6 RECOVERED FRAGMENTS TO CALCULATE THE FINAL CODE_
+              &gt; SYNTHESIZE ALL 5 RECOVERED FRAGMENTS AND LEVEL 6 PROTOCOLS TO CALCULATE THE FINAL CODE_
             </p>
           </div>
 

@@ -173,25 +173,17 @@ export const PlayerGamePage: React.FC = () => {
   };
 
   const handleStorySkip = async () => {
-    const prevKey = activeStory?.storyKey;
     setIsStoryModalOpen(false);
     setActiveStory(null);
     soundService.playClick();
     await skipStory();
-    if (prevKey === 'STORY_PROLOGUE') {
-      handlePlayStoryByKey('STORY_L1_INTRO');
-    }
     loadData();
   };
 
   const handleStoryComplete = async () => {
-    const prevKey = activeStory?.storyKey;
     setIsStoryModalOpen(false);
     setActiveStory(null);
     await completeStory();
-    if (prevKey === 'STORY_PROLOGUE') {
-      handlePlayStoryByKey('STORY_L1_INTRO');
-    }
     loadData();
   };
 
@@ -604,7 +596,7 @@ export const PlayerGamePage: React.FC = () => {
                       {teamScore.finalScore} PTS
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                      Base: {teamScore.baseScore} | Solved: {teamScore.completedMiniGames}/18
+                      Base: {teamScore.baseScore} | Solved: {teamScore.completedMiniGames}/{teamScore.totalMiniGames || 15}
                     </div>
                   </div>
                 </div>

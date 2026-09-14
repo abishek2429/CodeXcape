@@ -125,6 +125,12 @@ public class CinematicStoryService {
                 storyKey, team.getTeamCode(), (playerNum != null ? playerNum : "Unknown"), pauseDuration);
 
         webSocketPublisher.notifyStorySkipped(teamId, playerId, playerNum, storyKey, state);
+
+        // Chain Prologue directly into Level 1 Intro narrative if not yet resolved
+        if ("STORY_PROLOGUE".equals(storyKey) && !teamStoryProgressRepository.existsByTeamIdAndStoryKey(teamId, "STORY_L1_INTRO")) {
+            return triggerStory(team, "STORY_L1_INTRO");
+        }
+
         return state;
     }
 

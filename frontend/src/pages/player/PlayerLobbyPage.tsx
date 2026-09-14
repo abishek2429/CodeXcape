@@ -342,7 +342,7 @@ export const PlayerLobbyPage: React.FC = () => {
             </p>
 
             <ul className="modal-rules-list">
-              <li>The authoritative server timer will start (90-minute limit).</li>
+              <li>The authoritative server timer will start (100-minute limit).</li>
               <li>Both operators will transition into <strong>Level 01: System Reconstruction</strong>.</li>
               <li>Your team will be recorded as officially active in the escape network.</li>
             </ul>

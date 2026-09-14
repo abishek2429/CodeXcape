@@ -20,6 +20,7 @@ export interface LeaderboardEntry {
   antiCheatPenalty?: number;
   finalScore?: number;
   completedMiniGames?: number;
+  totalMiniGames?: number;
   completedLevels?: number;
   isFlaggedForReview?: boolean;
   securityIncidentCount?: number;

@@ -112,7 +112,7 @@ class StorylineServiceTest {
         assertTrue(storyP1.getEnvironmentalAlert().contains("UNAUTHORIZED COMMUNICATION"));
 
         List<RecoveryFragmentDto> fragments = storyP1.getFragments();
-        assertEquals(6, fragments.size());
+        assertEquals(5, fragments.size());
         assertEquals("ENCRYPTED", fragments.get(0).getStatus());
         assertEquals("[ENCRYPTED // COMPLETE LEVEL 1 TO DECRYPT]", fragments.get(0).getNarrativeContent());
     }
@@ -176,7 +176,7 @@ class StorylineServiceTest {
     }
 
     @Test
-    @DisplayName("5. Final Completion State: Network Integrity 100%, Fragment 6 unlocked, Final Narrative delivered")
+    @DisplayName("5. Final Completion State: Network Integrity 100%, Fragments unlocked")
     void testFinalCompletionState() {
         for (int i = 1; i <= 6; i++) {
             gameStateService.completeLevel(team.getId(), i);
@@ -189,11 +189,8 @@ class StorylineServiceTest {
         assertEquals(100, story.getNetworkIntegrityPercent());
 
         List<RecoveryFragmentDto> fragments = story.getFragments();
-        assertEquals("UNLOCKED", fragments.get(5).getStatus());
-        assertTrue(fragments.get(5).getNarrativeContent().contains("ACCESS GRANTED"));
-        assertTrue(fragments.get(5).getNarrativeContent().contains("NODE 01 ... RESTORED"));
-        assertTrue(fragments.get(5).getNarrativeContent().contains("YOU FOUND ME."));
-        assertTrue(fragments.get(5).getNarrativeContent().contains("WHAT WAS HIDDEN IN PLAIN SIGHT."));
+        assertEquals(5, fragments.size());
+        assertTrue(fragments.stream().allMatch(f -> "UNLOCKED".equals(f.getStatus())));
     }
 
     @Test
