@@ -10,6 +10,7 @@ interface UseGameWebSocketProps {
   onStoryStarted?: (payload: WebSocketEventPayload) => void;
   onStorySkipped?: (payload: WebSocketEventPayload) => void;
   onStoryCompleted?: (payload: WebSocketEventPayload) => void;
+  onLevelCompleted?: (levelNumber: number) => void;
 }
 
 export function useGameWebSocket({
@@ -21,6 +22,7 @@ export function useGameWebSocket({
   onStoryStarted,
   onStorySkipped,
   onStoryCompleted,
+  onLevelCompleted,
 }: UseGameWebSocketProps) {
   const [partnerStatus, setPartnerStatus] = useState<ConnectionStatus>('DISCONNECTED');
   const [wsConnectionStatus, setWsConnectionStatus] = useState<ConnectionStatus>('DISCONNECTED');
@@ -43,6 +45,9 @@ export function useGameWebSocket({
 
   const onStoryCompletedRef = useRef(onStoryCompleted);
   onStoryCompletedRef.current = onStoryCompleted;
+
+  const onLevelCompletedRef = useRef(onLevelCompleted);
+  onLevelCompletedRef.current = onLevelCompleted;
 
   const refreshTimerRef = useRef<any>(null);
 
@@ -101,6 +106,9 @@ export function useGameWebSocket({
 
     const unsubLevelComplete = webSocketService.subscribe('LEVEL_COMPLETED', (payload: WebSocketEventPayload) => {
       setLatestNotification(`Level ${payload.levelNumber} Completed by both players! ✓`);
+      if (onLevelCompletedRef.current && payload.levelNumber) {
+        onLevelCompletedRef.current(payload.levelNumber);
+      }
       triggerCoalescedRefresh();
     });
 

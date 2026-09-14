@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Volume2, VolumeX, FastForward, Radio, ChevronRight } from 'lucide-react';
 import { CHARACTERS, StorySequence, StoryDialogueLine, CharacterProfile } from '../../config/storyConfig';
+import { calculateLineDisplayDuration, getCharacterTypingDelay, DEFAULT_DIALOGUE_CONFIG } from '../../config/dialogueTimingConfig';
 import { voiceNarratorService } from '../../services/voiceNarratorService';
 import './CinematicStoryModal.css';
 
@@ -23,10 +24,15 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
   const [isMuted, setIsMuted] = useState(voiceNarratorService.getIsMuted());
   const [waveHeights, setWaveHeights] = useState<number[]>([4, 8, 12, 6, 14, 10, 8, 4]);
 
-  const typingTimerRef = useRef<number | null>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
   const pauseTimerRef = useRef<number | null>(null);
   const cancelSpeechRef = useRef<(() => void) | null>(null);
   const isSkippingRef = useRef(false);
+
+  const lineStartTimeRef = useRef<number>(0);
+  const isSpeechDoneRef = useRef(false);
+  const isTypingDoneRef = useRef(false);
+  const fullTextRef = useRef('');
 
   // Reset line index whenever sequence changes
   useEffect(() => {
@@ -41,9 +47,9 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
 
   // Cleanup all audio, timers, and speech utterances
   const cleanupStory = useCallback(() => {
-    if (typingTimerRef.current) {
-      clearInterval(typingTimerRef.current);
-      typingTimerRef.current = null;
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
     }
     if (pauseTimerRef.current) {
       clearTimeout(pauseTimerRef.current);
@@ -72,18 +78,43 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
     }
   }, [currentLineIndex, lines.length, cleanupStory, onComplete]);
 
+  // Evaluates completion conditions and schedules automatic advance
+  const checkAndScheduleAdvance = useCallback((text: string) => {
+    if (!isSpeechDoneRef.current || !isTypingDoneRef.current) {
+      return;
+    }
+
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = null;
+    }
+
+    // Standardized reading time allocation
+    const requiredDisplayDuration = calculateLineDisplayDuration(text);
+    const elapsedSinceStart = Date.now() - lineStartTimeRef.current;
+    const remainingToRead = Math.max(0, requiredDisplayDuration - elapsedSinceStart);
+    const totalDelay = remainingToRead + DEFAULT_DIALOGUE_CONFIG.postLinePauseMs;
+
+    pauseTimerRef.current = window.setTimeout(() => {
+      handleNextOrComplete();
+    }, totalDelay);
+  }, [handleNextOrComplete]);
+
   // Click on dialogue box: reveal immediately if still typing, otherwise advance
   const handleDialogueClick = () => {
     if (!currentLine) return;
-    if (displayedText.length < currentLine.text.length) {
+    const fullText = fullTextRef.current;
+    if (!isTypingDoneRef.current || displayedText.length < fullText.length) {
       // Reveal full line immediately
-      if (typingTimerRef.current) {
-        clearInterval(typingTimerRef.current);
-        typingTimerRef.current = null;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
       }
-      setDisplayedText(currentLine.text);
+      setDisplayedText(fullText);
+      isTypingDoneRef.current = true;
+      checkAndScheduleAdvance(fullText);
     } else {
-      // Advance to next line
+      // Advance to next line immediately
       handleNextOrComplete();
     }
   };
@@ -114,21 +145,31 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
     setIsSpeaking(true);
 
     const fullText = currentLine.text;
+    fullTextRef.current = fullText;
+    lineStartTimeRef.current = Date.now();
+    isSpeechDoneRef.current = false;
+    isTypingDoneRef.current = false;
+
     let charIndex = 0;
 
-    // Fast, crisp typewriter reveal
-    typingTimerRef.current = window.setInterval(() => {
-      charIndex += 2;
-      if (charIndex <= fullText.length) {
+    // Smooth character-by-character typewriter with punctuation pauses
+    const typeNextChar = () => {
+      if (charIndex < fullText.length) {
+        charIndex += 1;
         setDisplayedText(fullText.slice(0, charIndex));
+
+        const currentChar = fullText[charIndex - 1] || '';
+        const delay = getCharacterTypingDelay(currentChar);
+        typingTimeoutRef.current = window.setTimeout(typeNextChar, delay);
       } else {
         setDisplayedText(fullText);
-        if (typingTimerRef.current) {
-          clearInterval(typingTimerRef.current);
-          typingTimerRef.current = null;
-        }
+        isTypingDoneRef.current = true;
+        typingTimeoutRef.current = null;
+        checkAndScheduleAdvance(fullText);
       }
-    }, 28);
+    };
+
+    typeNextChar();
 
     // Voice narration
     cancelSpeechRef.current = voiceNarratorService.speakLine(
@@ -137,19 +178,15 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
       () => setIsSpeaking(true),
       () => {
         setIsSpeaking(false);
-        setDisplayedText(fullText);
-        // Automatic advance after speech finishes with configurable pause
-        const pauseTime = currentLine.pauseAfterMs || 1500;
-        pauseTimerRef.current = window.setTimeout(() => {
-          handleNextOrComplete();
-        }, pauseTime);
+        isSpeechDoneRef.current = true;
+        checkAndScheduleAdvance(fullText);
       }
     ) || null;
 
     return () => {
       cleanupStory();
     };
-  }, [isOpen, currentLineIndex, sequence?.storyKey]);
+  }, [isOpen, currentLineIndex, sequence?.storyKey, character, currentLine, cleanupStory, checkAndScheduleAdvance]);
 
   // Keyboard controls: Escape to skip, Space to advance, M to mute
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlayerAuth } from '../../context/PlayerAuthContext';
 import { fetchPlayerGameState, PlayerGameStateResponse, fetchPlayerScore, PlayerScoreResponse } from '../../services/playerGameStateService';
@@ -34,6 +34,7 @@ import { CodeXcapeBackground } from '../../components/cinematic/CodeXcapeBackgro
 import { SpotlightCard } from '../../components/cinematic/SpotlightCard';
 import { SystemInitializationLoader } from '../../components/cinematic/SystemInitializationLoader';
 import { soundService } from '../../services/soundService';
+import { voiceNarratorService } from '../../services/voiceNarratorService';
 import './PlayerGamePage.css';
 
 const FRAGMENT_TITLES: Record<number, string> = {
@@ -44,6 +45,15 @@ const FRAGMENT_TITLES: Record<number, string> = {
   5: 'CRYPTOGRAPHY & SECURITY ACTIVE',
   6: 'FINAL PROTOCOL UNLOCKED',
 };
+
+export type LevelTransitionStage =
+  | 'IDLE'
+  | 'LEVEL_COMPLETED'
+  | 'BLACK_TRANSITION_ACTIVE'
+  | 'BLACK_TRANSITION_COMPLETE'
+  | 'NEXT_LEVEL_STORY'
+  | 'NEXT_LEVEL_STORY_COMPLETE'
+  | 'NEXT_LEVEL_READY';
 
 export const PlayerGamePage: React.FC = () => {
   const { player, logout, authStatus } = usePlayerAuth();
@@ -73,9 +83,39 @@ export const PlayerGamePage: React.FC = () => {
     nextName: string;
     fragmentTitle: string;
   } | null>(null);
+  const [transitionStage, setTransitionStage] = useState<LevelTransitionStage>('IDLE');
+  const transitionStageRef = useRef<LevelTransitionStage>('IDLE');
+  transitionStageRef.current = transitionStage;
+
+  const pendingNextLevelStoryRef = useRef<StorySequence | null>(null);
   const prevLevelRef = React.useRef<number | null>(null);
 
-  const loadData = async () => {
+  // Trigger explicit level completed transition flow
+  const triggerLevelCompletedTransition = useCallback((completedLevel: number, nextLevel: number) => {
+    // If already in a level transition, ignore re-entrant triggers
+    if (transitionStageRef.current === 'BLACK_TRANSITION_ACTIVE' || transitionStageRef.current === 'LEVEL_COMPLETED') {
+      return;
+    }
+
+    // 1. Terminate any currently playing speech, sound effects, or previous dialogue
+    voiceNarratorService.stop();
+    setIsStoryModalOpen(false);
+    setActiveStory(null);
+    soundService.playLevelUnlock();
+
+    // 2. BLACK SCREEN TRANSITION STARTS
+    setTransitionStage('BLACK_TRANSITION_ACTIVE');
+
+    const nextLevelObj = serverState?.levels?.find((l) => l.levelNumber === nextLevel);
+    setTransitionInfo({
+      completedLevel,
+      nextLevel,
+      nextName: nextLevelObj?.name || `LEVEL 0${nextLevel}`,
+      fragmentTitle: FRAGMENT_TITLES[completedLevel] || `FRAGMENT 0${completedLevel}`,
+    });
+  }, [serverState?.levels]);
+
+  const loadData = useCallback(async () => {
     try {
       setLoadError(null);
       const [stateData, storyData, scoreData, activeStoryData] = await Promise.all([
@@ -92,9 +132,17 @@ export const PlayerGamePage: React.FC = () => {
       if (activeStoryData && activeStoryData.isStoryActive && activeStoryData.storyKey) {
         const seq = activeStoryData.sequence || STORY_SEQUENCES[activeStoryData.storyKey];
         if (seq) {
-          setActiveStory(seq);
-          if (sessionStorage.getItem('codexcape_briefing_seen')) {
-            setIsStoryModalOpen(true);
+          // If in black screen transition, queue next story so it never starts prematurely
+          if (
+            transitionStageRef.current === 'BLACK_TRANSITION_ACTIVE' ||
+            transitionStageRef.current === 'LEVEL_COMPLETED'
+          ) {
+            pendingNextLevelStoryRef.current = seq;
+          } else {
+            setActiveStory(seq);
+            if (sessionStorage.getItem('codexcape_briefing_seen')) {
+              setIsStoryModalOpen(true);
+            }
           }
         }
       }
@@ -109,17 +157,9 @@ export const PlayerGamePage: React.FC = () => {
         return;
       }
 
-      // Check if level has transitioned
+      // Check if level has transitioned during live play
       if (prevLevelRef.current !== null && stateData.currentLevel > prevLevelRef.current && stateData.currentLevel <= 6) {
-        soundService.playLevelUnlock();
-        const completed = prevLevelRef.current;
-        const nextLevelObj = stateData.levels?.find(l => l.levelNumber === stateData.currentLevel);
-        setTransitionInfo({
-          completedLevel: completed,
-          nextLevel: stateData.currentLevel,
-          nextName: nextLevelObj?.name || `LEVEL 0${stateData.currentLevel}`,
-          fragmentTitle: FRAGMENT_TITLES[completed] || `FRAGMENT 0${completed}`,
-        });
+        triggerLevelCompletedTransition(prevLevelRef.current, stateData.currentLevel);
       }
       prevLevelRef.current = stateData.currentLevel;
 
@@ -162,7 +202,7 @@ export const PlayerGamePage: React.FC = () => {
     } finally {
       setIsLoadingData(false);
     }
-  };
+  }, [navigate, triggerLevelCompletedTransition]);
 
   const handlePlayStoryByKey = (storyKey: string) => {
     const seq = STORY_SEQUENCES[storyKey];
@@ -172,19 +212,61 @@ export const PlayerGamePage: React.FC = () => {
     }
   };
 
+  // Called when black-screen transition finishes
+  const handleTransitionModalComplete = useCallback(() => {
+    const currentInfo = transitionInfo;
+    setTransitionInfo(null);
+    setTransitionStage('BLACK_TRANSITION_COMPLETE');
+
+    const nextLvl = currentInfo?.nextLevel || (serverState?.currentLevel ? serverState.currentLevel + 1 : 2);
+
+    // 3. BLACK SCREEN TRANSITION COMPLETES -> NEXT LEVEL STORY DIALOGUE STARTS
+    const queuedStory = pendingNextLevelStoryRef.current;
+    pendingNextLevelStoryRef.current = null;
+
+    const nextKey = nextLvl === 6 ? 'STORY_FINAL_PROTOCOL' : `STORY_L${nextLvl}_INTRO`;
+    const storyToPlay = queuedStory || STORY_SEQUENCES[nextKey] || (nextLvl === 6 ? STORY_SEQUENCES.STORY_L6_INTRO : null);
+
+    if (storyToPlay) {
+      setTransitionStage('NEXT_LEVEL_STORY');
+      setActiveStory(storyToPlay);
+      setIsStoryModalOpen(true);
+    } else {
+      setTransitionStage('NEXT_LEVEL_READY');
+      loadData();
+      setTransitionStage('IDLE');
+    }
+  }, [transitionInfo, serverState?.currentLevel, loadData]);
+
   const handleStorySkip = async () => {
+    voiceNarratorService.stop();
     setIsStoryModalOpen(false);
     setActiveStory(null);
     soundService.playClick();
-    await skipStory();
-    loadData();
+    setTransitionStage('NEXT_LEVEL_STORY_COMPLETE');
+    try {
+      await skipStory();
+    } catch {
+      // Ignore network errors on story skip
+    }
+    setTransitionStage('NEXT_LEVEL_READY');
+    await loadData();
+    setTransitionStage('IDLE');
   };
 
   const handleStoryComplete = async () => {
+    voiceNarratorService.stop();
     setIsStoryModalOpen(false);
     setActiveStory(null);
-    await completeStory();
-    loadData();
+    setTransitionStage('NEXT_LEVEL_STORY_COMPLETE');
+    try {
+      await completeStory();
+    } catch {
+      // Ignore network errors on story complete
+    }
+    setTransitionStage('NEXT_LEVEL_READY');
+    await loadData();
+    setTransitionStage('IDLE');
   };
 
   const { partnerStatus, wsConnectionStatus, latestNotification } = useGameWebSocket({
@@ -192,12 +274,26 @@ export const PlayerGamePage: React.FC = () => {
     playerNumber: player?.playerNumber,
     onRefreshData: loadData,
     onRankChanged: (newRank) => setLiveRank(newRank),
+    onLevelCompleted: (levelNumber) => {
+      if (levelNumber <= 6) {
+        triggerLevelCompletedTransition(levelNumber, levelNumber + 1);
+      }
+    },
     onStoryStarted: (payload) => {
       const key = payload.storyKey;
       const seq = payload.storyState?.sequence || (key ? STORY_SEQUENCES[key] : null);
       if (seq) {
-        setActiveStory(seq);
-        setIsStoryModalOpen(true);
+        // If in black screen transition, queue next story so it never overlaps or speaks
+        if (
+          transitionStageRef.current === 'BLACK_TRANSITION_ACTIVE' ||
+          transitionStageRef.current === 'LEVEL_COMPLETED' ||
+          transitionInfo !== null
+        ) {
+          pendingNextLevelStoryRef.current = seq;
+        } else {
+          setActiveStory(seq);
+          setIsStoryModalOpen(true);
+        }
       }
     },
     onStorySkipped: () => {
@@ -342,6 +438,9 @@ export const PlayerGamePage: React.FC = () => {
         soundService.playCorrectAnswer();
         setFeedbackIsError(false);
         setFeedbackMsg(res.message || 'ACCESS GRANTED: EVIDENCE VERIFIED. PROTOCOL UNLOCKED.');
+        if (res.isCompleted && res.stageCompleted) {
+          triggerLevelCompletedTransition(gameState.currentLevel, gameState.currentLevel + 1);
+        }
         await loadData();
       } else {
         soundService.playWrongAnswer();
@@ -680,17 +779,13 @@ export const PlayerGamePage: React.FC = () => {
       />
 
       <LevelTransitionModal
-        isOpen={transitionInfo !== null}
+        isOpen={transitionInfo !== null && transitionStage === 'BLACK_TRANSITION_ACTIVE'}
         completedLevelNumber={transitionInfo?.completedLevel || 1}
         nextLevelNumber={transitionInfo?.nextLevel || 2}
         nextLevelName={transitionInfo?.nextName || ''}
         recoveryFragmentTitle={transitionInfo?.fragmentTitle || ''}
-        onClose={() => {
-          const nextLvl = transitionInfo?.nextLevel || 2;
-          setTransitionInfo(null);
-          const nextKey = nextLvl === 6 ? 'STORY_L6_INTRO' : `STORY_L${nextLvl}_INTRO`;
-          handlePlayStoryByKey(nextKey);
-        }}
+        onClose={handleTransitionModalComplete}
+        onTransitionComplete={handleTransitionModalComplete}
       />
 
       <CoreEntryModal
@@ -713,7 +808,7 @@ export const PlayerGamePage: React.FC = () => {
 
       <CinematicStoryModal
         sequence={activeStory}
-        isOpen={isStoryModalOpen}
+        isOpen={isStoryModalOpen && transitionStage !== 'BLACK_TRANSITION_ACTIVE'}
         onSkip={handleStorySkip}
         onComplete={handleStoryComplete}
       />

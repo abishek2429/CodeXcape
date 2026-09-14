@@ -10,7 +10,8 @@ interface LevelTransitionModalProps {
   nextLevelNumber: number;
   nextLevelName: string;
   recoveryFragmentTitle: string;
-  onClose: () => void;
+  onClose?: () => void;
+  onTransitionComplete?: () => void;
 }
 
 export const LevelTransitionModal: React.FC<LevelTransitionModalProps> = ({
@@ -20,9 +21,18 @@ export const LevelTransitionModal: React.FC<LevelTransitionModalProps> = ({
   nextLevelName,
   recoveryFragmentTitle,
   onClose,
+  onTransitionComplete,
 }) => {
   const [countdown, setCountdown] = useState(5);
   const [showPixelEffect, setShowPixelEffect] = useState(false);
+
+  const handleComplete = () => {
+    if (onTransitionComplete) {
+      onTransitionComplete();
+    } else if (onClose) {
+      onClose();
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -36,7 +46,7 @@ export const LevelTransitionModal: React.FC<LevelTransitionModalProps> = ({
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          onClose();
+          handleComplete();
           return 0;
         }
         return prev - 1;
@@ -44,7 +54,7 @@ export const LevelTransitionModal: React.FC<LevelTransitionModalProps> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isOpen, onClose]);
+  }, [isOpen, onTransitionComplete, onClose]);
 
   if (!isOpen) return null;
 
@@ -155,7 +165,7 @@ export const LevelTransitionModal: React.FC<LevelTransitionModalProps> = ({
 
           <CinematicButton
             variant="primary"
-            onClick={onClose}
+            onClick={handleComplete}
             style={{ width: '100%', padding: '14px', fontSize: '13px' }}
           >
             <span>ENTER NEXT TIER ({countdown}s)</span>
