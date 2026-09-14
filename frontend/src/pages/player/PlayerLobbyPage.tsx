@@ -7,7 +7,8 @@ import { PlayerInfo } from '../../types/player';
 import { soundService } from '../../services/soundService';
 import { SpotlightCard } from '../../components/cinematic/SpotlightCard';
 import { CinematicButton } from '../../components/cinematic/CinematicButton';
-import { Terminal, Cpu, Users, Shield, AlertOctagon, CheckCircle2, LogOut } from 'lucide-react';
+import { SystemInitializationLoader } from '../../components/cinematic/SystemInitializationLoader';
+import { Terminal, Cpu, Users, Shield, AlertOctagon, LogOut } from 'lucide-react';
 import './PlayerLobbyPage.css';
 
 export const PlayerLobbyPage: React.FC = () => {
@@ -48,11 +49,7 @@ export const PlayerLobbyPage: React.FC = () => {
     playerNumber: player?.playerNumber,
     onRefreshData: loadData,
     onEventStarted: () => {
-      soundService.playLoadingScreen();
       setTransitioning(true);
-      setTimeout(() => {
-        navigate('/player/game', { replace: true });
-      }, 4800);
     },
   });
 
@@ -108,15 +105,9 @@ export const PlayerLobbyPage: React.FC = () => {
     try {
       setShowConfirmModal(false);
       setTransitioning(true);
-      soundService.playLoadingScreen();
 
       await startTeamEvent();
       await refreshPlayer();
-
-      // Synchronize transition with the initial loading audio experience
-      setTimeout(() => {
-        navigate('/player/game', { replace: true });
-      }, 4800);
     } catch (err: any) {
       soundService.stopLoadingScreen();
       soundService.resetLoadingSoundState();
@@ -138,19 +129,13 @@ export const PlayerLobbyPage: React.FC = () => {
 
   if (transitioning) {
     return (
-      <div className="lobby-transition-overlay">
-        <div className="lobby-transition-panel animate-fade-in">
-          <CheckCircle2 size={48} color="var(--accent-crimson-bright)" className="animate-pulse-glow" />
-          <h1 className="transition-title">TEAM VERIFIED</h1>
-          <div className="transition-sub">
-            &gt; OPERATOR 01 ... READY<br />
-            &gt; OPERATOR 02 ... READY
-          </div>
-          <div className="transition-alert animate-pulse">
-            STARTING CODEXCAPE // LEVEL 01
-          </div>
-        </div>
-      </div>
+      <SystemInitializationLoader
+        onComplete={() => {
+          sessionStorage.setItem('codexcape_initialized', 'true');
+          sessionStorage.setItem('codexcape_briefing_seen', 'true');
+          navigate('/player/game', { replace: true });
+        }}
+      />
     );
   }
 
