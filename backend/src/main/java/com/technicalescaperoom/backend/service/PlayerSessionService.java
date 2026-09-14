@@ -8,6 +8,7 @@ import com.technicalescaperoom.backend.entity.Event;
 import com.technicalescaperoom.backend.entity.GameSession;
 import com.technicalescaperoom.backend.entity.Player;
 import com.technicalescaperoom.backend.entity.Team;
+import com.technicalescaperoom.backend.entity.TeamLevelProgress;
 import com.technicalescaperoom.backend.enums.*;
 import com.technicalescaperoom.backend.exception.AccountDisabledException;
 import com.technicalescaperoom.backend.exception.DuplicateLoginException;
@@ -332,8 +333,19 @@ public class PlayerSessionService {
             throw new EventUnavailableException("Team cannot start the event in its current status.");
         }
 
-        // Idempotency: if already started, return current state
+        // Idempotency: if already started, ensure start time integrity and return current state
         if (team.getGameState() != TeamGameState.NOT_STARTED) {
+            if (team.getStartedAt() == null || team.getStartedAt().plusSeconds(90 * 60L).isBefore(Instant.now())) {
+                List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
+                boolean hasCompletedLevels = progressList.stream().anyMatch(p -> p.getLevelStatus() == com.technicalescaperoom.backend.enums.LevelStatus.COMPLETED);
+                if (!hasCompletedLevels) {
+                    Instant now = Instant.now();
+                    team.setStartedAt(now);
+                    team.setTotalStoryPauseSeconds(0L);
+                    team.setStoryPausedAt(null);
+                    teamRepository.save(team);
+                }
+            }
             return mapToResponse(team, player, principal.getSessionToken());
         }
 
@@ -363,6 +375,8 @@ public class PlayerSessionService {
         team.setStartedAt(serverStartTime);
         team.setGameState(TeamGameState.IN_PROGRESS);
         team.setStatus(TeamStatus.ACTIVE);
+        team.setTotalStoryPauseSeconds(0L);
+        team.setStoryPausedAt(null);
         teamRepository.save(team);
 
         // Initialize Level 1 and stage progress

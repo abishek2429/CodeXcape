@@ -74,6 +74,7 @@ public class AdminTeamResetService {
 
         // Reset team state
         team.setGameState(TeamGameState.IN_PROGRESS);
+        team.setStartedAt(Instant.now());
         team.setCompletedAt(null);
         team.setCurrentStoryKey(null);
         team.setStoryPausedAt(null);

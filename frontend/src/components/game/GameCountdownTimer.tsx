@@ -15,7 +15,9 @@ export const GameCountdownTimer: React.FC<GameCountdownTimerProps> = ({
   className = '',
 }) => {
   // Compute initial server offset to align client clock with server authority
-  const offsetRef = useRef<number>(0);
+  const offsetRef = useRef<number>(
+    serverTime ? new Date(serverTime).getTime() - Date.now() : 0
+  );
   useEffect(() => {
     if (serverTime) {
       offsetRef.current = new Date(serverTime).getTime() - Date.now();
@@ -51,7 +53,7 @@ export const GameCountdownTimer: React.FC<GameCountdownTimerProps> = ({
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [deadline]);
+  }, [deadline, serverTime]);
 
   if (remainingSeconds === null) {
     return null;
