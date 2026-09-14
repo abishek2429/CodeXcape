@@ -32,6 +32,7 @@ import { fetchCurrentStory, skipStory, completeStory } from '../../services/stor
 import { STORY_SEQUENCES, StorySequence } from '../../config/storyConfig';
 import { CodeXcapeBackground } from '../../components/cinematic/CodeXcapeBackground';
 import { SpotlightCard } from '../../components/cinematic/SpotlightCard';
+import { SystemInitializationLoader } from '../../components/cinematic/SystemInitializationLoader';
 import { soundService } from '../../services/soundService';
 import './PlayerGamePage.css';
 
@@ -52,6 +53,9 @@ export const PlayerGamePage: React.FC = () => {
   const [hints, setHints] = useState<HintData[]>([]);
   const [storyline, setStoryline] = useState<StorylineData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isSystemInitialized, setIsSystemInitialized] = useState<boolean>(() => {
+    return sessionStorage.getItem('codexcape_initialized') === 'true';
+  });
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
@@ -125,10 +129,8 @@ export const PlayerGamePage: React.FC = () => {
         setLiveRank(stateData.currentRank);
       }
 
-      // Trigger briefing modal on first session load if not seen
-      if (!sessionStorage.getItem('codexcape_briefing_seen')) {
-        setIsBriefingOpen(true);
-      }
+      // Mark briefing as seen so opening briefing modal is bypassed during player flow
+      sessionStorage.setItem('codexcape_briefing_seen', 'true');
 
       // Trigger Core Entry Modal on Level 6 entry
       if (stateData.currentLevel === 6 && stateData.gameStatus !== 'COMPLETED' && !sessionStorage.getItem('codexcape_core_seen')) {
@@ -226,38 +228,24 @@ export const PlayerGamePage: React.FC = () => {
     };
   }, [serverState?.gameStatus, serverState?.currentLevel, liveQuestion?.stageNumber]);
 
-  // Ensure loading screen audio starts on initial entry and stops as soon as gameplay data is ready
-  useEffect(() => {
-    if ((isLoadingData || !serverState) && !soundService.hasPlayedLoadingSound()) {
-      soundService.playLoadingScreen();
-    } else if (!isLoadingData && serverState) {
-      soundService.stopLoadingScreen();
-    }
-  }, [isLoadingData, serverState]);
-
-  useEffect(() => {
-    return () => {
-      soundService.stopLoadingScreen();
-    };
-  }, []);
-
-  // Initial loading experience: Cleanly display initial entry overlay; skip intermediate telemetry screen
-  if (authStatus === 'INITIALIZING' || !player || isLoadingData || !serverState) {
+  // Initial loading experience: Display cinematic CODEXCAPE system initialization screen
+  if (!isSystemInitialized) {
     return (
-      <div className="lobby-transition-overlay">
-        <div className="lobby-transition-panel animate-fade-in">
-          <CheckCircle2 size={48} color="var(--accent-crimson-bright)" className="animate-pulse-glow" />
-          <h1 className="transition-title">TEAM VERIFIED</h1>
-          <div className="transition-sub">
-            &gt; OPERATOR 01 ... READY<br />
-            &gt; OPERATOR 02 ... READY
-          </div>
-          <div className="transition-alert animate-pulse">
-            STARTING CODEXCAPE // LEVEL 01
-          </div>
-        </div>
-      </div>
+      <SystemInitializationLoader
+        onComplete={() => {
+          sessionStorage.setItem('codexcape_initialized', 'true');
+          sessionStorage.setItem('codexcape_briefing_seen', 'true');
+          setIsSystemInitialized(true);
+        }}
+      />
     );
+  }
+
+  if (authStatus === 'INITIALIZING' || !player || isLoadingData || !serverState) {
+    if (authStatus === 'AUTHENTICATED' && loadError && !serverState) {
+      return <GameErrorState message={loadError || 'AUTHORITATIVE GAME STATE UNAVAILABLE.'} />;
+    }
+    return <GameLoadingState message="SYNCHRONIZING SECURE ESCAPE NODES..." />;
   }
 
   if (authStatus !== 'AUTHENTICATED') {
