@@ -206,6 +206,8 @@ public class AntiCheatService {
         int penaltyPoints = 0;
         scoringService.recordAntiCheatPenalty(team.getId(), player.getId(), violationType, penaltyPoints, incidentKey);
 
+        String sanitizedMetadata = (metadata != null) ? (metadata.length() > 255 ? metadata.substring(0, 255) : metadata) : null;
+
         AntiCheatEvent auditRecord = AntiCheatEvent.builder()
                 .team(team)
                 .player(player)
@@ -215,7 +217,7 @@ public class AntiCheatService {
                 .durationMs(durationMs)
                 .penaltyPoints(penaltyPoints)
                 .incidentKey(incidentKey)
-                .metadata(metadata)
+                .metadata(sanitizedMetadata)
                 .build();
         antiCheatEventRepository.save(auditRecord);
 

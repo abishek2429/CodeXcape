@@ -109,10 +109,12 @@ public class CinematicStoryService {
         Optional<TeamStoryProgress> progOpt = teamStoryProgressRepository.findByTeamIdAndStoryKey(teamId, storyKey);
         if (progOpt.isPresent()) {
             TeamStoryProgress prog = progOpt.get();
-            prog.setStatus(StoryProgressStatus.SKIPPED);
-            prog.setEndedAt(now);
-            prog.setPauseDurationSeconds(pauseDuration);
-            teamStoryProgressRepository.save(prog);
+            if (prog.getStatus() == StoryProgressStatus.ACTIVE) {
+                prog.setStatus(StoryProgressStatus.SKIPPED);
+                prog.setEndedAt(now);
+                prog.setPauseDurationSeconds(pauseDuration);
+                teamStoryProgressRepository.save(prog);
+            }
         }
 
         Integer playerNum = null;
@@ -157,10 +159,12 @@ public class CinematicStoryService {
         Optional<TeamStoryProgress> progOpt = teamStoryProgressRepository.findByTeamIdAndStoryKey(teamId, storyKey);
         if (progOpt.isPresent()) {
             TeamStoryProgress prog = progOpt.get();
-            prog.setStatus(StoryProgressStatus.COMPLETED);
-            prog.setEndedAt(now);
-            prog.setPauseDurationSeconds(pauseDuration);
-            teamStoryProgressRepository.save(prog);
+            if (prog.getStatus() == StoryProgressStatus.ACTIVE) {
+                prog.setStatus(StoryProgressStatus.COMPLETED);
+                prog.setEndedAt(now);
+                prog.setPauseDurationSeconds(pauseDuration);
+                teamStoryProgressRepository.save(prog);
+            }
         }
 
         Integer playerNum = null;
@@ -197,13 +201,20 @@ public class CinematicStoryService {
             return buildActiveState(team);
         }
 
-        Instant now = Instant.now();
+        boolean isResolved = teamStoryProgressRepository.findByTeamIdAndStoryKey(teamId, storyKey)
+                .map(p -> p.getStatus() == StoryProgressStatus.COMPLETED || p.getStatus() == StoryProgressStatus.SKIPPED)
+                .orElse(false);
+        if (!isResolved) {
+            log.warn("Replay denied: Story sequence {} not resolved for Team {}", storyKey, team.getTeamCode());
+            return buildActiveState(team);
+        }
+
         team.setCurrentStoryKey(storyKey);
-        team.setStoryPausedAt(now);
+        team.setStoryPausedAt(null);
         teamRepository.save(team);
 
         ActiveStoryStateDto state = buildActiveState(team);
-        log.info("▶ Replaying story sequence [{}] for Team {}", storyKey, team.getTeamCode());
+        log.info("▶ Replaying story sequence [{}] for Team {} (Timer NOT paused)", storyKey, team.getTeamCode());
         webSocketPublisher.notifyStoryStarted(team.getId(), storyKey, state);
         return state;
     }

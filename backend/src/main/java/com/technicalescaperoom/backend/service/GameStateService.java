@@ -152,27 +152,12 @@ public class GameStateService {
         }
 
         // For active escape simulations (IN_PROGRESS or FINAL_PASSKEY):
-        // Ensure authoritative timer integrity. If startedAt is missing, or expired before completing any levels
-        // (e.g. starting a fresh attempt or leftover stale session), renew it so the team receives a fresh 100-minute clock.
-        if (team.getGameState() == TeamGameState.IN_PROGRESS || team.getGameState() == TeamGameState.FINAL_PASSKEY) {
-            boolean needsStartRefresh = (teamStartTime == null);
-            if (!needsStartRefresh) {
-                Instant prospectiveDeadline = teamStartTime.plusSeconds(GAME_DURATION_SECONDS + totalStoryPause);
-                boolean hasCompletedLevels = progressList.stream().anyMatch(p -> p.getLevelStatus() == LevelStatus.COMPLETED);
-                if (prospectiveDeadline.isBefore(serverTime) && !hasCompletedLevels) {
-                    needsStartRefresh = true;
-                }
-            }
-
-            if (needsStartRefresh) {
-                log.info("Team {} initializing/renewing authoritative escape clock to serverTime (100-minute window).", team.getTeamCode());
-                team.setStartedAt(serverTime);
-                team.setTotalStoryPauseSeconds(0L);
-                team.setStoryPausedAt(null);
-                teamRepository.save(team);
-                teamStartTime = serverTime;
-                totalStoryPause = 0L;
-            }
+        // Ensure authoritative timer integrity. If startedAt is missing, initialize it once.
+        if ((team.getGameState() == TeamGameState.IN_PROGRESS || team.getGameState() == TeamGameState.FINAL_PASSKEY) && teamStartTime == null) {
+            log.info("Team {} initializing authoritative escape clock to serverTime.", team.getTeamCode());
+            team.setStartedAt(serverTime);
+            teamRepository.save(team);
+            teamStartTime = serverTime;
         }
 
         Instant deadline = teamStartTime == null ? null : teamStartTime.plusSeconds(GAME_DURATION_SECONDS + totalStoryPause);

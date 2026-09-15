@@ -68,47 +68,37 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
         if (SecurityContextHolder.getContext().getAuthentication() != null
                 && SecurityContextHolder.getContext().getAuthentication().isAuthenticated()
                 && !(SecurityContextHolder.getContext().getAuthentication() instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
-            Object currentPrincipal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            if (!(currentPrincipal instanceof AdminPrincipal)) {
-                AdminPrincipal adminPrincipal = AdminPrincipal.builder()
-                        .username("admin")
-                        .role(com.technicalescaperoom.backend.enums.UserRole.ADMIN)
-                        .build();
-                org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
-                        new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                                adminPrincipal, null, SecurityContextHolder.getContext().getAuthentication().getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(auth);
+            boolean hasAdminAuthority = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_ORGANIZER"));
+            if (hasAdminAuthority) {
+                Object currentPrincipal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                if (!(currentPrincipal instanceof AdminPrincipal)) {
+                    AdminPrincipal adminPrincipal = AdminPrincipal.builder()
+                            .username(SecurityContextHolder.getContext().getAuthentication().getName())
+                            .role(com.technicalescaperoom.backend.enums.UserRole.ADMIN)
+                            .build();
+                    org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
+                            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                                    adminPrincipal, null, SecurityContextHolder.getContext().getAuthentication().getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
+                filterChain.doFilter(request, response);
+                return;
             }
-            filterChain.doFilter(request, response);
-            return;
         }
 
         String token = extractAdminToken(request);
         if (token != null && !token.isBlank()) {
             Optional<com.technicalescaperoom.backend.entity.AdminSession> sessionOpt = adminSessionRepository.findBySessionToken(token);
             if (sessionOpt.isPresent() && sessionOpt.get().getStatus() == SessionStatus.ACTIVE) {
-                
                 // Update last activity
                 com.technicalescaperoom.backend.entity.AdminSession session = sessionOpt.get();
                 session.setLastActivityAt(Instant.now());
                 adminSessionRepository.save(session);
 
-                String username = request.getHeader("X-Admin-Username");
-                if (username == null || username.isBlank()) {
-                    username = "admin";
-                }
-
-                com.technicalescaperoom.backend.enums.UserRole role = com.technicalescaperoom.backend.enums.UserRole.ADMIN;
-                String adminRoleHeader = request.getHeader("X-Admin-Role");
-                if (adminRoleHeader != null && !adminRoleHeader.isBlank()) {
-                    try {
-                        role = com.technicalescaperoom.backend.enums.UserRole.valueOf(adminRoleHeader.trim().toUpperCase());
-                    } catch (IllegalArgumentException ignored) {}
-                }
-
                 AdminPrincipal adminPrincipal = AdminPrincipal.builder()
-                        .username(username)
-                        .role(role)
+                        .username("admin")
+                        .role(com.technicalescaperoom.backend.enums.UserRole.ADMIN)
                         .build();
 
                 org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
@@ -191,12 +181,12 @@ public class PlayerSessionAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isProtectedAdminRoute(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        return uri.startsWith("/api/admin/") && !uri.equals("/api/admin/login");
+        return (uri.equals("/api/admin") || uri.startsWith("/api/admin/")) && !uri.equals("/api/admin/login");
     }
 
     private boolean isProtectedPlayerRoute(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        return uri.startsWith("/api/player/") && !uri.equals("/api/player/login");
+        return (uri.equals("/api/player") || uri.startsWith("/api/player/")) && !uri.equals("/api/player/login");
     }
 
     private String extractAdminToken(HttpServletRequest request) {

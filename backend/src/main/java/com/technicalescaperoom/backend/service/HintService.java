@@ -11,6 +11,9 @@ import com.technicalescaperoom.backend.entity.Team;
 import com.technicalescaperoom.backend.entity.TeamLevelProgress;
 import com.technicalescaperoom.backend.entity.TeamStageProgress;
 import com.technicalescaperoom.backend.enums.LevelStatus;
+import com.technicalescaperoom.backend.enums.TeamGameState;
+import com.technicalescaperoom.backend.exception.EventUnavailableException;
+import com.technicalescaperoom.backend.exception.InvalidLevelTransitionException;
 import com.technicalescaperoom.backend.exception.ResourceNotFoundException;
 import com.technicalescaperoom.backend.repository.HintRepository;
 import com.technicalescaperoom.backend.repository.LevelRepository;
@@ -111,8 +114,30 @@ public class HintService {
         if (principal == null) throw new ResourceNotFoundException("No authenticated player session found.");
         Team team = teamRepository.findById(principal.getTeamId())
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
+        if (team.getGameState() == TeamGameState.COMPLETED) {
+            throw new EventUnavailableException("Game is not currently active for hint requests.");
+        }
+
         Level level = levelRepository.findByLevelNumber(levelNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Level not found."));
+
+        // Server-authoritative progression boundary check: prevent requesting hints for future levels or stages
+        List<TeamLevelProgress> progressList = teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.getId());
+        TeamLevelProgress activeProgress = progressList.stream()
+                .filter(p -> p.getLevelStatus() == LevelStatus.AVAILABLE || p.getLevelStatus() == LevelStatus.IN_PROGRESS)
+                .findFirst()
+                .orElse(null);
+
+        int activeLevelNumber = 1;
+        int activeStageNumber = 1;
+        if (activeProgress != null) {
+            activeLevelNumber = activeProgress.getLevel().getLevelNumber();
+            activeStageNumber = findCurrentStage(activeProgress.getLevel(), team.getId());
+        }
+
+        if (levelNumber > activeLevelNumber || (levelNumber.equals(activeLevelNumber) && stageNumber > activeStageNumber)) {
+            throw new InvalidLevelTransitionException("Cannot request hints for future levels or stages before reaching them.");
+        }
 
         boolean alreadyUsed = hintUsageRepository.existsByTeamIdAndLevelIdAndStageNumberAndHintNumber(
                 team.getId(), level.getId(), stageNumber, 1);
@@ -144,7 +169,6 @@ public class HintService {
             }
             webSocketPublisher.notifyHintUnlocked(team.getId(), levelNumber, 1);
         }
-
         return HintUseResponseDto.builder()
                 .levelNumber(levelNumber)
                 .stageNumber(stageNumber)
@@ -152,5 +176,28 @@ public class HintService {
                 .hintContent(hint.getHintContent())
                 .alreadyUsed(alreadyUsed)
                 .build();
+    }
+
+    private int findCurrentStage(Level level, Long teamId) {
+        int totalStages = switch (level.getLevelNumber()) {
+            case 1, 2, 3 -> 2;
+            case 4, 5, 6 -> 3;
+            default -> 2;
+        };
+        List<TeamStageProgress> stageProgressList = teamStageProgressRepository.findByTeamIdAndLevelIdOrderByStageNumberAsc(teamId, level.getId());
+        for (int stage = 1; stage <= totalStages; stage++) {
+            final int s = stage;
+            Optional<TeamStageProgress> spOpt = stageProgressList.stream()
+                    .filter(sp -> sp.getStageNumber() != null && sp.getStageNumber() == s)
+                    .findFirst();
+            if (spOpt.isEmpty()) {
+                return stage;
+            }
+            TeamStageProgress sp = spOpt.get();
+            if (!Boolean.TRUE.equals(sp.getPlayer1Completed()) || !Boolean.TRUE.equals(sp.getPlayer2Completed())) {
+                return stage;
+            }
+        }
+        return totalStages;
     }
 }

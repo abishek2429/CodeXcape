@@ -178,6 +178,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     } else {
                         throw new MessageDeliveryException("Unauthorized: Invalid principal for subscription");
                     }
+                } else if (StompCommand.SEND.equals(command)) {
+                    log.warn("Security Alert: Direct client STOMP SEND rejected from principal {}", accessor.getUser());
+                    throw new MessageDeliveryException("Client-to-server messaging over STOMP is prohibited. All game state actions must use authoritative REST APIs.");
                 }
 
                 return message;

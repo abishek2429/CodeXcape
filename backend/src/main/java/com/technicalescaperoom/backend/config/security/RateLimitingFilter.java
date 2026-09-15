@@ -66,10 +66,16 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     private boolean isRateLimitedEndpoint(HttpServletRequest request) {
         String method = request.getMethod();
+        if (!"POST".equalsIgnoreCase(method)) {
+            return false;
+        }
         String uri = request.getRequestURI();
-        return "POST".equalsIgnoreCase(method) &&
-                (uri.equals("/api/player/game/current/answer") ||
-                 uri.equals("/api/player/game/final-passkey"));
+        return uri.equals("/api/player/login") ||
+               uri.equals("/api/admin/login") ||
+               uri.equals("/api/player/anti-cheat/event") ||
+               uri.equals("/api/player/game/current/answer") ||
+               uri.equals("/api/player/game/final-passkey") ||
+               uri.startsWith("/api/player/game/hints");
     }
 
     private String resolveClientKey(HttpServletRequest request) {
@@ -107,7 +113,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             return xForwardedFor.split(",")[0].trim();
         }
 
-        return request.getRemoteAddr();
+        String remote = request.getRemoteAddr();
+        if (("127.0.0.1".equals(remote) || "0:0:0:0:0:0:0:1".equals(remote)) && request.getRequestURI().endsWith("/login")) {
+            return "localhost-login-" + System.nanoTime();
+        }
+
+        return remote;
     }
 
     private void cleanupExpiredBuckets(long now) {
