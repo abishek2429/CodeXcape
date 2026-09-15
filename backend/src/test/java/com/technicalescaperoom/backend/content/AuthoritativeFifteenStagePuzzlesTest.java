@@ -57,6 +57,9 @@ public class AuthoritativeFifteenStagePuzzlesTest {
     @Autowired
     private FinalPasskeyService finalPasskeyService;
 
+    @Autowired
+    private com.technicalescaperoom.backend.service.RiddleService riddleService;
+
     private Event event;
     private Team team;
     private Player player1;
@@ -252,6 +255,14 @@ public class AuthoritativeFifteenStagePuzzlesTest {
         Team teamFinal = teamRepository.findById(team.getId()).orElseThrow();
         assertEquals(TeamGameState.FINAL_PASSKEY, teamFinal.getGameState(),
                 "Team must transition to FINAL_PASSKEY after completing all 15 stages.");
+
+        // 8b. Solve all 6 unlocked riddles in level order to satisfy the final key prerequisite
+        riddleService.submitRiddleAnswer(p1Principal, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(1).digit("3").build());
+        riddleService.submitRiddleAnswer(p1Principal, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(2).digit("8").build());
+        riddleService.submitRiddleAnswer(p1Principal, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(3).digit("2").build());
+        riddleService.submitRiddleAnswer(p1Principal, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(4).digit("4").build());
+        riddleService.submitRiddleAnswer(p1Principal, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(5).digit("5").build());
+        riddleService.submitRiddleAnswer(p1Principal, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(6).digit("9").build());
 
         // 9. Submit Final Master Passkey (849201)
         var passkeyRes = finalPasskeyService.submitFinalPasskey(

@@ -11,6 +11,7 @@ import { HintPanel } from '../../components/game/HintPanel';
 import { FinalDeductionTerminal } from '../../components/game/FinalDeductionTerminal';
 import { MysteryBoard } from '../../components/game/MysteryBoard';
 import { RiddleRevealModal } from '../../components/game/RiddleRevealModal';
+import { fetchRiddleBoardState, RiddleBoardState } from '../../services/riddleService';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { GameErrorState } from '../../components/game/GameErrorState';
 import { ShieldAlert, CheckCircle2, AlertOctagon } from 'lucide-react';
@@ -76,6 +77,7 @@ export const PlayerGamePage: React.FC = () => {
   const [activeStory, setActiveStory] = useState<StorySequence | null>(null);
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [isMysteryBoardOpen, setIsMysteryBoardOpen] = useState(false);
+  const [riddleBoardState, setRiddleBoardState] = useState<RiddleBoardState | null>(null);
   const [isHintPanelOpen, setIsHintPanelOpen] = useState(false);
   const [transitionInfo, setTransitionInfo] = useState<{
     completedLevel: number;
@@ -171,6 +173,14 @@ export const PlayerGamePage: React.FC = () => {
       setStoryline(storyData);
       if (stateData.currentRank !== undefined) {
         setLiveRank(stateData.currentRank);
+      }
+
+      // Fetch persistent riddle board state for team
+      try {
+        const riddlesData = await fetchRiddleBoardState();
+        setRiddleBoardState(riddlesData);
+      } catch {
+        // Ignore riddle fetch network error
       }
 
       // Check if player hasn't completed the earphones/briefing calibration yet
@@ -683,6 +693,9 @@ export const PlayerGamePage: React.FC = () => {
             <FinalDeductionTerminal
               isUnlocked={gameState.isFinalTerminalUnlocked}
               isCompleted={serverState?.gameStatus === 'COMPLETED'}
+              allRiddlesSolved={riddleBoardState?.allRiddlesSolved ?? false}
+              solvedRiddlesCount={riddleBoardState?.solvedCount ?? 0}
+              onOpenRiddleBoard={() => setIsMysteryBoardOpen(true)}
               onSuccess={() => {
                 setIsRestorationOpen(true);
                 loadData();
@@ -717,7 +730,7 @@ export const PlayerGamePage: React.FC = () => {
             </div>
           )}
 
-          {/* Secondary Action Bar: Mystery Board & Hints */}
+          {/* Secondary Action Bar: Riddle Board & Hints */}
           <div className="game-secondary-dock">
             <button
               type="button"
@@ -726,12 +739,12 @@ export const PlayerGamePage: React.FC = () => {
                 setIsMysteryBoardOpen(true);
               }}
               className="secondary-action-btn"
-              title="Open Mystery Board (General Logic Riddles)"
+              title="Open Riddle Board (General Logic Riddles)"
             >
               <span className="dock-icon">◆</span>
-              <span className="dock-label">MYSTERY BOARD</span>
+              <span className="dock-label">RIDDLE BOARD</span>
               <span className="dock-badge">
-                {Math.min(gameState.levels.filter((l) => l.status === 'COMPLETED').length, 6)}/6
+                {riddleBoardState ? `${riddleBoardState.solvedCount}/6` : `${Math.min(gameState.levels.filter((l) => l.status === 'COMPLETED').length, 6)}/6`}
               </span>
             </button>
 
@@ -760,6 +773,10 @@ export const PlayerGamePage: React.FC = () => {
         completedLevelsCount={gameState.levels.filter((l) => l.status === 'COMPLETED').length}
         isOpen={isMysteryBoardOpen}
         onClose={() => setIsMysteryBoardOpen(false)}
+        onRiddleSolved={() => {
+          fetchRiddleBoardState().then(setRiddleBoardState).catch(() => {});
+          loadData();
+        }}
       />
 
       <HintPanel

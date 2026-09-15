@@ -69,6 +69,9 @@ public class Pass3SecurityHardeningTest {
     private TeamLevelProgressRepository teamLevelProgressRepository;
 
     @Autowired
+    private com.technicalescaperoom.backend.repository.TeamRiddleProgressRepository teamRiddleProgressRepository;
+
+    @Autowired
     private GameSessionRepository gameSessionRepository;
 
     @Autowired
@@ -407,6 +410,15 @@ public class Pass3SecurityHardeningTest {
         }
         teamA.setGameState(TeamGameState.FINAL_PASSKEY);
         teamRepository.save(teamA);
+
+        for (int r = 1; r <= 6; r++) {
+            teamRiddleProgressRepository.save(com.technicalescaperoom.backend.entity.TeamRiddleProgress.builder()
+                    .team(teamA)
+                    .riddleIndex(r)
+                    .isSolved(true)
+                    .solvedDigit("0")
+                    .build());
+        }
 
         // Submit incorrect passkey
         FinalPasskeyResponseDto wrongRes = finalPasskeyService.submitFinalPasskey(p1A,

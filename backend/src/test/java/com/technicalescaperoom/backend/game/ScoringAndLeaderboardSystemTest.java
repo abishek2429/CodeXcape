@@ -61,6 +61,9 @@ class ScoringAndLeaderboardSystemTest {
     private ScoreEventRepository scoreEventRepository;
 
     @Autowired
+    private com.technicalescaperoom.backend.repository.TeamRiddleProgressRepository teamRiddleProgressRepository;
+
+    @Autowired
     private AnswerAttemptRepository answerAttemptRepository;
 
     @Autowired
@@ -612,6 +615,15 @@ class ScoringAndLeaderboardSystemTest {
         });
         team.setGameState(TeamGameState.FINAL_PASSKEY);
         teamRepository.saveAndFlush(team);
+
+        for (int r = 1; r <= 6; r++) {
+            teamRiddleProgressRepository.save(com.technicalescaperoom.backend.entity.TeamRiddleProgress.builder()
+                    .team(team)
+                    .riddleIndex(r)
+                    .isSolved(true)
+                    .solvedDigit("0")
+                    .build());
+        }
 
         FinalPasskeySubmissionRequest req = FinalPasskeySubmissionRequest.builder().passkey(rawPasskey).build();
         var response = finalPasskeyService.submitFinalPasskey(p1, req);

@@ -50,6 +50,9 @@ public class SystemLoadAndConcurrencyTest {
     private PlayerRepository playerRepository;
 
     @Autowired
+    private TeamRiddleProgressRepository teamRiddleProgressRepository;
+
+    @Autowired
     private AdminContentService adminContentService;
 
     @Autowired
@@ -284,6 +287,18 @@ public class SystemLoadAndConcurrencyTest {
         }
 
         // Final Terminal Completion Spike for all 40 Teams
+        for (TeamPrincipals tp : teamPrincipalsList) {
+            Team team = teamRepository.findById(tp.teamId).orElseThrow();
+            for (int r = 1; r <= 6; r++) {
+                teamRiddleProgressRepository.save(TeamRiddleProgress.builder()
+                        .team(team)
+                        .riddleIndex(r)
+                        .isSolved(true)
+                        .solvedDigit("0")
+                        .build());
+            }
+        }
+
         int completedCount = 0;
         for (TeamPrincipals tp : teamPrincipalsList) {
             FinalPasskeyResponseDto passkeyRes = finalPasskeyService.submitFinalPasskey(tp.p1, FinalPasskeySubmissionRequest.builder().passkey("987654").build());

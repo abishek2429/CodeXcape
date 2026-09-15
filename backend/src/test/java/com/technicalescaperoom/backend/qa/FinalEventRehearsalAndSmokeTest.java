@@ -45,6 +45,9 @@ public class FinalEventRehearsalAndSmokeTest {
     private PlayerRepository playerRepository;
 
     @Autowired
+    private TeamRiddleProgressRepository teamRiddleProgressRepository;
+
+    @Autowired
     private AdminContentService adminContentService;
 
     @Autowired
@@ -193,6 +196,16 @@ public class FinalEventRehearsalAndSmokeTest {
             PlayerHintsResponseDto hintsDto = hintService.getHintsForPlayer(p1Princ);
             long unlocked = hintsDto.getHints().stream().filter(h -> Boolean.TRUE.equals(h.getIsUnlocked())).count();
             assertThat(unlocked).isEqualTo(0L);
+        }
+
+        Team rehearsalTeam = teamRepository.findById(teamRes.getId()).orElseThrow();
+        for (int r = 1; r <= 6; r++) {
+            teamRiddleProgressRepository.save(TeamRiddleProgress.builder()
+                    .team(rehearsalTeam)
+                    .riddleIndex(r)
+                    .isSolved(true)
+                    .solvedDigit("0")
+                    .build());
         }
 
         // 4. Final Terminal Passkey Validation Rehearsal

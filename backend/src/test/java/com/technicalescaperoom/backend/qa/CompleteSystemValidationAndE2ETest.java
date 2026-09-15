@@ -44,6 +44,9 @@ public class CompleteSystemValidationAndE2ETest {
     private PlayerRepository playerRepository;
 
     @Autowired
+    private TeamRiddleProgressRepository teamRiddleProgressRepository;
+
+    @Autowired
     private AdminContentService adminContentService;
 
     @Autowired
@@ -156,6 +159,16 @@ public class CompleteSystemValidationAndE2ETest {
             completeLevelE2E(lvl, p1Princ, p2Princ);
         }
 
+        Team teamE2E = teamRepository.findById(regRes.getId()).orElseThrow();
+        for (int r = 1; r <= 6; r++) {
+            teamRiddleProgressRepository.save(TeamRiddleProgress.builder()
+                    .team(teamE2E)
+                    .riddleIndex(r)
+                    .isSolved(true)
+                    .solvedDigit("0")
+                    .build());
+        }
+
         // 8. Submit Incorrect Passkey
         FinalPasskeyResponseDto wrongPasskey = finalPasskeyService.submitFinalPasskey(p1Princ, FinalPasskeySubmissionRequest.builder()
                 .passkey("111111")
@@ -252,6 +265,16 @@ public class CompleteSystemValidationAndE2ETest {
         // Complete all 6 levels directly in test setup
         for (int i = 1; i <= 6; i++) {
             completeLevelE2E(i, p1Princ, p2Princ);
+        }
+
+        Team teamIdem = teamRepository.findById(regRes.getId()).orElseThrow();
+        for (int r = 1; r <= 6; r++) {
+            teamRiddleProgressRepository.save(TeamRiddleProgress.builder()
+                    .team(teamIdem)
+                    .riddleIndex(r)
+                    .isSolved(true)
+                    .solvedDigit("0")
+                    .build());
         }
 
         // First Passkey Submission

@@ -57,6 +57,9 @@ public class Pass4GameEngineOptimizationTest {
     private TeamStageProgressRepository teamStageProgressRepository;
 
     @Autowired
+    private com.technicalescaperoom.backend.repository.TeamRiddleProgressRepository teamRiddleProgressRepository;
+
+    @Autowired
     private AnswerAttemptRepository answerAttemptRepository;
 
     @Autowired
@@ -464,6 +467,15 @@ public class Pass4GameEngineOptimizationTest {
         }
         team.setGameState(TeamGameState.FINAL_PASSKEY);
         teamRepository.saveAndFlush(team);
+
+        for (int r = 1; r <= 6; r++) {
+            teamRiddleProgressRepository.save(com.technicalescaperoom.backend.entity.TeamRiddleProgress.builder()
+                    .team(team)
+                    .riddleIndex(r)
+                    .isSolved(true)
+                    .solvedDigit("0")
+                    .build());
+        }
 
         // 3. Incorrect passkey -> INCORRECT
         FinalPasskeyResponseDto wrong = finalPasskeyService.submitFinalPasskey(p1Principal, FinalPasskeySubmissionRequest.builder()

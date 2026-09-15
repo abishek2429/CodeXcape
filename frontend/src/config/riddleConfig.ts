@@ -1,5 +1,6 @@
-// Six Persistent General Logic Riddles for the CodeXcape Meta Mystery System
-// Completely independent of the storyline (no ARIA, Elena, Kai, Node 06, etc.)
+// Six General Logic Riddles for the CodeXcape Riddle System
+// Completely standalone logic and reasoning problems with no story dependencies.
+// IMPORTANT: Correct answers exist exclusively on the server and are never exposed here.
 
 export interface MysteryRiddle {
   id: number;
@@ -7,9 +8,9 @@ export interface MysteryRiddle {
   romanNumeral: string;
   title: string;
   category: string;
-  clueRole: 'HOW' | 'WHAT' | 'WHEN' | 'WHICH' | 'WHY' | 'META SYNTHESIS';
-  riddleText: string;
+  difficulty: 'Easy' | 'Easy/Medium' | 'Medium' | 'Medium/Hard' | 'Hard' | 'Hardest';
   briefPrompt: string;
+  riddleText: string;
 }
 
 export const SIX_MYSTERY_RIDDLES: MysteryRiddle[] = [
@@ -17,145 +18,121 @@ export const SIX_MYSTERY_RIDDLES: MysteryRiddle[] = [
     id: 1,
     levelNumber: 1,
     romanNumeral: 'RIDDLE I',
-    title: 'THE THREE SWITCHES',
-    category: 'STATE & HEAT REASONING',
-    clueRole: 'HOW',
-    briefPrompt: 'How can you determine which switch controls the bulb?',
-    riddleText: `There are three switches outside a closed room.
+    title: 'THE SPRINTERS',
+    category: 'ORDERING DEDUCTION',
+    difficulty: 'Easy',
+    briefPrompt: 'In which numbered place did Runner C finish? (0–9)',
+    riddleText: `Five sprinters—A, B, C, D, and E—competed in a final sprint with no ties:
 
-Inside the room is one ordinary light bulb.
+1. Runner D finished in 1st place.
+2. Runner B finished ahead of Runner C.
+3. Runner E finished behind Runner C.
+4. Runner A finished behind Runner E.
 
-Exactly one switch controls the bulb.
-
-You may manipulate the switches however you want.
-
-You may enter the room ONLY ONCE.
-
-Once inside, you may inspect the bulb but cannot return to the switches.
-
-How can you determine which switch controls the bulb?`,
+In which place (1, 2, 3, 4, or 5) did Runner C finish?`,
   },
   {
     id: 2,
     levelNumber: 2,
     romanNumeral: 'RIDDLE II',
-    title: 'THE NUMBER LOCK',
-    category: 'OBSERVATIONAL SEQUENCE',
-    clueRole: 'WHAT',
-    briefPrompt: 'What is the next number in the sequence?',
-    riddleText: `Find the next number:
+    title: 'THE MAGIC SQUARE',
+    category: 'GRID CONSTRAINT',
+    difficulty: 'Easy/Medium',
+    briefPrompt: 'What single digit replaces the question mark? (0–9)',
+    riddleText: `A 3×3 grid contains the digits 1 through 9, each used exactly once.
+Every row, every column, and both main diagonals sum to the exact same total: 15.
 
-    1
-    11
-    21
-    1211
-    111221
-    ?
+Row 1:  [ 2 ]  [ 7 ]  [ 6 ]   (Sum = 15)
+Row 2:  [ 9 ]  [ 5 ]  [ 1 ]   (Sum = 15)
+Row 3:  [ 4 ]  [ 3 ]  [ ? ]   (Sum = 15)
 
-The answer is determined by observing the relationship between consecutive lines.
+Check Row 3: 4 + 3 + ? = 15
+Check Column 3: 6 + 1 + ? = 15
+Check Diagonal: 2 + 5 + ? = 15
 
-Do not simply treat this as a normal arithmetic sequence.
-
-The players must identify the transformation rule.`,
+What single digit replaces the question mark?`,
   },
   {
     id: 3,
     levelNumber: 3,
     romanNumeral: 'RIDDLE III',
-    title: 'THE TWO ROPES',
-    category: 'TEMPORAL MEASUREMENT',
-    clueRole: 'WHEN',
-    briefPrompt: 'How can you measure exactly 45 minutes?',
-    riddleText: `You have two ropes.
+    title: 'THE THREE INHABITANTS',
+    category: 'TRUTH-VALUE LOGIC',
+    difficulty: 'Medium',
+    briefPrompt: 'How many Liars are among the three inhabitants? (0–9)',
+    riddleText: `On an island, every inhabitant is either:
+• A Truth-teller (who always tells the truth), or
+• A Liar (who always lies).
 
-Each rope takes exactly one hour to burn completely.
+Three inhabitants—X, Y, and Z—stand before you:
 
-However:
-• The ropes do NOT burn at a uniform rate.
-• Half of a rope does NOT necessarily represent 30 minutes.
-• Both ropes are otherwise identical.
+• Inhabitant X says: "All three of us are Liars."
+• Inhabitant Y says: "Exactly one of us is a Truth-teller."
+• Inhabitant Z remains silent.
 
-You have a way to ignite either end of either rope.
+Deduce the identity of each inhabitant.
 
-Using only these two ropes and fire:
-
-How can you measure exactly 45 minutes?`,
+How many LIARS are there among the three inhabitants (X, Y, and Z)?`,
   },
   {
     id: 4,
     levelNumber: 4,
     romanNumeral: 'RIDDLE IV',
-    title: 'THE THREE BOXES',
-    category: 'TRUTH-VALUE DEDUCTION',
-    clueRole: 'WHICH',
-    briefPrompt: 'Which box contains the prize?',
-    riddleText: `There are three boxes:
+    title: 'THE NUMBER LOCK',
+    category: 'CONSTRAINT SATISFACTION',
+    difficulty: 'Medium/Hard',
+    briefPrompt: 'What is the middle digit of the 3-digit combination? (0–9)',
+    riddleText: `A lock has a 3-digit combination code. Five clues are given:
 
-    BOX A
-    BOX B
-    BOX C
+• [ 6  8  2 ] — One digit is correct and well-placed.
+• [ 6  1  4 ] — One digit is correct but wrongly placed.
+• [ 2  0  6 ] — Two digits are correct but both are wrongly placed.
+• [ 7  3  8 ] — Nothing is correct.
+• [ 8  7  0 ] — One digit is correct but wrongly placed.
 
-Exactly one box contains a prize.
+Deduce the unique 3-digit combination code.
 
-Each box has one statement:
-
-BOX A:
-    "The prize is not in Box B."
-
-BOX B:
-    "The prize is in Box A."
-
-BOX C:
-    "The statement on Box A is false."
-
-Exactly ONE of the three statements is true.
-
-Which box contains the prize?`,
+What is the MIDDLE digit of this 3-digit combination code?`,
   },
   {
     id: 5,
     levelNumber: 5,
     romanNumeral: 'RIDDLE V',
-    title: 'THE AGE PUZZLE',
-    category: 'INVARIANCE & RELATIVITY',
-    clueRole: 'WHY',
-    briefPrompt: 'Determine the relationship between the father and child ages.',
-    riddleText: `A father tells his child:
+    title: 'THE FOUR SUSPECTS',
+    category: 'PERSPECTIVE DEDUCTION',
+    difficulty: 'Hard',
+    briefPrompt: 'How many true statements were made by the thief? (0–9)',
+    riddleText: `Four suspects—A, B, C, and D—make statements about who stole a jewel.
+Exactly ONE of the four suspects stole the jewel.
 
-    "When I was your age, I was exactly 30 years older than you."
+• A says: "B stole it."
+• B says: "D stole it."
+• C says: "I did not steal it."
+• D says: "B is lying about me."
 
-The child asks:
+It is known that exactly THREE of the four statements are TRUE, and only ONE statement is FALSE.
 
-    "How old will you be when I am your current age?"
+Deduce who stole the jewel.
 
-The father replies:
-
-    "At that time, the difference between our ages will still be exactly the same."
-
-Determine the relationship between the father's and child's ages.`,
+How many TRUE statements were made by the person who stole the jewel?`,
   },
   {
     id: 6,
     levelNumber: 6,
     romanNumeral: 'RIDDLE VI',
-    title: 'THE FINAL META RIDDLE',
-    category: 'SYNTHESIS OF DISCOVERIES',
-    clueRole: 'META SYNTHESIS',
-    briefPrompt: 'What single idea connects all five discoveries?',
-    riddleText: `I am not found by looking at one answer.
+    title: 'THE CRYPTARITHM',
+    category: 'ALPHAMETIC ARITHMETIC',
+    difficulty: 'Hardest',
+    briefPrompt: 'What single digit is represented by the letter S? (0–9)',
+    riddleText: `In the classic alphametic puzzle, each distinct letter represents a unique single digit from 0 to 9, and no multi-digit number starts with 0:
 
-I appear only when the answers stand together.
+    S E N D
+  + M O R E
+  ---------
+  M O N E Y
 
-The first may tell you HOW.
-The second may tell you WHAT.
-The third may tell you WHEN.
-The fourth may tell you WHICH.
-The fifth may tell you WHY.
+Deduce the unique mathematical assignment for each letter.
 
-But none of them is the conclusion.
-
-Arrange what you discovered.
-
-What single idea connects all five?`,
+What single digit (0–9) is represented by the letter S?`,
   },
 ];

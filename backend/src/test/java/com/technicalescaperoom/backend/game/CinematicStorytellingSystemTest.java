@@ -51,6 +51,9 @@ public class CinematicStorytellingSystemTest {
     private TeamLevelProgressRepository teamLevelProgressRepository;
 
     @Autowired
+    private com.technicalescaperoom.backend.repository.TeamRiddleProgressRepository teamRiddleProgressRepository;
+
+    @Autowired
     private TeamStoryProgressRepository teamStoryProgressRepository;
 
     @Autowired
@@ -315,6 +318,15 @@ public class CinematicStorytellingSystemTest {
         testTeam.setCompletedLevels(6);
         testTeam.setGameState(TeamGameState.FINAL_PASSKEY);
         teamRepository.save(testTeam);
+
+        for (int r = 1; r <= 6; r++) {
+            teamRiddleProgressRepository.save(com.technicalescaperoom.backend.entity.TeamRiddleProgress.builder()
+                    .team(testTeam)
+                    .riddleIndex(r)
+                    .isSolved(true)
+                    .solvedDigit("0")
+                    .build());
+        }
 
         for (int lvl = 1; lvl <= 6; lvl++) {
             TeamLevelProgress lp = teamLevelProgressRepository.findByTeamIdAndLevelId(testTeam.getId(), (long)lvl).orElseThrow();

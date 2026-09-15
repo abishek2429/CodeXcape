@@ -63,6 +63,9 @@ public class Pass7LoadAndStressReliabilityTest {
     private TeamLevelProgressRepository teamLevelProgressRepository;
 
     @Autowired
+    private com.technicalescaperoom.backend.repository.TeamRiddleProgressRepository teamRiddleProgressRepository;
+
+    @Autowired
     private TeamStageProgressRepository teamStageProgressRepository;
 
     @Autowired
@@ -794,6 +797,15 @@ public class Pass7LoadAndStressReliabilityTest {
             }
             team.setGameState(TeamGameState.FINAL_PASSKEY);
             teamRepository.save(team);
+
+            for (int r = 1; r <= 6; r++) {
+                teamRiddleProgressRepository.save(com.technicalescaperoom.backend.entity.TeamRiddleProgress.builder()
+                        .team(team)
+                        .riddleIndex(r)
+                        .isSolved(true)
+                        .solvedDigit("0")
+                        .build());
+            }
 
             Player p1 = playerRepository.findByTeamIdAndPlayerNumber(team.getId(), 1).orElseThrow();
             principals.add(buildPrincipal(team, p1, "token-fin-" + i));

@@ -57,6 +57,9 @@ class FinalPasskeyAndGameCompletionTest {
     private FinalPasskeyService finalPasskeyService;
 
     @Autowired
+    private com.technicalescaperoom.backend.service.RiddleService riddleService;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private Event event;
@@ -235,6 +238,14 @@ class FinalPasskeyAndGameCompletionTest {
                 questionAnswerService.submitAnswer(p2, AnswerSubmissionRequest.builder().levelNumber(levelNum).answer(q2.getExpectedAnswerHash()).build());
             }
         }
+
+        // Solve all 6 unlocked riddles to satisfy final passkey requirement
+        riddleService.submitRiddleAnswer(p1, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(1).digit("3").build());
+        riddleService.submitRiddleAnswer(p1, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(2).digit("8").build());
+        riddleService.submitRiddleAnswer(p1, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(3).digit("2").build());
+        riddleService.submitRiddleAnswer(p1, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(4).digit("4").build());
+        riddleService.submitRiddleAnswer(p1, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(5).digit("5").build());
+        riddleService.submitRiddleAnswer(p1, com.technicalescaperoom.backend.dto.player.RiddleDto.RiddleSubmissionRequest.builder().riddleIndex(6).digit("9").build());
     }
 
     private PlayerPrincipal createPrincipal(Player player, Team team) {
