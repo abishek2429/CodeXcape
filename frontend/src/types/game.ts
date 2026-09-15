@@ -36,6 +36,7 @@ export interface PartnerStatusData {
 
 export interface HintData {
   levelNumber: number;
+  stageNumber?: number;
   hintNumber?: number;
   hintContent: string | null;
   isUnlocked: boolean;

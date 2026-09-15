@@ -189,10 +189,10 @@ public class FinalEventRehearsalAndSmokeTest {
                 }
             }
 
-            // Hint check
+            // Hint check: No hints auto-reveal on level completion
             PlayerHintsResponseDto hintsDto = hintService.getHintsForPlayer(p1Princ);
             long unlocked = hintsDto.getHints().stream().filter(h -> Boolean.TRUE.equals(h.getIsUnlocked())).count();
-            assertThat(unlocked).isEqualTo(lvl);
+            assertThat(unlocked).isEqualTo(0L);
         }
 
         // 4. Final Terminal Passkey Validation Rehearsal

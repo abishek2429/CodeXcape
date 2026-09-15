@@ -249,28 +249,28 @@ class ScoringAndLeaderboardSystemTest {
     }
 
     @Test
-    @DisplayName("06. Hint 2 usage deducts -10 points")
+    @DisplayName("06. Stage hint usage across stages deducts 5 points per stage")
     void test06_Hint2Penalty() {
         scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
         scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 1); // -5
-        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 2); // -10
+        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 2, 1); // -5 for stage 2
+
+        Team updated = teamRepository.findById(team.getId()).orElseThrow();
+        assertEquals(10, updated.getHintPenalty());
+        assertEquals(50, updated.getFinalScore());
+    }
+
+    @Test
+    @DisplayName("07. Stage hint usage for 3 stages deducts 15 points (5 pts each)")
+    void test07_Hint3Penalty() {
+        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
+        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 1); // -5
+        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 2, 1); // -5
+        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 3, 1); // -5
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
         assertEquals(15, updated.getHintPenalty());
         assertEquals(45, updated.getFinalScore());
-    }
-
-    @Test
-    @DisplayName("07. Hint 3 usage deducts -15 points")
-    void test07_Hint3Penalty() {
-        scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
-        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 1); // -5
-        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 2); // -10
-        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 3); // -15
-
-        Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(30, updated.getHintPenalty());
-        assertEquals(30, updated.getFinalScore());
     }
 
     @Test
@@ -287,33 +287,35 @@ class ScoringAndLeaderboardSystemTest {
     }
 
     @Test
-    @DisplayName("09. Max hint penalty per mini-game is 30 points (5 + 10 + 15)")
+    @DisplayName("09. Max hint penalty per 3-stage mini-game is 15 points (5 + 5 + 5)")
     void test09_MaxHintPenaltyPerMiniGame() {
-        assertEquals(30, scoringConfig.getMaxHintPenaltyPerMiniGame());
+        assertEquals(15, scoringConfig.getMaxHintPenaltyPerMiniGame());
         scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 1);
-        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 2);
-        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 3);
+        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 2, 1);
+        scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 3, 1);
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(30, updated.getHintPenalty());
+        assertEquals(15, updated.getHintPenalty());
     }
 
     // ==========================================
-    // 10-14. ANTI-CHEAT TAB SWITCH ESCALATING PENALTIES (10, 15, 20, 30, 40)
+    // 10-14. ANTI-CHEAT TAB SWITCH VIOLATIONS (LOG-ONLY, 0 SCORE PENALTY)
     // ==========================================
     @Test
-    @DisplayName("10. Tab switch escalating penalty: 1st violation = -10 pts")
+    @DisplayName("10. Tab switch escalating penalty: 1st violation logged with 0 score deduction")
     void test10_TabSwitchViolation1() {
         assertEquals(10, scoringConfig.getEscalatingTabSwitchPenalty(1));
         PlayerPrincipal p1 = createPrincipal(player1, team);
         antiCheatService.processPlayerEvent(p1, AntiCheatReportRequest.builder().eventType("TAB_SWITCH").build());
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(10, updated.getAntiCheatPenalty());
+        assertEquals(0, updated.getAntiCheatPenalty(), "Anti-cheat must not deduct score");
+        assertEquals(1, antiCheatService.getTeamSummary(team.getId()).getTotalViolations());
+        assertEquals(1, antiCheatService.getTeamSummary(team.getId()).getTabSwitchCount());
     }
 
     @Test
-    @DisplayName("11. Tab switch escalating penalty: 2nd violation = -15 pts (Total: 25)")
+    @DisplayName("11. Tab switch escalating penalty: 2nd violation logged with 0 score deduction")
     void test11_TabSwitchViolation2() {
         assertEquals(15, scoringConfig.getEscalatingTabSwitchPenalty(2));
         PlayerPrincipal p1 = createPrincipal(player1, team);
@@ -323,11 +325,13 @@ class ScoringAndLeaderboardSystemTest {
         antiCheatService.processPlayerEvent(p1, AntiCheatReportRequest.builder().eventType("TAB_SWITCH").build());
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(25, updated.getAntiCheatPenalty());
+        assertEquals(0, updated.getAntiCheatPenalty(), "Anti-cheat must not deduct score");
+        assertEquals(2, antiCheatService.getTeamSummary(team.getId()).getTotalViolations());
+        assertEquals(2, antiCheatService.getTeamSummary(team.getId()).getTabSwitchCount());
     }
 
     @Test
-    @DisplayName("12. Tab switch escalating penalty: 3rd violation = -20 pts (Total: 45)")
+    @DisplayName("12. Tab switch escalating penalty: 3rd violation logged with 0 score deduction")
     void test12_TabSwitchViolation3() {
         assertEquals(20, scoringConfig.getEscalatingTabSwitchPenalty(3));
         PlayerPrincipal p1 = createPrincipal(player1, team);
@@ -338,11 +342,13 @@ class ScoringAndLeaderboardSystemTest {
         }
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(45, updated.getAntiCheatPenalty()); // 10 + 15 + 20
+        assertEquals(0, updated.getAntiCheatPenalty(), "Anti-cheat must not deduct score");
+        assertEquals(3, antiCheatService.getTeamSummary(team.getId()).getTotalViolations());
+        assertEquals(3, antiCheatService.getTeamSummary(team.getId()).getTabSwitchCount());
     }
 
     @Test
-    @DisplayName("13. Tab switch escalating penalty: 4th violation = -30 pts (Total: 75)")
+    @DisplayName("13. Tab switch escalating penalty: 4th violation logged with 0 score deduction")
     void test13_TabSwitchViolation4() {
         assertEquals(30, scoringConfig.getEscalatingTabSwitchPenalty(4));
         PlayerPrincipal p1 = createPrincipal(player1, team);
@@ -353,11 +359,13 @@ class ScoringAndLeaderboardSystemTest {
         }
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(75, updated.getAntiCheatPenalty()); // 10 + 15 + 20 + 30
+        assertEquals(0, updated.getAntiCheatPenalty(), "Anti-cheat must not deduct score");
+        assertEquals(4, antiCheatService.getTeamSummary(team.getId()).getTotalViolations());
+        assertEquals(4, antiCheatService.getTeamSummary(team.getId()).getTabSwitchCount());
     }
 
     @Test
-    @DisplayName("14. Tab switch escalating penalty: 5th+ violation = -40 pts (Total: 115)")
+    @DisplayName("14. Tab switch escalating penalty: 5th+ violation logged with 0 score deduction")
     void test14_TabSwitchViolation5Plus() {
         assertEquals(40, scoringConfig.getEscalatingTabSwitchPenalty(5));
         assertEquals(40, scoringConfig.getEscalatingTabSwitchPenalty(6));
@@ -369,25 +377,29 @@ class ScoringAndLeaderboardSystemTest {
         }
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(115, updated.getAntiCheatPenalty()); // 10 + 15 + 20 + 30 + 40
+        assertEquals(0, updated.getAntiCheatPenalty(), "Anti-cheat must not deduct score");
+        assertEquals(5, antiCheatService.getTeamSummary(team.getId()).getTotalViolations());
+        assertEquals(5, antiCheatService.getTeamSummary(team.getId()).getTabSwitchCount());
     }
 
     // ==========================================
-    // 15-18. ANTI-CHEAT FULLSCREEN EXIT ESCALATING PENALTIES (15, 20, 30, 40)
+    // 15-18. ANTI-CHEAT FULLSCREEN EXIT VIOLATIONS (LOG-ONLY, 0 SCORE PENALTY)
     // ==========================================
     @Test
-    @DisplayName("15. Fullscreen exit escalating penalty: 1st violation = -15 pts")
+    @DisplayName("15. Fullscreen exit escalating penalty: 1st violation logged with 0 score deduction")
     void test15_FullscreenExitViolation1() {
         assertEquals(15, scoringConfig.getEscalatingFullscreenPenalty(1));
         PlayerPrincipal p1 = createPrincipal(player1, team);
         antiCheatService.processPlayerEvent(p1, AntiCheatReportRequest.builder().eventType("FULLSCREEN_EXIT").build());
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(15, updated.getAntiCheatPenalty());
+        assertEquals(0, updated.getAntiCheatPenalty(), "Anti-cheat must not deduct score");
+        assertEquals(1, antiCheatService.getTeamSummary(team.getId()).getTotalViolations());
+        assertEquals(1, antiCheatService.getTeamSummary(team.getId()).getFullscreenExitCount());
     }
 
     @Test
-    @DisplayName("16. Fullscreen exit escalating penalty: 2nd violation = -20 pts (Total: 35)")
+    @DisplayName("16. Fullscreen exit escalating penalty: 2nd violation logged with 0 score deduction")
     void test16_FullscreenExitViolation2() {
         assertEquals(20, scoringConfig.getEscalatingFullscreenPenalty(2));
         PlayerPrincipal p1 = createPrincipal(player1, team);
@@ -397,11 +409,13 @@ class ScoringAndLeaderboardSystemTest {
         antiCheatService.processPlayerEvent(p1, AntiCheatReportRequest.builder().eventType("FULLSCREEN_EXIT").build());
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(35, updated.getAntiCheatPenalty()); // 15 + 20
+        assertEquals(0, updated.getAntiCheatPenalty(), "Anti-cheat must not deduct score");
+        assertEquals(2, antiCheatService.getTeamSummary(team.getId()).getTotalViolations());
+        assertEquals(2, antiCheatService.getTeamSummary(team.getId()).getFullscreenExitCount());
     }
 
     @Test
-    @DisplayName("17. Fullscreen exit escalating penalty: 3rd violation = -30 pts (Total: 65)")
+    @DisplayName("17. Fullscreen exit escalating penalty: 3rd violation logged with 0 score deduction")
     void test17_FullscreenExitViolation3() {
         assertEquals(30, scoringConfig.getEscalatingFullscreenPenalty(3));
         PlayerPrincipal p1 = createPrincipal(player1, team);
@@ -412,11 +426,13 @@ class ScoringAndLeaderboardSystemTest {
         }
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(65, updated.getAntiCheatPenalty()); // 15 + 20 + 30
+        assertEquals(0, updated.getAntiCheatPenalty(), "Anti-cheat must not deduct score");
+        assertEquals(3, antiCheatService.getTeamSummary(team.getId()).getTotalViolations());
+        assertEquals(3, antiCheatService.getTeamSummary(team.getId()).getFullscreenExitCount());
     }
 
     @Test
-    @DisplayName("18. Fullscreen exit escalating penalty: 4th+ violation = -40 pts (Total: 105)")
+    @DisplayName("18. Fullscreen exit escalating penalty: 4th+ violation logged with 0 score deduction")
     void test18_FullscreenExitViolation4Plus() {
         assertEquals(40, scoringConfig.getEscalatingFullscreenPenalty(4));
         assertEquals(40, scoringConfig.getEscalatingFullscreenPenalty(5));
@@ -428,7 +444,9 @@ class ScoringAndLeaderboardSystemTest {
         }
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
-        assertEquals(105, updated.getAntiCheatPenalty()); // 15 + 20 + 30 + 40
+        assertEquals(0, updated.getAntiCheatPenalty(), "Anti-cheat must not deduct score");
+        assertEquals(4, antiCheatService.getTeamSummary(team.getId()).getTotalViolations());
+        assertEquals(4, antiCheatService.getTeamSummary(team.getId()).getFullscreenExitCount());
     }
 
     // ==========================================
@@ -466,7 +484,7 @@ class ScoringAndLeaderboardSystemTest {
     }
 
     @Test
-    @DisplayName("21. 2-Player team attribution: Player 2 incurs penalty -> Team final score reduced")
+    @DisplayName("21. Player 2 violation is logged without deducting team game score")
     void test21_Player2IncursPenaltyTeamScoreReduced() {
         scoringService.recordMiniGameCompletion(team.getId(), 1, 1); // +60 pts
         PlayerPrincipal p2 = createPrincipal(player2, team);
@@ -475,8 +493,8 @@ class ScoringAndLeaderboardSystemTest {
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
         assertEquals(60, updated.getBaseScore());
-        assertEquals(10, updated.getAntiCheatPenalty());
-        assertEquals(50, updated.getFinalScore(), "Player 2 violation must deduct from shared Team score.");
+        assertEquals(0, updated.getAntiCheatPenalty());
+        assertEquals(60, updated.getFinalScore(), "Player 2 violation must NOT deduct from Team score.");
     }
 
     // ==========================================
@@ -508,13 +526,13 @@ class ScoringAndLeaderboardSystemTest {
         // Team has 0 base score, incur multiple penalties
         scoringService.recordWrongAttempt(team.getId(), player1.getId(), 1, 1, 501L); // -5
         scoringService.recordHintUsage(team.getId(), player1.getId(), 1, 1, 1); // -5
-        scoringService.recordAntiCheatPenalty(team.getId(), player1.getId(), AntiCheatViolationType.TAB_SWITCH, 40, "INC-TEST-FLOOR");
+        scoringService.recordAntiCheatPenalty(team.getId(), player1.getId(), AntiCheatViolationType.TAB_SWITCH, 0, "INC-TEST-FLOOR");
 
         Team updated = teamRepository.findById(team.getId()).orElseThrow();
         assertEquals(0, updated.getBaseScore());
         assertEquals(5, updated.getWrongAttemptPenalty());
         assertEquals(5, updated.getHintPenalty());
-        assertEquals(40, updated.getAntiCheatPenalty());
+        assertEquals(0, updated.getAntiCheatPenalty());
         assertEquals(0, updated.getFinalScore(), "Final score must be bounded at floor 0.");
     }
 

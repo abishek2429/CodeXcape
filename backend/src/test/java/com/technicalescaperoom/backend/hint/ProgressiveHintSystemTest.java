@@ -96,95 +96,104 @@ class ProgressiveHintSystemTest {
     }
 
     @Test
-    @DisplayName("1. Verify initial state for new team (0 hints unlocked, all hint contents null)")
+    @DisplayName("1. Verify initial state for new team (15 independent stage hints, 0 hints unlocked, all contents null)")
     void testInitialHintState() {
         PlayerPrincipal p1Principal = createPrincipal(playerA1, teamA);
         PlayerHintsResponseDto hintsResponse = hintService.getHintsForPlayer(p1Principal);
 
         assertNotNull(hintsResponse);
-        assertEquals(6, hintsResponse.getTotalCount());
+        assertEquals(15, hintsResponse.getTotalCount(), "Expected exactly 15 stage hints.");
         assertEquals(0, hintsResponse.getUnlockedCount());
-        assertEquals(6, hintsResponse.getHints().size());
+        assertEquals(15, hintsResponse.getHints().size());
 
         for (PlayerHintDto hint : hintsResponse.getHints()) {
-            assertFalse(hint.getIsUnlocked(), "Hint for Level " + hint.getLevelNumber() + " must be locked initially.");
-            assertNull(hint.getHintContent(), "Hint content for locked Level " + hint.getLevelNumber() + " must be NULL.");
+            assertFalse(hint.getIsUnlocked(), "Hint for Level " + hint.getLevelNumber() + " Stage " + hint.getStageNumber() + " must be locked initially.");
+            assertNull(hint.getHintContent(), "Hint content for locked Level " + hint.getLevelNumber() + " Stage " + hint.getStageNumber() + " must be NULL.");
         }
     }
 
     @Test
-    @DisplayName("2. Verify Level 1 completion unlocks Hint 1 with content while Hints 2–6 remain locked (content null)")
-    void testLevel1CompletionUnlocksHint1() {
+    @DisplayName("2. Completing Level 1 without clicking REVEAL HINT never automatically reveals hints (TEST 1 & TEST 4)")
+    void testLevelCompletionDoesNotAutoRevealHints() {
         PlayerPrincipal p1 = createPrincipal(playerA1, teamA);
         PlayerPrincipal p2 = createPrincipal(playerA2, teamA);
-
-        Level l1 = levelRepository.findByLevelNumber(1).orElseThrow();
-        Question q1_P1 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(l1.getId(), QuestionPlayer.PLAYER_1).orElseThrow();
-        Question q1_P2 = questionRepository.findByLevelIdAndPlayerNumberAndIsActiveTrue(l1.getId(), QuestionPlayer.PLAYER_2).orElseThrow();
 
         // Submit correct answers for Level 1 (all stages)
         completeLevel(1, p1, p2);
 
+        // Verify hints remain strictly locked
+        PlayerHintsResponseDto hintsResponse = hintService.getHintsForPlayer(p1);
+        assertEquals(0, hintsResponse.getUnlockedCount(), "Completing a level must NEVER automatically unlock hints.");
+        assertEquals(0, teamA.getHintPenalty(), "No hint penalty should be applied on completion.");
+
+        for (PlayerHintDto hint : hintsResponse.getHints()) {
+            assertFalse(hint.getIsUnlocked(), "All hints must remain locked.");
+            assertNull(hint.getHintContent(), "Locked hint content must remain NULL.");
+        }
+    }
+
+    @Test
+    @DisplayName("3. Explicit hint reveal deducts 5 points, displays actual hint, and prevents duplicate charges (TEST 2, TEST 3, TEST 6)")
+    void testExplicitHintRevealAndDuplicatePrevention() {
+        PlayerPrincipal p1 = createPrincipal(playerA1, teamA);
+
+        // Initial team hint penalty is 0
+        assertEquals(0, teamA.getHintPenalty());
+
+        // Reveal Level 1 Stage 1 hint
+        var revealRes1 = hintService.useHint(p1, 1, 1, 1);
+        assertNotNull(revealRes1.getHintContent(), "Revealed hint content must be returned.");
+        assertFalse(revealRes1.getHintContent().isBlank(), "Hint content must not be blank.");
+        assertFalse(revealRes1.isAlreadyUsed());
+
+        Team updatedTeam = teamRepository.findById(teamA.getId()).orElseThrow();
+        assertEquals(5, updatedTeam.getHintPenalty(), "Hint penalty must be exactly 5 points.");
+
+        // Second click / repeat request: must NOT charge another 5 points
+        var revealRes2 = hintService.useHint(p1, 1, 1, 1);
+        assertTrue(revealRes2.isAlreadyUsed(), "Second reveal must be marked as already used.");
+        assertEquals(revealRes1.getHintContent(), revealRes2.getHintContent(), "Should return the same hint content.");
+
+        Team updatedTeam2 = teamRepository.findById(teamA.getId()).orElseThrow();
+        assertEquals(5, updatedTeam2.getHintPenalty(), "No additional penalty for duplicate hint reveal.");
+
+        // Verify in getHintsForPlayer: Level 1 Stage 1 is unlocked, Stage 2 is locked (TEST 5)
         PlayerHintsResponseDto hintsResponse = hintService.getHintsForPlayer(p1);
         assertEquals(1, hintsResponse.getUnlockedCount());
 
-        PlayerHintDto hint1 = hintsResponse.getHints().get(0);
-        assertTrue(hint1.getIsUnlocked(), "Hint 1 must be unlocked after Level 1 completion.");
-        assertNotNull(hint1.getHintContent(), "Hint 1 content must be populated when unlocked.");
-        assertFalse(hint1.getHintContent().isBlank());
+        PlayerHintDto l1s1 = hintsResponse.getHints().stream()
+                .filter(h -> h.getLevelNumber() == 1 && h.getStageNumber() == 1)
+                .findFirst().orElseThrow();
+        assertTrue(l1s1.getIsUnlocked());
+        assertNotNull(l1s1.getHintContent());
 
-        for (int i = 1; i < 6; i++) {
-            PlayerHintDto lockedHint = hintsResponse.getHints().get(i);
-            assertFalse(lockedHint.getIsUnlocked(), "Hint " + (i + 1) + " must remain locked.");
-            assertNull(lockedHint.getHintContent(), "Hint " + (i + 1) + " content must be NULL.");
-        }
+        PlayerHintDto l1s2 = hintsResponse.getHints().stream()
+                .filter(h -> h.getLevelNumber() == 1 && h.getStageNumber() == 2)
+                .findFirst().orElseThrow();
+        assertFalse(l1s2.getIsUnlocked());
+        assertNull(l1s2.getHintContent());
     }
 
     @Test
-    @DisplayName("3. Verify complete sequential progression from Level 1 to Level 6 unlocks Hints 1 to 6 progressively")
-    void testSequentialHintUnlockingThroughLevel6() {
-        PlayerPrincipal p1 = createPrincipal(playerA1, teamA);
-        PlayerPrincipal p2 = createPrincipal(playerA2, teamA);
-
-        for (int levelNum = 1; levelNum <= 6; levelNum++) {
-            completeLevel(levelNum, p1, p2);
-
-            PlayerHintsResponseDto hintsResponse = hintService.getHintsForPlayer(p1);
-            assertEquals(levelNum, hintsResponse.getUnlockedCount(), "Expected exactly " + levelNum + " unlocked hints after Level " + levelNum + " completion.");
-
-            for (int i = 0; i < levelNum; i++) {
-                assertTrue(hintsResponse.getHints().get(i).getIsUnlocked(), "Hint " + (i + 1) + " must be unlocked.");
-                assertNotNull(hintsResponse.getHints().get(i).getHintContent(), "Hint " + (i + 1) + " content must not be null.");
-            }
-
-            for (int i = levelNum; i < 6; i++) {
-                assertFalse(hintsResponse.getHints().get(i).getIsUnlocked(), "Hint " + (i + 1) + " must be locked.");
-                assertNull(hintsResponse.getHints().get(i).getHintContent(), "Hint " + (i + 1) + " content must be NULL.");
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("4. Verify strict team hint isolation (Team A progress does not leak to Team B)")
+    @DisplayName("4. Verify strict team hint isolation (Team A reveals hint, Team B remains locked)")
     void testTeamHintIsolation() {
         PlayerPrincipal p1A = createPrincipal(playerA1, teamA);
-        PlayerPrincipal p2A = createPrincipal(playerA2, teamA);
-
         PlayerPrincipal p1B = createPrincipal(playerB1, teamB);
 
-        // Team A completes Level 1 (all stages)
-        completeLevel(1, p1A, p2A);
+        // Team A reveals Level 1 Stage 1 hint
+        hintService.useHint(p1A, 1, 1, 1);
 
-        // Team A has Hint 1 unlocked
+        // Team A has 1 hint unlocked
         PlayerHintsResponseDto hintsA = hintService.getHintsForPlayer(p1A);
         assertEquals(1, hintsA.getUnlockedCount());
-        assertTrue(hintsA.getHints().get(0).getIsUnlocked());
 
         // Team B has 0 hints unlocked
         PlayerHintsResponseDto hintsB = hintService.getHintsForPlayer(p1B);
         assertEquals(0, hintsB.getUnlockedCount());
-        assertFalse(hintsB.getHints().get(0).getIsUnlocked());
-        assertNull(hintsB.getHints().get(0).getHintContent());
+        for (PlayerHintDto hint : hintsB.getHints()) {
+            assertFalse(hint.getIsUnlocked());
+            assertNull(hint.getHintContent());
+        }
     }
 
     @Test

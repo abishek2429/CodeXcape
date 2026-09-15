@@ -202,12 +202,8 @@ public class AntiCheatService {
 
         String incidentKey = "inc_" + team.getId() + "_p" + player.getPlayerNumber() + "_" + violationType.name() + "_#" + incidentNumber;
 
-        int penaltyPoints = switch (violationType) {
-            case TAB_SWITCH, PROLONGED_PAGE_HIDDEN -> scoringConfig.getEscalatingTabSwitchPenalty(incidentNumber);
-            case FULLSCREEN_EXIT -> scoringConfig.getEscalatingFullscreenPenalty(incidentNumber);
-        };
-
-        // Record authoritative penalty in ScoringService
+        // Anti-cheat events do NOT reduce game score directly.
+        int penaltyPoints = 0;
         scoringService.recordAntiCheatPenalty(team.getId(), player.getId(), violationType, penaltyPoints, incidentKey);
 
         AntiCheatEvent auditRecord = AntiCheatEvent.builder()
@@ -223,7 +219,7 @@ public class AntiCheatService {
                 .build();
         antiCheatEventRepository.save(auditRecord);
 
-        summary.setTotalPenaltyPoints(summary.getTotalPenaltyPoints() + penaltyPoints);
+        summary.setTotalPenaltyPoints(0);
         summary.setTotalViolations(summary.getTotalViolations() + 1);
         summary.setLastViolationAt(detectedAt);
 
@@ -237,9 +233,9 @@ public class AntiCheatService {
 
         teamAntiCheatSummaryRepository.saveAndFlush(summary);
 
-        log.warn("🚨 ANTI-CHEAT VIOLATION: Team {} | Player {} (P{}) | Type: {} (#{}) | -{} pts | Team Total: -{} pts",
+        log.warn("🚨 ANTI-CHEAT VIOLATION: Team {} | Player {} (P{}) | Type: {} (#{}) | Total Violations: {}",
                 team.getTeamCode(), player.getDisplayName(), player.getPlayerNumber(),
-                violationType, incidentNumber, penaltyPoints, summary.getTotalPenaltyPoints());
+                violationType, incidentNumber, summary.getTotalViolations());
 
         // Audit Trail Log
         auditService.logEvent(
@@ -247,24 +243,24 @@ public class AntiCheatService {
                 event,
                 team,
                 player,
-                String.format("{\"violationType\":\"%s\",\"penaltyPoints\":%d,\"teamTotal\":%d}",
-                        violationType.name(), penaltyPoints, summary.getTotalPenaltyPoints()),
+                String.format("{\"violationType\":\"%s\",\"totalViolations\":%d}",
+                        violationType.name(), summary.getTotalViolations()),
                 "ANTI_CHEAT"
         );
 
         String violationLabel = formatViolationLabel(violationType);
-        String alertMsg = String.format("ANTI-CHEAT ALERT: %s DETECTED (Player %d). Team Penalty: -%d pts (Team Total: -%d pts).",
-                violationLabel, player.getPlayerNumber(), penaltyPoints, summary.getTotalPenaltyPoints());
+        String alertMsg = String.format("ANTI-CHEAT ALERT: %s DETECTED (Player %d). Incident logged.",
+                violationLabel, player.getPlayerNumber());
 
         // Realtime WebSockets:
-        // 1. Notify Team channel (/topic/team/{id}) with alert & team total
+        // 1. Notify Team channel (/topic/team/{id}) with alert
         webSocketPublisher.notifyTeamAntiCheatAlert(
                 team.getId(),
                 team.getTeamCode(),
                 player.getPlayerNumber(),
                 violationType.name(),
-                penaltyPoints,
-                summary.getTotalPenaltyPoints(),
+                0,
+                0,
                 alertMsg
         );
 
@@ -276,8 +272,8 @@ public class AntiCheatService {
                 player.getPlayerNumber(),
                 player.getDisplayName(),
                 violationType.name(),
-                penaltyPoints,
-                summary.getTotalPenaltyPoints(),
+                0,
+                0,
                 summary.getTotalViolations(),
                 alertMsg
         );
@@ -290,8 +286,8 @@ public class AntiCheatService {
                 .deduplicated(false)
                 .incidentId(auditRecord.getId())
                 .violationType(violationType)
-                .penaltyPoints(penaltyPoints)
-                .teamTotalPenalties(summary.getTotalPenaltyPoints())
+                .penaltyPoints(0)
+                .teamTotalPenalties(0)
                 .message(alertMsg)
                 .build();
     }

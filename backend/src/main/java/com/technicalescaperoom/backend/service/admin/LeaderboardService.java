@@ -86,7 +86,11 @@ public class LeaderboardService {
             return null;
         }
 
-        allTeams.sort(getFastTeamComparator(team.getEvent()));
+        List<Long> teamIds = allTeams.stream().map(Team::getId).toList();
+        Map<Long, TeamAntiCheatSummary> summaryByTeam = teamAntiCheatSummaryRepository.findByTeamIdIn(teamIds).stream()
+                .collect(Collectors.toMap(TeamAntiCheatSummary::getTeamId, s -> s));
+
+        allTeams.sort(getFastTeamComparator(team.getEvent(), summaryByTeam));
 
         for (int i = 0; i < allTeams.size(); i++) {
             lastBroadcastRanks.put(allTeams.get(i).getId(), i + 1);
@@ -116,7 +120,11 @@ public class LeaderboardService {
         }
 
         Event event = eventRepository.findById(eventId).orElse(null);
-        allTeams.sort(getFastTeamComparator(event));
+        List<Long> teamIds = allTeams.stream().map(Team::getId).toList();
+        Map<Long, TeamAntiCheatSummary> summaryByTeam = teamAntiCheatSummaryRepository.findByTeamIdIn(teamIds).stream()
+                .collect(Collectors.toMap(TeamAntiCheatSummary::getTeamId, s -> s));
+
+        allTeams.sort(getFastTeamComparator(event, summaryByTeam));
 
         for (int i = 0; i < allTeams.size(); i++) {
             Team team = allTeams.get(i);
@@ -147,17 +155,14 @@ public class LeaderboardService {
         return levelMap;
     }
 
-    private int getEffectiveScore(Team team, Map<Long, TeamAntiCheatSummary> summaryByTeam) {
+    private int getEffectiveScore(Team team) {
         if (team.getFinalScore() != null && team.getFinalScore() > 0) {
             return team.getFinalScore();
         }
         int base = (team.getBaseScore() != null && team.getBaseScore() > 0) ? team.getBaseScore() : (team.getGameState() == TeamGameState.COMPLETED ? 1000 : 0);
-        int acPenalty = (team.getAntiCheatPenalty() != null && team.getAntiCheatPenalty() > 0)
-                ? team.getAntiCheatPenalty()
-                : (summaryByTeam != null && summaryByTeam.containsKey(team.getId()) ? summaryByTeam.get(team.getId()).getTotalPenaltyPoints() : 0);
         int wrongPenalty = (team.getWrongAttemptPenalty() != null) ? team.getWrongAttemptPenalty() : 0;
         int hintPenalty = (team.getHintPenalty() != null) ? team.getHintPenalty() : 0;
-        return Math.max(0, base - wrongPenalty - hintPenalty - acPenalty);
+        return Math.max(0, base - wrongPenalty - hintPenalty);
     }
 
     private Comparator<Team> getFastTeamComparator(Event event) {
@@ -173,28 +178,33 @@ public class LeaderboardService {
             if (t1Completed && !t2Completed) return -1;
             if (!t1Completed && t2Completed) return 1;
 
-            // 2. Game Progress: greater game progress (completed mini-games)
-            int p1 = (t1.getCompletedMiniGames() != null) ? t1.getCompletedMiniGames() : 0;
-            int p2 = (t2.getCompletedMiniGames() != null) ? t2.getCompletedMiniGames() : 0;
-            if (p1 != p2) {
-                return Integer.compare(p2, p1); // Descending (more mini-games ranks higher)
-            }
-
-            // 3. Final Competitive Score: higher score ranks higher
-            int s1 = getEffectiveScore(t1, summaryByTeam);
-            int s2 = getEffectiveScore(t2, summaryByTeam);
+            // 2. Higher legitimate GAME SCORE (Base points - hint penalties)
+            int s1 = getEffectiveScore(t1);
+            int s2 = getEffectiveScore(t2);
             if (s1 != s2) {
                 return Integer.compare(s2, s1); // Descending (higher score ranks higher)
             }
 
-            // 4. Completion Time: faster time ranks higher
+            // 3. Fewer anti-cheat events (Ranking integrity factor / tie-breaker)
+            int ac1 = (summaryByTeam != null && summaryByTeam.containsKey(t1.getId())) ? summaryByTeam.get(t1.getId()).getTotalViolations() : 0;
+            int ac2 = (summaryByTeam != null && summaryByTeam.containsKey(t2.getId())) ? summaryByTeam.get(t2.getId()).getTotalViolations() : 0;
+            if (ac1 != ac2) {
+                return Integer.compare(ac1, ac2); // Ascending (fewer violations ranks higher)
+            }
+
+            // 4. Faster legitimate completion time
             long d1 = calculateDurationSeconds(event, t1);
             long d2 = calculateDurationSeconds(event, t2);
             if (d1 != d2) {
                 return Long.compare(d1, d2); // Ascending (faster time ranks higher)
             }
 
-            // 5. Stable deterministic tie-breaker
+            // 5. Earlier completion timestamp
+            if (t1.getCompletedAt() != null && t2.getCompletedAt() != null && !t1.getCompletedAt().equals(t2.getCompletedAt())) {
+                return t1.getCompletedAt().compareTo(t2.getCompletedAt());
+            }
+
+            // 6. Stable deterministic tie-breaker
             return t1.getId().compareTo(t2.getId());
         };
     }
@@ -361,10 +371,6 @@ public class LeaderboardService {
             formattedDuration = formatDuration(durationSeconds);
         }
 
-        int antiCheatPenalties = (summary != null) ? summary.getTotalPenaltyPoints() : 0;
-        int finalAcPenalty = (team.getAntiCheatPenalty() != null && team.getAntiCheatPenalty() > 0)
-                ? team.getAntiCheatPenalty()
-                : antiCheatPenalties;
         int totalViolations = (summary != null) ? summary.getTotalViolations() : 0;
 
         return LeaderboardEntryDto.builder()
@@ -380,13 +386,13 @@ public class LeaderboardService {
                 .completedAt(team.getCompletedAt())
                 .durationSeconds(durationSeconds)
                 .formattedDuration(formattedDuration)
-                .antiCheatPenalties(finalAcPenalty)
+                .antiCheatPenalties(0)
                 .totalViolations(totalViolations)
-                .competitiveScore(competitiveScore)
+                .competitiveScore(team.getFinalScore())
                 .baseScore(team.getBaseScore())
                 .wrongAttemptPenalty(team.getWrongAttemptPenalty())
                 .hintPenalty(team.getHintPenalty())
-                .antiCheatPenalty(finalAcPenalty)
+                .antiCheatPenalty(0)
                 .finalScore(team.getFinalScore())
                 .completedMiniGames(team.getCompletedMiniGames())
                 .totalMiniGames(com.technicalescaperoom.backend.config.ScoringConfig.TOTAL_MINI_GAMES)

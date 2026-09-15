@@ -114,11 +114,11 @@ class LeaderboardRankingWithAntiCheatTest {
     }
 
     @Test
-    @DisplayName("Between two completed teams, team with fewer penalties ranks higher")
+    @DisplayName("Between two completed teams with same score, team with fewer anti-cheat violations ranks higher")
     void testCompletedTeams_FewerPenaltiesRanksHigher() {
         Instant now = Instant.now();
 
-        // Team Clean: 0 penalties, finished at T+500s
+        // Team Clean: 0 violations, finished at T+500s
         Team teamClean = Team.builder()
                 .id(1L)
                 .event(testEvent)
@@ -126,19 +126,23 @@ class LeaderboardRankingWithAntiCheatTest {
                 .teamName("Clean Team")
                 .status(TeamStatus.COMPLETED)
                 .gameState(TeamGameState.COMPLETED)
+                .baseScore(1000)
+                .finalScore(1000)
                 .startedAt(now.minusSeconds(1000))
                 .completedAt(now.minusSeconds(500))
                 .createdAt(now.minusSeconds(1000))
                 .build();
 
-        // Team Penalized: 30 penalty points, finished earlier at T+600s
+        // Team Penalized: 2 violations, finished at T+600s
         Team teamPenalized = Team.builder()
                 .id(2L)
                 .event(testEvent)
                 .teamCode("T-PENALIZED")
-                .teamName("Cheater Team")
+                .teamName("Penalized Team")
                 .status(TeamStatus.COMPLETED)
                 .gameState(TeamGameState.COMPLETED)
+                .baseScore(1000)
+                .finalScore(1000)
                 .startedAt(now.minusSeconds(1000))
                 .completedAt(now.minusSeconds(600))
                 .createdAt(now.minusSeconds(1000))
@@ -150,7 +154,7 @@ class LeaderboardRankingWithAntiCheatTest {
         TeamAntiCheatSummary summaryPenalized = TeamAntiCheatSummary.builder()
                 .teamId(2L)
                 .team(teamPenalized)
-                .totalPenaltyPoints(30)
+                .totalPenaltyPoints(0)
                 .totalViolations(2)
                 .build();
 
@@ -159,53 +163,107 @@ class LeaderboardRankingWithAntiCheatTest {
         List<LeaderboardEntryDto> leaderboard = leaderboardService.getLeaderboard(1L);
 
         assertEquals(2, leaderboard.size());
-        assertEquals("T-CLEAN", leaderboard.get(0).getTeamCode(), "Team with 0 penalties must rank #1");
-        assertEquals("T-PENALIZED", leaderboard.get(1).getTeamCode(), "Team with 30 penalties must rank #2");
-        assertEquals(0, leaderboard.get(0).getAntiCheatPenalties());
-        assertEquals(30, leaderboard.get(1).getAntiCheatPenalties());
+        assertEquals("T-CLEAN", leaderboard.get(0).getTeamCode(), "Team with 0 violations must rank #1");
+        assertEquals("T-PENALIZED", leaderboard.get(1).getTeamCode(), "Team with 2 violations must rank #2");
+        assertEquals(0, leaderboard.get(0).getTotalViolations());
+        assertEquals(2, leaderboard.get(1).getTotalViolations());
     }
 
     @Test
-    @DisplayName("Between in-progress teams at the same level, team with fewer penalties ranks higher")
-    void testInProgressTeams_TiedLevel_FewerPenaltiesRanksHigher() {
+    @DisplayName("TEST 11: Leaderboard tie with equal score (500) breaks in favor of fewer anti-cheat events")
+    void testLeaderboardTie_FewerViolationsWins() {
         Instant now = Instant.now();
 
-        Team teamClean = Team.builder()
+        // Team A: Score = 500, Anti-cheat events = 3
+        Team teamA = Team.builder()
                 .id(1L)
                 .event(testEvent)
-                .teamCode("T-CLEAN")
-                .teamName("Clean Team")
+                .teamCode("TEAM-A")
+                .teamName("Team A")
                 .status(TeamStatus.ACTIVE)
                 .gameState(TeamGameState.IN_PROGRESS)
+                .baseScore(500)
+                .finalScore(500)
                 .createdAt(now.minusSeconds(1000))
                 .build();
 
-        Team teamPenalized = Team.builder()
+        // Team B: Score = 500, Anti-cheat events = 0
+        Team teamB = Team.builder()
                 .id(2L)
                 .event(testEvent)
-                .teamCode("T-PENALIZED")
-                .teamName("Penalized Team")
+                .teamCode("TEAM-B")
+                .teamName("Team B")
                 .status(TeamStatus.ACTIVE)
                 .gameState(TeamGameState.IN_PROGRESS)
+                .baseScore(500)
+                .finalScore(500)
                 .createdAt(now.minusSeconds(1000))
                 .build();
 
-        when(teamRepository.findByEventId(1L)).thenReturn(Arrays.asList(teamPenalized, teamClean));
+        when(teamRepository.findByEventId(1L)).thenReturn(Arrays.asList(teamA, teamB));
         when(teamLevelProgressRepository.findByTeamIdInOrderByLevelIdAsc(any())).thenReturn(Collections.emptyList());
 
-        TeamAntiCheatSummary summaryPenalized = TeamAntiCheatSummary.builder()
-                .teamId(2L)
-                .team(teamPenalized)
-                .totalPenaltyPoints(20)
-                .totalViolations(2)
+        TeamAntiCheatSummary summaryA = TeamAntiCheatSummary.builder()
+                .teamId(1L)
+                .team(teamA)
+                .totalViolations(3)
                 .build();
 
-        when(teamAntiCheatSummaryRepository.findByTeamIdIn(any())).thenReturn(List.of(summaryPenalized));
+        when(teamAntiCheatSummaryRepository.findByTeamIdIn(any())).thenReturn(List.of(summaryA));
 
         List<LeaderboardEntryDto> leaderboard = leaderboardService.getLeaderboard(1L);
 
         assertEquals(2, leaderboard.size());
-        assertEquals("T-CLEAN", leaderboard.get(0).getTeamCode(), "Clean team must rank higher than penalized team at same level");
-        assertEquals("T-PENALIZED", leaderboard.get(1).getTeamCode());
+        assertEquals("TEAM-B", leaderboard.get(0).getTeamCode(), "Team B (0 events) must rank higher than Team A (3 events)");
+        assertEquals("TEAM-A", leaderboard.get(1).getTeamCode());
+    }
+
+    @Test
+    @DisplayName("TEST 12: Legitimate Game Score is primary over anti-cheat count (500 pts / 5 AC ranks above 490 pts / 0 AC)")
+    void testLeaderboard_LegitimateScoreIsPrimary() {
+        Instant now = Instant.now();
+
+        // Team A: Score = 500, Anti-cheat events = 5
+        Team teamA = Team.builder()
+                .id(1L)
+                .event(testEvent)
+                .teamCode("TEAM-A")
+                .teamName("Team A")
+                .status(TeamStatus.ACTIVE)
+                .gameState(TeamGameState.IN_PROGRESS)
+                .baseScore(500)
+                .finalScore(500)
+                .createdAt(now.minusSeconds(1000))
+                .build();
+
+        // Team B: Score = 490, Anti-cheat events = 0
+        Team teamB = Team.builder()
+                .id(2L)
+                .event(testEvent)
+                .teamCode("TEAM-B")
+                .teamName("Team B")
+                .status(TeamStatus.ACTIVE)
+                .gameState(TeamGameState.IN_PROGRESS)
+                .baseScore(490)
+                .finalScore(490)
+                .createdAt(now.minusSeconds(1000))
+                .build();
+
+        when(teamRepository.findByEventId(1L)).thenReturn(Arrays.asList(teamB, teamA));
+        when(teamLevelProgressRepository.findByTeamIdInOrderByLevelIdAsc(any())).thenReturn(Collections.emptyList());
+
+        TeamAntiCheatSummary summaryA = TeamAntiCheatSummary.builder()
+                .teamId(1L)
+                .team(teamA)
+                .totalViolations(5)
+                .build();
+
+        when(teamAntiCheatSummaryRepository.findByTeamIdIn(any())).thenReturn(List.of(summaryA));
+
+        List<LeaderboardEntryDto> leaderboard = leaderboardService.getLeaderboard(1L);
+
+        assertEquals(2, leaderboard.size());
+        assertEquals("TEAM-A", leaderboard.get(0).getTeamCode(), "Team A (500 pts) must remain ahead of Team B (490 pts) despite 5 AC events");
+        assertEquals("TEAM-B", leaderboard.get(1).getTeamCode());
     }
 }

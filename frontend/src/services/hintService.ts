@@ -3,6 +3,7 @@ import { getAuthHeaders } from './playerAuthService';
 
 export interface PlayerHintResponse {
   levelNumber: number;
+  stageNumber?: number;
   hintNumber: number;
   hintContent: string | null;
   isUnlocked: boolean;
@@ -30,6 +31,7 @@ export async function fetchPlayerHints(): Promise<HintData[]> {
     const data: PlayerHintsResponse = await response.json();
     return data.hints.map((h) => ({
       levelNumber: h.levelNumber,
+      stageNumber: h.stageNumber,
       hintNumber: h.hintNumber,
       hintContent: h.hintContent,
       isUnlocked: h.isUnlocked,

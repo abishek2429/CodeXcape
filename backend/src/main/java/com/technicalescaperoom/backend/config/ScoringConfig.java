@@ -40,10 +40,11 @@ public class ScoringConfig {
     // Wrong Attempt Penalty
     public static final int WRONG_ATTEMPT_PENALTY = 5; // -5 points per valid incorrect submission
 
-    // Progressive Hint Penalties per mini-game (up to 3 hints)
+    // Stage Hint Penalty: Exactly 5 points per revealed stage hint
+    public static final int STAGE_HINT_PENALTY = 5;
     public static final int HINT_1_PENALTY = 5;  // -5
-    public static final int HINT_2_PENALTY = 10; // -10
-    public static final int HINT_3_PENALTY = 15; // -15 (Total for 3 hints: -30)
+    public static final int HINT_2_PENALTY = 5;  // -5
+    public static final int HINT_3_PENALTY = 5;  // -5
 
     // Escalating Tab Switch Penalties (per team)
     // 1st: -10, 2nd: -15, 3rd: -20, 4th: -30, 5th+: -40
@@ -67,12 +68,7 @@ public class ScoringConfig {
     }
 
     public int getPenaltyForHint(int hintNumber) {
-        return switch (hintNumber) {
-            case 1 -> HINT_1_PENALTY;
-            case 2 -> HINT_2_PENALTY;
-            case 3 -> HINT_3_PENALTY;
-            default -> 0;
-        };
+        return STAGE_HINT_PENALTY;
     }
 
     public int getEscalatingTabSwitchPenalty(int incidentNumber) {

@@ -14,7 +14,7 @@ interface HintPanelProps {
 
 export const HintPanel: React.FC<HintPanelProps> = ({
   hints,
-  currentLevel,
+  currentLevel = 1,
   currentStage = 1,
   isOpen,
   onClose,
@@ -22,12 +22,21 @@ export const HintPanel: React.FC<HintPanelProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const handleRequest = (hintNum: number) => {
+  const handleRequest = (hintNum: number = 1) => {
     soundService.playClick();
     if (onUseHint) {
       onUseHint(hintNum);
     }
   };
+
+  const currentStageHint = hints.find(
+    (h) => h.levelNumber === currentLevel && (h.stageNumber === currentStage || (!h.stageNumber && currentStage === 1))
+  );
+  const isCurrentUnlocked = Boolean(currentStageHint?.isUnlocked && currentStageHint?.hintContent);
+
+  const previousRevealedHints = hints.filter(
+    (h) => h.levelNumber === currentLevel && h.stageNumber !== undefined && h.stageNumber !== currentStage && h.isUnlocked && Boolean(h.hintContent)
+  );
 
   return (
     <div className="drawer-overlay animate-fade-in" onClick={onClose} role="dialog" aria-modal="true">
@@ -42,7 +51,7 @@ export const HintPanel: React.FC<HintPanelProps> = ({
             <div>
               <h2 className="drawer-title">STAGE HINTS</h2>
               <p className="drawer-subtitle">
-                LEVEL 0{currentLevel || 1} · STAGE 0{currentStage}
+                LEVEL 0{currentLevel} · STAGE 0{currentStage}
               </p>
             </div>
           </div>
@@ -59,59 +68,64 @@ export const HintPanel: React.FC<HintPanelProps> = ({
 
         {/* Hints Content */}
         <div className="drawer-body">
-          {hints.length === 0 ? (
-            <div className="hints-empty-state">
-              <p>NO HINTS CURRENTLY LOGGED FOR THIS STAGE.</p>
-            </div>
-          ) : (
-            <div className="hints-list">
-              {hints.map((hint, idx) => {
-                const hintNum = hint.hintNumber || idx + 1;
-                const isUnlocked = hint.isUnlocked && !!hint.hintContent;
+          <div className="hints-list">
+            {/* Current Stage Hint */}
+            <div className={`hint-item ${isCurrentUnlocked ? 'unlocked' : 'locked'}`}>
+              <div className="hint-item-header">
+                <div className="hint-item-title">
+                  {isCurrentUnlocked ? (
+                    <Unlock size={13} style={{ color: 'var(--status-warning)' }} />
+                  ) : (
+                    <Lock size={13} style={{ color: 'var(--text-muted)' }} />
+                  )}
+                  <span>STAGE 0{currentStage} HINT</span>
+                </div>
 
-                return (
-                  <div
-                    key={`${hint.levelNumber}-${hintNum}`}
-                    className={`hint-item ${isUnlocked ? 'unlocked' : 'locked'}`}
+                {isCurrentUnlocked && (
+                  <span className="hint-unlocked-badge">REVEALED</span>
+                )}
+              </div>
+
+              {isCurrentUnlocked ? (
+                <div className="hint-content-box">
+                  <p className="hint-content-text">{currentStageHint?.hintContent}</p>
+                </div>
+              ) : (
+                <div className="hint-lock-action">
+                  <p className="hint-prompt-text">
+                    Unlock a tactical hint for this stage (-5 pts).
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleRequest(1)}
+                    className="hint-request-btn"
                   >
-                    <div className="hint-item-header">
-                      <div className="hint-item-title">
-                        {isUnlocked ? (
-                          <Unlock size={13} style={{ color: 'var(--status-warning)' }} />
-                        ) : (
-                          <Lock size={13} style={{ color: 'var(--text-muted)' }} />
-                        )}
-                        <span>HINT 0{hintNum}</span>
-                      </div>
-
-                      {isUnlocked && (
-                        <span className="hint-unlocked-badge">REVEALED</span>
-                      )}
-                    </div>
-
-                    {isUnlocked ? (
-                      <div className="hint-content-box">
-                        <p className="hint-content-text">{hint.hintContent}</p>
-                      </div>
-                    ) : (
-                      <div className="hint-lock-action">
-                        <p className="hint-prompt-text">
-                          Unlock a tactical hint for this stage.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => handleRequest(hintNum)}
-                          className="hint-request-btn"
-                        >
-                          <span>REVEAL HINT 0{hintNum}</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                    <span>REVEAL HINT (-5 PTS)</span>
+                  </button>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Previously Revealed Hints in Current Level */}
+            {previousRevealedHints.map((prevHint) => (
+              <div
+                key={`prev-${prevHint.levelNumber}-${prevHint.stageNumber}`}
+                className="hint-item unlocked"
+                style={{ marginTop: '16px', opacity: 0.85 }}
+              >
+                <div className="hint-item-header">
+                  <div className="hint-item-title">
+                    <Unlock size={13} style={{ color: 'var(--status-warning)' }} />
+                    <span>STAGE 0{prevHint.stageNumber} HINT (PREVIOUS)</span>
+                  </div>
+                  <span className="hint-unlocked-badge">REVEALED</span>
+                </div>
+                <div className="hint-content-box">
+                  <p className="hint-content-text">{prevHint.hintContent}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

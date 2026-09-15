@@ -276,10 +276,10 @@ public class SystemLoadAndConcurrencyTest {
                     }
                 }
 
-                // Hint retrieval validation (count unlocked hints)
+                // Hint retrieval validation: No hints auto-reveal on level completion
                 PlayerHintsResponseDto hintsRes = hintService.getHintsForPlayer(tp.p1);
                 long unlockedCount = hintsRes.getHints().stream().filter(h -> Boolean.TRUE.equals(h.getIsUnlocked())).count();
-                assertThat(unlockedCount).isEqualTo(lvl);
+                assertThat(unlockedCount).isEqualTo(0L);
             }
         }
 

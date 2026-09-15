@@ -484,10 +484,39 @@ export const PlayerGamePage: React.FC = () => {
     }
   };
 
-  const handleUseHint = async (hintNumber: number) => {
+  const handleUseHint = async (hintNumber: number = 1) => {
     try {
-      await usePlayerHint(gameState.currentLevel, liveQuestion?.stageNumber || 1, hintNumber);
+      const currentStageNum = liveQuestion?.stageNumber || 1;
+      const res = await usePlayerHint(gameState.currentLevel, currentStageNum, hintNumber);
       soundService.playClueDiscover();
+
+      if (res && res.hintContent) {
+        setHints((prev) => {
+          const updated = [...prev];
+          const idx = updated.findIndex(
+            (h) => h.levelNumber === gameState.currentLevel && (h.stageNumber === currentStageNum || (!h.stageNumber && currentStageNum === 1))
+          );
+          if (idx >= 0) {
+            updated[idx] = {
+              ...updated[idx],
+              stageNumber: currentStageNum,
+              isUnlocked: true,
+              hintContent: res.hintContent,
+            };
+          } else {
+            updated.push({
+              levelNumber: gameState.currentLevel,
+              stageNumber: currentStageNum,
+              hintNumber: 1,
+              isUnlocked: true,
+              hintContent: res.hintContent,
+            });
+          }
+          return updated;
+        });
+        setFeedbackIsError(false);
+        setFeedbackMsg('Hint revealed — 5 points deducted.');
+      }
       await loadData();
     } catch (err: any) {
       soundService.playError();

@@ -106,7 +106,7 @@ public class ScoringService {
 
     @Transactional
     public void recordHintUsage(Long teamId, Long playerId, int levelNumber, int stageNumber, int hintNumber) {
-        String referenceId = "HINT_L" + levelNumber + "_S" + stageNumber + "_H" + hintNumber;
+        String referenceId = "HINT_L" + levelNumber + "_S" + stageNumber;
         if (scoreEventRepository.existsByTeamIdAndReferenceId(teamId, referenceId)) {
             log.info("Hint penalty already recorded for Team {} (Ref: {}). Idempotently skipping.", teamId, referenceId);
             return;
@@ -132,52 +132,23 @@ public class ScoringService {
                 .eventType(ScoreEventType.HINT_USED)
                 .referenceId(referenceId)
                 .pointsDelta(-penalty)
-                .reason(String.format("Used Hint %d on Level %d Mini-Game %d (-%d pts)", hintNumber, levelNumber, stageNumber, penalty))
+                .reason(String.format("Revealed hint for Level %d Stage %d (-%d pts)", levelNumber, stageNumber, penalty))
                 .build();
         scoreEventRepository.save(event);
         teamRepository.saveAndFlush(team);
 
-        log.info("Hint penalty applied to Team {}: -{} pts for Hint {}. Total Hint Penalty: {}, Final Score: {}",
-                team.getTeamCode(), penalty, hintNumber, team.getHintPenalty(), team.getFinalScore());
+        log.info("Hint penalty applied to Team {}: -{} pts for Level {} Stage {}. Total Hint Penalty: {}, Final Score: {}",
+                team.getTeamCode(), penalty, levelNumber, stageNumber, team.getHintPenalty(), team.getFinalScore());
 
         broadcastScoreUpdate(team);
     }
 
     @Transactional
     public void recordAntiCheatPenalty(Long teamId, Long playerId, AntiCheatViolationType violationType, int penaltyPoints, String incidentKey) {
-        if (incidentKey != null && scoreEventRepository.existsByTeamIdAndReferenceId(teamId, incidentKey)) {
-            log.info("Anti-cheat penalty already recorded for incident {} (Team {}). Idempotently skipping.", incidentKey, teamId);
-            return;
-        }
-
-        Team team = teamRepository.findForUpdateById(teamId)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found for ID: " + teamId));
-
-        if (incidentKey != null && scoreEventRepository.existsByTeamIdAndReferenceId(teamId, incidentKey)) {
-            return;
-        }
-
-        Player player = (playerId != null) ? playerRepository.findById(playerId).orElse(null) : null;
-
-        team.setAntiCheatPenalty(team.getAntiCheatPenalty() + penaltyPoints);
-
-        recomputeFinalScore(team);
-
-        ScoreEvent event = ScoreEvent.builder()
-                .team(team)
-                .player(player)
-                .eventType(ScoreEventType.ANTI_CHEAT)
-                .referenceId(incidentKey)
-                .pointsDelta(-penaltyPoints)
-                .reason(String.format("Anti-cheat violation: %s (-%d pts)", violationType.name(), penaltyPoints))
-                .build();
-        scoreEventRepository.save(event);
-        teamRepository.saveAndFlush(team);
-
-        log.info("Anti-cheat penalty applied to Team {}: -{} pts for {}. Total AC Penalty: {}, Final Score: {}",
-                team.getTeamCode(), penaltyPoints, violationType.name(), team.getAntiCheatPenalty(), team.getFinalScore());
-
-        broadcastScoreUpdate(team);
+        // Anti-cheat events must NOT reduce game score directly.
+        // Forensic audit logging is maintained by AntiCheatService in AntiCheatEvent.
+        log.info("Anti-cheat violation logged for Team {} (Type: {}, Key: {}). No direct score deduction applied.",
+                teamId, violationType != null ? violationType.name() : "UNKNOWN", incidentKey);
     }
 
     @Transactional
@@ -294,8 +265,7 @@ public class ScoringService {
     private void recomputeFinalScore(Team team) {
         int rawScore = team.getBaseScore()
                 - team.getWrongAttemptPenalty()
-                - team.getHintPenalty()
-                - team.getAntiCheatPenalty();
+                - team.getHintPenalty();
         team.setFinalScore(Math.max(0, rawScore));
     }
 

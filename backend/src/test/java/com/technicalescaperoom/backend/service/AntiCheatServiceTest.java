@@ -121,7 +121,7 @@ class AntiCheatServiceTest {
     }
 
     @Test
-    @DisplayName("Tab switch violation applies 10 points penalty to team and broadcasts alerts")
+    @DisplayName("Tab switch violation logs incident for team without deducting game score")
     void testProcessPlayerEvent_TabSwitch_AppliesPenalty() {
         when(teamRepository.findById(10L)).thenReturn(Optional.of(testTeam));
         when(playerRepository.findById(101L)).thenReturn(Optional.of(player1));
@@ -138,23 +138,23 @@ class AntiCheatServiceTest {
         assertTrue(response.isAccepted());
         assertFalse(response.isDeduplicated());
         assertEquals(AntiCheatViolationType.TAB_SWITCH, response.getViolationType());
-        assertEquals(10, response.getPenaltyPoints());
-        assertEquals(10, response.getTeamTotalPenalties());
+        assertEquals(0, response.getPenaltyPoints());
+        assertEquals(0, response.getTeamTotalPenalties());
 
         // Verify audit event was saved
         verify(antiCheatEventRepository, times(1)).save(any(AntiCheatEvent.class));
 
-        // Verify team summary was updated
+        // Verify team summary was updated with violation count
         ArgumentCaptor<TeamAntiCheatSummary> summaryCaptor = ArgumentCaptor.forClass(TeamAntiCheatSummary.class);
         verify(teamAntiCheatSummaryRepository, times(1)).saveAndFlush(summaryCaptor.capture());
         TeamAntiCheatSummary savedSummary = summaryCaptor.getValue();
-        assertEquals(10, savedSummary.getTotalPenaltyPoints());
+        assertEquals(0, savedSummary.getTotalPenaltyPoints());
         assertEquals(1, savedSummary.getTotalViolations());
         assertEquals(1, savedSummary.getTabSwitchCount());
 
         // Verify WebSockets and leaderboard recalculation
-        verify(webSocketPublisher, times(1)).notifyTeamAntiCheatAlert(eq(10L), eq("ALPHA"), eq(1), eq("TAB_SWITCH"), eq(10), eq(10), anyString());
-        verify(webSocketPublisher, times(1)).notifyAdminAntiCheatEvent(eq(10L), eq("ALPHA"), eq(101L), eq(1), eq("Alice"), eq("TAB_SWITCH"), eq(10), eq(10), eq(1), anyString());
+        verify(webSocketPublisher, times(1)).notifyTeamAntiCheatAlert(eq(10L), eq("ALPHA"), eq(1), eq("TAB_SWITCH"), eq(0), eq(0), anyString());
+        verify(webSocketPublisher, times(1)).notifyAdminAntiCheatEvent(eq(10L), eq("ALPHA"), eq(101L), eq(1), eq("Alice"), eq("TAB_SWITCH"), eq(0), eq(0), eq(1), anyString());
         verify(leaderboardService, times(1)).recalculateAndBroadcastRanks(eq(1L), eq(webSocketPublisher));
     }
 
@@ -170,10 +170,10 @@ class AntiCheatServiceTest {
                 .clientTimestamp(System.currentTimeMillis())
                 .build();
 
-        // First occurrence -> penalized
+        // First occurrence -> accepted, 0 score penalty
         AntiCheatEventResponseDto res1 = antiCheatService.processPlayerEvent(principalP1, request);
         assertTrue(res1.isAccepted());
-        assertEquals(10, res1.getPenaltyPoints());
+        assertEquals(0, res1.getPenaltyPoints());
 
         // Second occurrence immediately -> deduplicated, 0 penalty
         AntiCheatEventResponseDto res2 = antiCheatService.processPlayerEvent(principalP1, request);
@@ -199,7 +199,7 @@ class AntiCheatServiceTest {
         // 1. Fullscreen exit occurs
         AntiCheatEventResponseDto fsRes = antiCheatService.processPlayerEvent(principalP1, fsRequest);
         assertTrue(fsRes.isAccepted());
-        assertEquals(15, fsRes.getPenaltyPoints());
+        assertEquals(0, fsRes.getPenaltyPoints());
 
         // 2. Tab switch follows immediately (browser blur/hidden when leaving fullscreen)
         AntiCheatReportRequest tabRequest = AntiCheatReportRequest.builder()
@@ -234,12 +234,12 @@ class AntiCheatServiceTest {
     }
 
     @Test
-    @DisplayName("Team penalty belongs to the entire team and aggregates across both players")
+    @DisplayName("Team violation counts aggregate across both players without score deduction")
     void testProcessPlayerEvent_TeamAggregation_BothPlayers() {
         TeamAntiCheatSummary summary = TeamAntiCheatSummary.builder()
                 .teamId(10L)
                 .team(testTeam)
-                .totalPenaltyPoints(10)
+                .totalPenaltyPoints(0)
                 .totalViolations(1)
                 .tabSwitchCount(1)
                 .fullscreenExitCount(0)
@@ -269,9 +269,9 @@ class AntiCheatServiceTest {
         AntiCheatEventResponseDto response = antiCheatService.processPlayerEvent(principalP2, request);
 
         assertTrue(response.isAccepted());
-        assertEquals(15, response.getPenaltyPoints());
-        assertEquals(25, response.getTeamTotalPenalties()); // 10 from P1 + 15 from P2
-        assertEquals(25, summary.getTotalPenaltyPoints());
+        assertEquals(0, response.getPenaltyPoints());
+        assertEquals(0, response.getTeamTotalPenalties());
+        assertEquals(0, summary.getTotalPenaltyPoints());
         assertEquals(2, summary.getTotalViolations());
         assertEquals(1, summary.getFullscreenExitCount());
     }
