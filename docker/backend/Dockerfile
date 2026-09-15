@@ -23,4 +23,4 @@ COPY --from=builder --chown=codexcape:codexcape /app/backend/target/*.jar app.ja
 
 EXPOSE 10000
 
-ENTRYPOINT ["java", "-Xmx350m", "-Xms200m", "-XX:+UseG1GC", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-Xmx380m", "-XX:+UseSerialGC", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]

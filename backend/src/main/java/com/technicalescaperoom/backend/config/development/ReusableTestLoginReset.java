@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 
+@Profile("!prod")
 @Component
 public class ReusableTestLoginReset implements CommandLineRunner {
 
