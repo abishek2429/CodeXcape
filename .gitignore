@@ -49,3 +49,8 @@ logs/
 *.bak
 backups/
 
+# Sensitive Challenge / Puzzle Documentation & Secrets
+docs/CODEXCAPE_HARD_COOPERATIVE_QUESTIONS_AND_PUZZLES.md
+*CODEXCAPE*QUESTIONS*.md
+*CODEXCAPE*PUZZLES*.md
+

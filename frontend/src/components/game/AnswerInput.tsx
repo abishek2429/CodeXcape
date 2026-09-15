@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, CheckCircle2, Terminal } from 'lucide-react';
 import { AnswerType } from '../../types/game';
 import { CinematicButton } from '../cinematic/CinematicButton';
@@ -9,6 +9,7 @@ interface AnswerInputProps {
   placeholderText?: string;
   options?: string[];
   puzzleMetadata?: string;
+  stageKey?: string;
   onSubmit: (answer: string, interactionPayload?: string) => void;
   isSubmitting?: boolean;
 }
@@ -18,11 +19,18 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
   placeholderText,
   options: propOptions,
   puzzleMetadata,
+  stageKey,
   onSubmit,
   isSubmitting = false,
 }) => {
   const [answer, setAnswer] = useState('');
   const [submittedFeedback, setSubmittedFeedback] = useState<string | null>(null);
+
+  // Reset answer field whenever the active stage changes
+  useEffect(() => {
+    setAnswer('');
+    setSubmittedFeedback(null);
+  }, [stageKey]);
 
   // Parse options safely from metadata if not explicitly provided as prop
   let availableOptions: string[] = propOptions || [];
@@ -81,7 +89,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
       >
         <h2
           style={{
-            fontSize: '12px',
+            fontSize: '13px',
             letterSpacing: '0.12em',
             fontWeight: 800,
             display: 'flex',
@@ -93,7 +101,7 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
           }}
         >
           <Terminal size={15} />
-          <span>SOLUTION DISPATCH CONSOLE</span>
+          <span>TEAM ANSWER</span>
         </h2>
         <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
           {answerType} INPUT MODE
@@ -212,13 +220,13 @@ export const AnswerInput: React.FC<AnswerInputProps> = ({
             variant="primary"
             type="submit"
             disabled={!answer.trim() || isSubmitting}
-            style={{ width: '100%', padding: '14px', fontSize: '13px' }}
+            style={{ width: '100%', padding: '14px', fontSize: '13px', fontWeight: 800, letterSpacing: '0.1em' }}
           >
             {isSubmitting ? (
-              <span>TRANSMITTING SOLUTION...</span>
+              <span>SUBMITTING ANSWER...</span>
             ) : (
               <>
-                <span>TRANSMIT SOLUTION</span>
+                <span>SUBMIT</span>
                 <Send size={15} />
               </>
             )}

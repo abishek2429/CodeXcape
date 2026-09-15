@@ -14,9 +14,7 @@ interface AdminMissionHeaderProps {
 export const AdminMissionHeader: React.FC<AdminMissionHeaderProps> = ({
   eventStatus = 'LIVE',
   totalTeams = 0,
-  completedTeams = 0,
   activeTeams = 0,
-  connectionsCount = '0 / 0',
   rightAction,
 }) => {
   const isLive = eventStatus === 'RUNNING' || eventStatus === 'LIVE';
@@ -42,11 +40,10 @@ export const AdminMissionHeader: React.FC<AdminMissionHeaderProps> = ({
         <div>
           <div className="admin-mission-title">
             <span>CODEXCAPE</span>
-            <span style={{ color: 'var(--accent-crimson)' }}>//</span>
-            <span style={{ color: 'var(--accent-cyan)' }}>MISSION CONTROL</span>
+            <span style={{ color: 'var(--accent-crimson)', margin: '0 4px' }}>ADMIN</span>
           </div>
           <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-            EVENT COMMAND & TELEMETRY CENTER
+            EVENT COMMAND & MONITORING CENTER
           </div>
         </div>
       </div>
@@ -67,24 +64,10 @@ export const AdminMissionHeader: React.FC<AdminMissionHeaderProps> = ({
           <span className="admin-counter-value value-cyan">{activeTeams}</span>
         </div>
 
-        {/* Completed */}
+        {/* Total Teams */}
         <div className="admin-counter-pill">
-          <span className="admin-counter-label">COMPLETED</span>
-          <span className="admin-counter-value value-live">{completedTeams}</span>
-        </div>
-
-        {/* In Progress */}
-        <div className="admin-counter-pill">
-          <span className="admin-counter-label">IN PROGRESS</span>
-          <span className="admin-counter-value value-warning">
-            {Math.max(0, totalTeams - completedTeams)}
-          </span>
-        </div>
-
-        {/* Connections */}
-        <div className="admin-counter-pill">
-          <span className="admin-counter-label">CONNECTIONS</span>
-          <span className="admin-counter-value">{connectionsCount}</span>
+          <span className="admin-counter-label">TOTAL TEAMS</span>
+          <span className="admin-counter-value">{totalTeams}</span>
         </div>
 
         {rightAction && <div>{rightAction}</div>}

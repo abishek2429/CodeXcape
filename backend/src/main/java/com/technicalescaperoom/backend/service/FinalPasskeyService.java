@@ -112,9 +112,21 @@ public class FinalPasskeyService {
             }
         }
 
-        if (!isCorrect && "849201".equals(submittedPasskey)) {
-            log.info("Cooperative master passkey '849201' verified for Team {}.", team.getTeamCode());
-            isCorrect = true;
+        if (!isCorrect) {
+            String norm = submittedPasskey.toUpperCase().replaceAll("[^A-Z0-9]", "");
+            if ("849201".equals(submittedPasskey)
+                    || norm.equals("TIME")
+                    || norm.contains("TIME")
+                    || norm.contains("INVARIANCE")
+                    || norm.contains("INVARIANT")
+                    || norm.contains("STATE")
+                    || norm.contains("LOGIC")
+                    || norm.contains("OBSERVATION")
+                    || norm.contains("CHANGE")
+                    || norm.contains("PERSPECTIVE")) {
+                log.info("Cooperative final meta riddle deduction verified for Team {}.", team.getTeamCode());
+                isCorrect = true;
+            }
         }
 
         if (!isCorrect) {

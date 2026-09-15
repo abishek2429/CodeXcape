@@ -10,11 +10,13 @@ import { ChallengePanel } from '../../components/game/ChallengePanel';
 import { AnswerInput } from '../../components/game/AnswerInput';
 import { PartnerStatus } from '../../components/game/PartnerStatus';
 import { HintPanel } from '../../components/game/HintPanel';
-import { FinalTerminal } from '../../components/game/FinalTerminal';
+import { FinalDeductionTerminal } from '../../components/game/FinalDeductionTerminal';
+import { MysteryBoard } from '../../components/game/MysteryBoard';
+import { RiddleRevealModal } from '../../components/game/RiddleRevealModal';
 import { GameStatus } from '../../components/game/GameStatus';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { GameErrorState } from '../../components/game/GameErrorState';
-import { Shield, ShieldAlert, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy, Activity } from 'lucide-react';
+import { Shield, ShieldAlert, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy } from 'lucide-react';
 import { GameSessionState, ChallengeData } from '../../types/game';
 import { useAntiCheat } from '../../hooks/useAntiCheat';
 
@@ -26,7 +28,6 @@ import { OpeningBriefingModal } from '../../components/game/OpeningBriefingModal
 import { LevelTransitionModal } from '../../components/game/LevelTransitionModal';
 import { CoreEntryModal } from '../../components/game/CoreEntryModal';
 import { FinalRestorationModal } from '../../components/game/FinalRestorationModal';
-import { InvestigationDossier } from '../../components/game/InvestigationDossier';
 import { CinematicStoryModal } from '../../components/game/CinematicStoryModal';
 import { fetchCurrentStory, skipStory, completeStory } from '../../services/storySyncService';
 import { STORY_SEQUENCES, StorySequence } from '../../config/storyConfig';
@@ -53,6 +54,7 @@ export type LevelTransitionStage =
   | 'BLACK_TRANSITION_COMPLETE'
   | 'NEXT_LEVEL_STORY'
   | 'NEXT_LEVEL_STORY_COMPLETE'
+  | 'MYSTERY_REVEAL'
   | 'NEXT_LEVEL_READY';
 
 export const PlayerGamePage: React.FC = () => {
@@ -61,7 +63,7 @@ export const PlayerGamePage: React.FC = () => {
   const [serverState, setServerState] = useState<PlayerGameStateResponse | null>(null);
   const [liveQuestion, setLiveQuestion] = useState<PlayerQuestionResponse | null>(null);
   const [hints, setHints] = useState<HintData[]>([]);
-  const [storyline, setStoryline] = useState<StorylineData | null>(null);
+  const [_storyline, setStoryline] = useState<StorylineData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSystemInitialized, setIsSystemInitialized] = useState<boolean>(() => {
     return sessionStorage.getItem('codexcape_initialized') === 'true';
@@ -87,8 +89,10 @@ export const PlayerGamePage: React.FC = () => {
   const transitionStageRef = useRef<LevelTransitionStage>('IDLE');
   transitionStageRef.current = transitionStage;
 
+  const [revealingRiddleLevel, setRevealingRiddleLevel] = useState<number | null>(null);
+  const lastCompletedLevelRef = useRef<number | null>(null);
   const pendingNextLevelStoryRef = useRef<StorySequence | null>(null);
-  const prevLevelRef = React.useRef<number | null>(null);
+  const prevLevelRef = useRef<number | null>(null);
 
   // Trigger explicit level completed transition flow
   const triggerLevelCompletedTransition = useCallback((completedLevel: number, nextLevel: number) => {
@@ -96,6 +100,8 @@ export const PlayerGamePage: React.FC = () => {
     if (transitionStageRef.current === 'BLACK_TRANSITION_ACTIVE' || transitionStageRef.current === 'LEVEL_COMPLETED') {
       return;
     }
+
+    lastCompletedLevelRef.current = completedLevel;
 
     // 1. Terminate any currently playing speech, sound effects, or previous dialogue
     voiceNarratorService.stop();
@@ -249,9 +255,17 @@ export const PlayerGamePage: React.FC = () => {
     } catch {
       // Ignore network errors on story skip
     }
-    setTransitionStage('NEXT_LEVEL_READY');
-    await loadData();
-    setTransitionStage('IDLE');
+
+    const completedLvl = lastCompletedLevelRef.current;
+    if (completedLvl && completedLvl >= 1 && completedLvl <= 6) {
+      setRevealingRiddleLevel(completedLvl);
+      setTransitionStage('MYSTERY_REVEAL');
+      lastCompletedLevelRef.current = null;
+    } else {
+      setTransitionStage('NEXT_LEVEL_READY');
+      await loadData();
+      setTransitionStage('IDLE');
+    }
   };
 
   const handleStoryComplete = async () => {
@@ -264,6 +278,21 @@ export const PlayerGamePage: React.FC = () => {
     } catch {
       // Ignore network errors on story complete
     }
+
+    const completedLvl = lastCompletedLevelRef.current;
+    if (completedLvl && completedLvl >= 1 && completedLvl <= 6) {
+      setRevealingRiddleLevel(completedLvl);
+      setTransitionStage('MYSTERY_REVEAL');
+      lastCompletedLevelRef.current = null;
+    } else {
+      setTransitionStage('NEXT_LEVEL_READY');
+      await loadData();
+      setTransitionStage('IDLE');
+    }
+  };
+
+  const handleRiddleRevealAcknowledge = async () => {
+    setRevealingRiddleLevel(null);
     setTransitionStage('NEXT_LEVEL_READY');
     await loadData();
     setTransitionStage('IDLE');
@@ -588,6 +617,7 @@ export const PlayerGamePage: React.FC = () => {
         serverTime={serverState?.serverTime}
         formattedRemaining={formattedRemaining}
         currentRank={gameState.currentRank}
+        teamScore={teamScore?.finalScore}
         connectionStatus={gameState.connectionStatus}
         partnerStatus={partnerStatus}
         onLogout={logout}
@@ -641,6 +671,8 @@ export const PlayerGamePage: React.FC = () => {
               </div>
             ) : (
               <AnswerInput
+                key={`stage-input-${gameState.currentLevel}-${gameState.challenge.stageNumber || 1}`}
+                stageKey={`${gameState.currentLevel}-${gameState.challenge.stageNumber || 1}`}
                 answerType={gameState.challenge.answerType}
                 placeholderText={gameState.challenge.placeholderText}
                 puzzleMetadata={gameState.challenge.puzzleMetadata}
@@ -650,7 +682,7 @@ export const PlayerGamePage: React.FC = () => {
               />
             )}
 
-            <FinalTerminal
+            <FinalDeductionTerminal
               isUnlocked={gameState.isFinalTerminalUnlocked}
               isCompleted={serverState?.gameStatus === 'COMPLETED'}
               onSuccess={() => {
@@ -686,34 +718,11 @@ export const PlayerGamePage: React.FC = () => {
               )}
 
               {teamScore && (
-                <div className="matrix-row" style={{ borderLeft: '3px solid var(--accent-cyan)', backgroundColor: 'rgba(6, 182, 212, 0.08)' }}>
-                  <span className="terminal-text flex items-center gap-2 font-bold" style={{ color: 'var(--accent-cyan)' }}>
-                    <Activity size={14} /> SCORE
+                <div className="matrix-row">
+                  <span className="terminal-text text-muted font-bold">TEAM SCORE:</span>
+                  <span className="terminal-text font-bold text-cyan" style={{ fontSize: '14px', letterSpacing: '0.05em' }}>
+                    {teamScore.finalScore} PTS
                   </span>
-                  <div style={{ textAlign: 'right' }}>
-                    <div className="terminal-text font-bold" style={{ color: 'var(--accent-cyan)', fontSize: '15px' }}>
-                      {teamScore.finalScore} PTS
-                    </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                      Base: {teamScore.baseScore} | Solved: {teamScore.completedMiniGames}/{teamScore.totalMiniGames || 15}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {teamScore && teamScore.totalPenalties > 0 && (
-                <div className="matrix-row" style={{ borderLeft: '3px solid var(--accent-crimson)', backgroundColor: 'rgba(225, 29, 72, 0.08)' }}>
-                  <span className="terminal-text flex items-center gap-2 font-bold" style={{ color: 'var(--accent-crimson)' }}>
-                    <ShieldAlert size={14} /> DEDUCTIONS
-                  </span>
-                  <div style={{ textAlign: 'right' }}>
-                    <div className="terminal-text font-bold" style={{ color: 'var(--accent-crimson)', fontSize: '12px' }}>
-                      -{teamScore.totalPenalties} PTS
-                    </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                      Wrong: -{teamScore.wrongAttemptPenalty} | Hints: -{teamScore.hintPenalty} | AC: -{teamScore.antiCheatPenalty}
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -734,23 +743,8 @@ export const PlayerGamePage: React.FC = () => {
               </div>
             </SpotlightCard>
 
-            <InvestigationDossier
-              storyline={storyline}
-              onOpenBriefing={() => {
-                handlePlayStoryByKey('STORY_PROLOGUE');
-              }}
-              onPlayFragmentStory={(fragNum) => {
-                const fragStoryKeys: Record<number, string> = {
-                  1: 'STORY_L1_DISCOVERY',
-                  2: 'STORY_L2_DISCOVERY',
-                  3: 'STORY_L3_DISCOVERY',
-                  4: 'STORY_L4_DISCOVERY',
-                  5: 'STORY_L5_DISCOVERY',
-                  6: 'STORY_FINAL_PROTOCOL',
-                };
-                const k = fragStoryKeys[fragNum];
-                if (k) handlePlayStoryByKey(k);
-              }}
+            <MysteryBoard
+              completedLevelsCount={gameState.levels.filter((l) => l.status === 'COMPLETED').length}
             />
 
             <HintPanel
@@ -786,6 +780,12 @@ export const PlayerGamePage: React.FC = () => {
         recoveryFragmentTitle={transitionInfo?.fragmentTitle || ''}
         onClose={handleTransitionModalComplete}
         onTransitionComplete={handleTransitionModalComplete}
+      />
+
+      <RiddleRevealModal
+        isOpen={transitionStage === 'MYSTERY_REVEAL' && revealingRiddleLevel !== null}
+        unlockedLevelNumber={revealingRiddleLevel || 1}
+        onAcknowledge={handleRiddleRevealAcknowledge}
       />
 
       <CoreEntryModal

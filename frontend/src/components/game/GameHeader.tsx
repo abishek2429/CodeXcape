@@ -28,6 +28,7 @@ interface GameHeaderProps {
   formattedRemaining?: string;
   remainingSeconds?: number | null;
   currentRank?: number;
+  teamScore?: number | null;
   connectionStatus: SystemConnectionStatus;
   partnerStatus?: string;
   onLogout: () => void;
@@ -47,6 +48,7 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
   formattedRemaining,
   remainingSeconds,
   currentRank,
+  teamScore,
   connectionStatus,
   partnerStatus = 'CONNECTED',
   onLogout,
@@ -186,6 +188,27 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
 
       {/* Right: Operator Telemetry Sync, Audio, Briefing & Disconnect */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Authoritative Clear Team Score Display */}
+        {teamScore !== undefined && teamScore !== null && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 10px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-cyan)',
+              backgroundColor: 'rgba(0, 217, 255, 0.08)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              fontWeight: 800,
+            }}
+          >
+            <span style={{ color: 'var(--text-secondary)', fontSize: '9px', letterSpacing: '0.08em' }}>TEAM SCORE:</span>
+            <span style={{ color: 'var(--accent-cyan)', letterSpacing: '0.05em' }}>{teamScore}</span>
+          </div>
+        )}
+
         {/* Dual Operator Live Sync Indicator */}
         <div
           style={{

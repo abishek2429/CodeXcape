@@ -13,8 +13,6 @@ import {
   RefreshCw,
   LogOut,
   Wifi,
-  WifiOff,
-  Clock,
   UserX,
   AlertOctagon,
   Power,
@@ -89,6 +87,7 @@ export const AdminDashboardPage: React.FC = () => {
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [emergencyReason, setEmergencyReason] = useState('');
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  const [selectedTeamForDetails, setSelectedTeamForDetails] = useState<AdminTeamProgress | null>(null);
 
   // Phase 16 State
   const [contentData, setContentData] = useState<any>(null);
@@ -429,6 +428,17 @@ export const AdminDashboardPage: React.FC = () => {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const totalTeamsCount = stats?.totalTeams || teams.length;
+  const completedTeamsCount = stats?.completedTeams ?? teams.filter((t) => t.status === 'COMPLETED' || t.currentLevel > 6).length;
+  const inProgressTeamsCount = teams.filter((t) => t.status === 'IN_PROGRESS' || (t.isLoggedIn && t.status !== 'COMPLETED')).length;
+  const activeTeamsCount = teams.filter((t) => t.isLoggedIn && t.status !== 'COMPLETED').length || inProgressTeamsCount;
+  const activePct = totalTeamsCount > 0 ? Math.round((activeTeamsCount / totalTeamsCount) * 100) : 0;
+
+  const validScores = leaderboard.map((l) => l.finalScore).filter((s) => typeof s === 'number');
+  const avgScore = validScores.length > 0
+    ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length)
+    : 0;
+
   return (
     <div className="admin-layout relative">
       {/* Admin Mission Control Header */}
@@ -619,6 +629,250 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       )}
 
+      {/* Team Detail Drawer / Inspection Modal */}
+      {selectedTeamForDetails && (
+        <div
+          className="flex items-center justify-center"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9998,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            padding: '20px',
+          }}
+        >
+          <div
+            className="admin-panel"
+            style={{
+              maxWidth: '820px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              border: '1px solid var(--accent-cyan)',
+              boxShadow: '0 0 35px rgba(14, 165, 233, 0.25)',
+              padding: '24px',
+            }}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-dim)', paddingBottom: '14px', marginBottom: '18px' }}>
+              <div>
+                <div className="flex items-center gap-3">
+                  <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                    {selectedTeamForDetails.teamName}
+                  </h2>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--accent-cyan)', background: 'rgba(14, 165, 233, 0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(14, 165, 233, 0.3)' }}>
+                    CODE: {selectedTeamForDetails.teamCode}
+                  </span>
+                  <span className={selectedTeamForDetails.status === 'COMPLETED' ? 'badge-status-online' : selectedTeamForDetails.status === 'PAUSED' ? 'badge-status-waiting' : 'badge-status-online'}>
+                    {selectedTeamForDetails.status}
+                  </span>
+                </div>
+                <p className="text-secondary" style={{ marginTop: '4px', margin: 0 }}>
+                  DIAGNOSTICS &amp; FIELD OPERATOR INSPECTION CONSOLE
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedTeamForDetails(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '18px', cursor: 'pointer', padding: '4px 8px' }}
+                title="Close Drawer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body - 2 Columns */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
+              {/* Player 1 Node Details */}
+              <div style={{ background: 'rgba(0, 0, 0, 0.4)', padding: '16px', borderRadius: '6px', border: '1px solid var(--border-dim)' }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: '10px' }}>
+                  <div className="flex items-center gap-2">
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: selectedTeamForDetails.player1Connected ? 'var(--status-success)' : 'var(--status-error)' }} />
+                    <span style={{ fontWeight: 800, fontSize: '13px', color: 'var(--text-primary)' }}>
+                      OPERATOR 1 (ALPHA)
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    ROLE: EVIDENCE / CLUES
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div><strong style={{ color: 'var(--text-primary)' }}>Identity:</strong> {selectedTeamForDetails.player1Name || 'Unregistered'}</div>
+                  <div><strong style={{ color: 'var(--text-primary)' }}>Connection:</strong> {selectedTeamForDetails.player1Connected ? 'CONNECTED (LIVE)' : 'OFFLINE / DISCONNECTED'}</div>
+                  <div><strong style={{ color: 'var(--text-primary)' }}>Stage Status:</strong> {selectedTeamForDetails.player1Completed ? '✓ Stage Solved' : '⏳ In Progress'}</div>
+                  <div><strong style={{ color: 'var(--text-primary)' }}>Active Session ID:</strong> {selectedTeamForDetails.player1SessionId ?? 'None'}</div>
+                </div>
+                {selectedTeamForDetails.player1SessionId && (
+                  <div style={{ marginTop: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleRevokeSessionAction(selectedTeamForDetails.player1SessionId, selectedTeamForDetails.player1Name)}
+                      className="admin-btn-danger"
+                      style={{ fontSize: '10px', padding: '4px 8px' }}
+                    >
+                      <UserX size={11} /> Revoke Player 1 Session
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Player 2 Node Details */}
+              <div style={{ background: 'rgba(0, 0, 0, 0.4)', padding: '16px', borderRadius: '6px', border: '1px solid var(--border-dim)' }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: '10px' }}>
+                  <div className="flex items-center gap-2">
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: selectedTeamForDetails.player2Connected ? 'var(--status-success)' : 'var(--status-error)' }} />
+                    <span style={{ fontWeight: 800, fontSize: '13px', color: 'var(--text-primary)' }}>
+                      OPERATOR 2 (BETA)
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    ROLE: CO-OPERATOR / SUBMITTER
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div><strong style={{ color: 'var(--text-primary)' }}>Identity:</strong> {selectedTeamForDetails.player2Name || 'Unregistered'}</div>
+                  <div><strong style={{ color: 'var(--text-primary)' }}>Connection:</strong> {selectedTeamForDetails.player2Connected ? 'CONNECTED (LIVE)' : 'OFFLINE / DISCONNECTED'}</div>
+                  <div><strong style={{ color: 'var(--text-primary)' }}>Stage Status:</strong> {selectedTeamForDetails.player2Completed ? '✓ Stage Solved' : '⏳ In Progress'}</div>
+                  <div><strong style={{ color: 'var(--text-primary)' }}>Active Session ID:</strong> {selectedTeamForDetails.player2SessionId ?? 'None'}</div>
+                </div>
+                {selectedTeamForDetails.player2SessionId && (
+                  <div style={{ marginTop: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleRevokeSessionAction(selectedTeamForDetails.player2SessionId, selectedTeamForDetails.player2Name)}
+                      className="admin-btn-danger"
+                      style={{ fontSize: '10px', padding: '4px 8px' }}
+                    >
+                      <UserX size={11} /> Revoke Player 2 Session
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Telemetry & Score Breakdown Section */}
+            {(() => {
+              const lb = leaderboard.find(l => l.teamId === selectedTeamForDetails.teamId);
+              const teamViolations = antiCheatEvents.filter(e => e.teamId === selectedTeamForDetails.teamId);
+              return (
+                <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+                  {/* Progress & Hints */}
+                  <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-dim)' }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--accent-cyan)' }}>PROGRESS TELEMETRY</h4>
+                    <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div>Current Tier: <strong>Level 0{selectedTeamForDetails.currentLevel}</strong></div>
+                      <div>Completed Mini-Games: <strong>{lb?.completedMiniGames ?? 0} / 15</strong></div>
+                      <div>Unlocked Clue Shards: <strong>{selectedTeamForDetails.hintsUnlocked} / 6</strong></div>
+                      <div>Elapsed Session Time: <strong>{lb?.formattedDuration || '00:00'}</strong></div>
+                    </div>
+                  </div>
+
+                  {/* Score Breakdown */}
+                  <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-dim)' }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--status-success)' }}>SCORE BREAKDOWN</h4>
+                    <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div>Base Challenge Score: <strong>{lb?.baseScore ?? 0} pts</strong></div>
+                      <div>Incorrect Answer Penalty: <span style={{ color: 'var(--accent-danger)' }}>-{lb?.wrongAttemptPenalty ?? 0} pts</span></div>
+                      <div>Clue Shard Penalty: <span style={{ color: 'var(--accent-danger)' }}>-{lb?.hintPenalty ?? 0} pts</span></div>
+                      <div>Anti-Cheat Penalty: <span style={{ color: 'var(--accent-danger)' }}>-{lb?.antiCheatPenalty ?? 0} pts</span></div>
+                      <div style={{ borderTop: '1px solid var(--border-dim)', paddingTop: '4px', fontWeight: 800, color: 'var(--accent-cyan)' }}>
+                        Net Score: {lb?.finalScore ?? 0} pts
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Anti-Cheat Audit */}
+                  <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-dim)' }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--accent-danger)' }}>ANTI-CHEAT TELEMETRY</h4>
+                    {teamViolations.length === 0 ? (
+                      <div style={{ fontSize: '12px', color: 'var(--status-success)' }}>
+                        ✓ Zero Security Incidents Recorded
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ color: 'var(--accent-danger)', fontWeight: 800 }}>
+                          ⚠️ {teamViolations.length} Telemetry Flag(s)
+                        </div>
+                        {teamViolations.slice(0, 3).map((v, idx) => (
+                          <div key={idx} style={{ color: 'var(--text-muted)' }}>
+                            [{new Date(v.detectedAt).toLocaleTimeString()}] {v.violationType} (-{v.penaltyPoints} pts)
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Modal Footer Controls */}
+            <div className="flex items-center justify-between" style={{ marginTop: '20px', borderTop: '1px solid var(--border-dim)', paddingTop: '16px' }}>
+              <div className="flex items-center gap-2">
+                {selectedTeamForDetails.status === 'PAUSED' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleResumeTeamAction(selectedTeamForDetails.teamId, selectedTeamForDetails.teamName);
+                      setSelectedTeamForDetails(null);
+                    }}
+                    className="admin-btn-primary"
+                    style={{ fontSize: '11px', padding: '6px 12px' }}
+                  >
+                    <Play size={13} /> RESUME TEAM
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handlePauseTeamAction(selectedTeamForDetails.teamId, selectedTeamForDetails.teamName);
+                      setSelectedTeamForDetails(null);
+                    }}
+                    className="admin-btn-secondary"
+                    style={{ fontSize: '11px', padding: '6px 12px' }}
+                  >
+                    <Pause size={13} /> PAUSE TEAM
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTeamToReset({ id: selectedTeamForDetails.teamId, name: selectedTeamForDetails.teamName, code: selectedTeamForDetails.teamCode });
+                    setSelectedTeamForDetails(null);
+                  }}
+                  className="admin-btn-secondary"
+                  style={{ fontSize: '11px', padding: '6px 12px', borderColor: 'var(--accent-danger)', color: 'var(--accent-danger)' }}
+                >
+                  <Trash2 size={13} /> RESET CREDENTIALS
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleTeamReset(selectedTeamForDetails.teamId, selectedTeamForDetails.teamName);
+                    setSelectedTeamForDetails(null);
+                  }}
+                  className="admin-btn-secondary"
+                  style={{ fontSize: '11px', padding: '6px 12px', borderColor: 'var(--accent-warning)', color: 'var(--accent-warning)' }}
+                >
+                  <RotateCcw size={13} /> RESET TO LEVEL 1
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedTeamForDetails(null)}
+                className="admin-btn-secondary"
+                style={{ fontSize: '11px', padding: '6px 16px' }}
+              >
+                CLOSE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Safe Player Preview Modal */}
       {previewPlayerNum && safePreview && (
         <div className="flex items-center justify-center">
@@ -762,147 +1016,465 @@ export const AdminDashboardPage: React.FC = () => {
       {/* Main Dashboard Area */}
       <main className="flex">
         {activeTab === 'dashboard' && stats && (
-          <div className="">
-            {/* Event Metrics Overview Bar */}
-            <div className="grid gap-4">
-              <div className="admin-panel">
-                <p className="text-secondary flex items-center gap-2">
-                  <Activity className="text-accent" />
-                  EVENT STATUS
-                </p>
-                <p className="admin-dynamic-element">
-                  {stats.eventStatus}
-                </p>
-              </div>
-
-              <div className="admin-panel">
-                <p className="text-secondary flex items-center gap-2">
-                  <Clock className="text-accent" />
-                  EVENT DURATION
-                </p>
-                <p className="">
-                  {formatDuration(stats.eventDurationSeconds)}
-                </p>
-              </div>
-
-              <div className="admin-panel">
-                <p className="text-secondary flex items-center gap-2">
-                  <Users className="text-accent" />
-                  TOTAL TEAMS
-                </p>
-                <p className="text-primary">{stats.totalTeams}</p>
-              </div>
-
-              <div className="admin-panel">
-                <p className="text-secondary flex items-center gap-2">
-                  <CheckCircle2 className="text-success" />
-                  COMPLETED TEAMS
-                </p>
-                <p className="text-success">{stats.completedTeams}</p>
-              </div>
-
+          <div className="flex" style={{ flexDirection: 'column', gap: '20px', width: '100%' }}>
+            {/* 4 Executive Overview Cards */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '16px',
+              }}
+            >
+              {/* Card 1: ACTIVE TEAMS */}
               <div
                 className="admin-panel"
-                style={{ cursor: 'pointer', border: '1px solid rgba(14, 165, 233, 0.3)' }}
-                onClick={() => setActiveTab('sessions')}
-                title="Click to view all logged-in teams and active sessions"
+                style={{
+                  margin: 0,
+                  borderLeft: '4px solid var(--accent-cyan)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  padding: '16px 20px',
+                }}
               >
-                <p className="text-secondary flex items-center gap-2">
-                  <Radio className="text-accent" />
-                  LOGGED-IN TEAMS
-                </p>
-                <p className="text-primary font-bold">
-                  {stats.totalLoggedInTeams ?? teams.filter(t => t.isLoggedIn).length} <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>/ {stats.totalTeams}</span>
-                </p>
-                <span style={{ fontSize: '10px', color: 'var(--accent-cyan)' }}>View Session Monitor &rarr;</span>
+                <div>
+                  <p className="text-secondary flex items-center justify-between" style={{ margin: 0 }}>
+                    <span>ACTIVE TEAMS</span>
+                    <Users size={16} className="text-accent" />
+                  </p>
+                  <p style={{ fontSize: '28px', fontWeight: 900, color: 'var(--text-primary)', margin: '8px 0 4px 0' }}>
+                    {activeTeamsCount}
+                  </p>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+                  {activePct}% OF TOTAL ({totalTeamsCount} TEAMS)
+                </div>
               </div>
 
+              {/* Card 2: COMPLETED */}
               <div
                 className="admin-panel"
-                style={{ cursor: 'pointer', border: '1px solid rgba(16, 185, 129, 0.3)' }}
-                onClick={() => setActiveTab('sessions')}
-                title="Click to view live operator sessions"
+                style={{
+                  margin: 0,
+                  borderLeft: '4px solid var(--status-success)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  padding: '16px 20px',
+                }}
               >
-                <p className="text-secondary flex items-center gap-2">
-                  <Activity className="text-success" />
-                  ACTIVE SESSIONS
-                </p>
-                <p className="text-success font-bold">
-                  {stats.totalActiveSessions ?? activeSessions.length} LIVE
-                </p>
-                <span style={{ fontSize: '10px', color: 'var(--status-success)' }}>Real-time Link Pulse</span>
-              </div>
-
-              <div className="admin-panel">
-                <p className="text-secondary flex items-center gap-2">
-                  <UserX className="text-danger" />
-                  DISCONNECTED
-                </p>
-                <p className="admin-dynamic-element">
-                  {stats.disconnectedPlayers}
-                </p>
-              </div>
-            </div>
-
-            {/* Live Connection Matrix Overview */}
-            <div className="admin-panel">
-              <div className="flex items-center justify-between">
-                <h3 className="flex items-center gap-2">
-                  <Wifi className="text-accent" />
-                  TWO-PLAYER NETWORK LINK MATRIX
-                </h3>
-                <span className="">REAL-TIME AGGREGATE</span>
-              </div>
-
-              <div className="grid gap-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-secondary">BOTH NODES ONLINE</p>
-                    <p className="text-success">{stats.bothPlayersOnlineTeams}</p>
-                  </div>
-                  <div className="text-success flex items-center justify-center">
-                    <Wifi className="" />
-                  </div>
+                <div>
+                  <p className="text-secondary flex items-center justify-between" style={{ margin: 0 }}>
+                    <span>COMPLETED</span>
+                    <CheckCircle2 size={16} className="text-success" />
+                  </p>
+                  <p style={{ fontSize: '28px', fontWeight: 900, color: 'var(--status-success)', margin: '8px 0 4px 0' }}>
+                    {completedTeamsCount}
+                  </p>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-secondary">ONE NODE OFFLINE</p>
-                    <p className="text-warning">{stats.onePlayerOfflineTeams}</p>
-                  </div>
-                  <div className="text-warning flex items-center justify-center">
-                    <WifiOff className="" />
-                  </div>
+                <div style={{ fontSize: '11px', color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>
+                  FINISHED ALL 6 TIERS
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-secondary">BOTH NODES OFFLINE</p>
-                    <p className="text-danger">{stats.bothPlayersOfflineTeams}</p>
-                  </div>
-                  <div className="admin-btn-danger text-danger flex items-center justify-center">
-                    <UserX className="" />
-                  </div>
+              {/* Card 3: IN PROGRESS */}
+              <div
+                className="admin-panel"
+                style={{
+                  margin: 0,
+                  borderLeft: '4px solid var(--status-warning)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  padding: '16px 20px',
+                }}
+              >
+                <div>
+                  <p className="text-secondary flex items-center justify-between" style={{ margin: 0 }}>
+                    <span>IN PROGRESS</span>
+                    <Play size={16} className="text-warning" />
+                  </p>
+                  <p style={{ fontSize: '28px', fontWeight: 900, color: 'var(--status-warning)', margin: '8px 0 4px 0' }}>
+                    {inProgressTeamsCount}
+                  </p>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--status-warning)', fontFamily: 'var(--font-mono)' }}>
+                  ACTIVE GAMEPLAY OPERATIONS
+                </div>
+              </div>
+
+              {/* Card 4: AVERAGE SCORE */}
+              <div
+                className="admin-panel"
+                style={{
+                  margin: 0,
+                  borderLeft: '4px solid #a855f7',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  padding: '16px 20px',
+                }}
+              >
+                <div>
+                  <p className="text-secondary flex items-center justify-between" style={{ margin: 0 }}>
+                    <span>AVERAGE SCORE</span>
+                    <Activity size={16} style={{ color: '#a855f7' }} />
+                  </p>
+                  <p style={{ fontSize: '28px', fontWeight: 900, color: '#c084fc', margin: '8px 0 4px 0' }}>
+                    {avgScore} <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>PTS</span>
+                  </p>
+                </div>
+                <div style={{ fontSize: '11px', color: '#c084fc', fontFamily: 'var(--font-mono)' }}>
+                  ACROSS ACTIVE COMPETITORS
                 </div>
               </div>
             </div>
 
-            {/* Level Distribution Bar */}
-            <div className="admin-panel">
-              <h3 className="flex items-center gap-2">
-                <Activity className="text-accent" />
-                ACTIVE TEAMS LEVEL DISTRIBUTION
-              </h3>
-              <div className="grid">
-                {[1, 2, 3, 4, 5, 6].map((lvl) => (
-                  <div key={lvl} className="">
-                    <p className="text-secondary">LEVEL 0{lvl}</p>
-                    <p className="">
-                      {stats.levelDistribution[lvl] || 0}
-                    </p>
-                    <p className="">TEAMS ACTIVE</p>
+            {/* Primary Team Monitoring Table */}
+            <div className="admin-panel" style={{ padding: '20px', margin: 0 }}>
+              <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <h3 className="text-primary flex items-center gap-2" style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>
+                    <Users size={18} className="text-accent" />
+                    <span>TEAM MONITORING</span>
+                  </h3>
+                  <p className="text-secondary" style={{ margin: '4px 0 0 0' }}>
+                    Live operator progress, stage telemetry, synchronization status, and organizer directives
+                  </p>
+                </div>
+
+                {/* Filters */}
+                <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
+                  <div className="relative flex items-center" style={{ minWidth: '220px' }}>
+                    <Search size={13} className="absolute" style={{ left: '10px', color: 'var(--text-muted)' }} />
+                    <input
+                      type="text"
+                      placeholder="Search team or code..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{ paddingLeft: '30px', margin: 0, height: '32px', fontSize: '12px' }}
+                    />
                   </div>
-                ))}
+
+                  <div className="flex items-center gap-1">
+                    {['ALL', 'ONLINE', 'OFFLINE', 'COMPLETED', 'IN_PROGRESS'].map((st) => (
+                      <button
+                        key={st}
+                        onClick={() => setStatusFilter(st)}
+                        className={`admin-dynamic-element ${statusFilter === st ? 'active' : ''}`}
+                        style={{ fontSize: '10px', padding: '4px 8px' }}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setLevelFilter(undefined)}
+                      className={`admin-dynamic-element ${levelFilter === undefined ? 'active' : ''}`}
+                      style={{ fontSize: '10px', padding: '4px 8px' }}
+                    >
+                      ALL
+                    </button>
+                    {[1, 2, 3, 4, 5, 6].map((lvl) => (
+                      <button
+                        key={lvl}
+                        onClick={() => setLevelFilter(lvl)}
+                        className={`admin-dynamic-element ${levelFilter === lvl ? 'active' : ''}`}
+                        style={{ fontSize: '10px', padding: '4px 8px' }}
+                      >
+                        L{lvl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div style={{ overflowX: 'auto' }}>
+                <table>
+                  <thead className="text-secondary">
+                    <tr>
+                      <th>TEAM</th>
+                      <th>PLAYERS</th>
+                      <th>LEVEL</th>
+                      <th>STAGE</th>
+                      <th>SCORE</th>
+                      <th>TIME</th>
+                      <th>STATUS</th>
+                      <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teams.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ textAlign: 'center', padding: '32px' }} className="text-secondary">
+                          No teams match the filter criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      teams.map((t) => {
+                        const lb = leaderboard.find((l) => l.teamId === t.teamId);
+                        const isBothLive = t.connectionStatus === 'BOTH_ONLINE';
+                        const isPartial = t.connectionStatus === 'ONE_ONLINE';
+                        const isWaiting = t.connectionStatus === 'WAITING';
+
+                        let currentStageNum = 1;
+                        if (t.status === 'COMPLETED' || t.currentLevel > 6) {
+                          currentStageNum = 3;
+                        } else if (lb && typeof lb.completedMiniGames === 'number') {
+                          currentStageNum = Math.min(3, (lb.completedMiniGames % 3) + 1);
+                        } else if (t.player1Completed && t.player2Completed) {
+                          currentStageNum = 3;
+                        } else if (t.player1Completed || t.player2Completed) {
+                          currentStageNum = 2;
+                        }
+
+                        const isCompleted = t.status === 'COMPLETED' || t.currentLevel > 6;
+                        const isPaused = t.status === 'PAUSED';
+
+                        return (
+                          <tr key={t.teamId}>
+                            {/* TEAM */}
+                            <td className="text-primary">
+                              <div style={{ fontWeight: 800, fontSize: '13px' }}>{t.teamName}</div>
+                              <div className="text-accent" style={{ fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
+                                {t.teamCode}
+                              </div>
+                            </td>
+
+                            {/* PLAYERS */}
+                            <td>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '11px' }}>
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    style={{
+                                      width: '7px',
+                                      height: '7px',
+                                      borderRadius: '50%',
+                                      backgroundColor: t.player1Connected || isBothLive ? 'var(--status-success)' : 'var(--status-error)',
+                                      display: 'inline-block',
+                                    }}
+                                  />
+                                  <span className={t.player1Completed ? 'text-success font-bold' : 'text-primary'}>
+                                    {t.player1Name || 'P1'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    style={{
+                                      width: '7px',
+                                      height: '7px',
+                                      borderRadius: '50%',
+                                      backgroundColor: t.player2Connected || isBothLive ? 'var(--status-success)' : 'var(--status-error)',
+                                      display: 'inline-block',
+                                    }}
+                                  />
+                                  <span className={t.player2Completed ? 'text-success font-bold' : 'text-primary'}>
+                                    {t.player2Name || 'P2'}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* LEVEL */}
+                            <td>
+                              <span
+                                style={{
+                                  padding: '2px 8px',
+                                  borderRadius: 'var(--radius-xs)',
+                                  backgroundColor: 'rgba(14, 165, 233, 0.12)',
+                                  border: '1px solid var(--accent-cyan)',
+                                  color: 'var(--accent-cyan)',
+                                  fontWeight: 800,
+                                  fontSize: '11px',
+                                  fontFamily: 'var(--font-mono)',
+                                }}
+                              >
+                                TIER 0{Math.min(6, t.currentLevel)}
+                              </span>
+                            </td>
+
+                            {/* STAGE */}
+                            <td>
+                              <span
+                                style={{
+                                  padding: '2px 8px',
+                                  borderRadius: 'var(--radius-xs)',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                  border: '1px solid var(--border-dim)',
+                                  color: 'var(--text-primary)',
+                                  fontWeight: 700,
+                                  fontSize: '11px',
+                                  fontFamily: 'var(--font-mono)',
+                                }}
+                              >
+                                STAGE {currentStageNum} / 3
+                              </span>
+                            </td>
+
+                            {/* SCORE */}
+                            <td>
+                              <span style={{ fontWeight: 800, color: 'var(--accent-cyan)', fontSize: '13px' }}>
+                                {lb?.finalScore ?? 0}
+                              </span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '2px' }}>pts</span>
+                            </td>
+
+                            {/* TIME */}
+                            <td style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              {lb?.formattedDuration || (stats?.eventDurationSeconds ? formatDuration(stats.eventDurationSeconds) : '00:00')}
+                            </td>
+
+                            {/* STATUS */}
+                            <td>
+                              <span
+                                className={
+                                  isCompleted
+                                    ? 'badge-status-online'
+                                    : isPaused
+                                    ? 'badge-status-waiting'
+                                    : isBothLive
+                                    ? 'badge-status-online'
+                                    : isPartial || isWaiting
+                                    ? 'badge-status-waiting'
+                                    : 'badge-status-offline'
+                                }
+                              >
+                                {isCompleted
+                                  ? 'COMPLETED'
+                                  : isPaused
+                                  ? 'PAUSED'
+                                  : isBothLive
+                                  ? 'ACTIVE'
+                                  : isPartial
+                                  ? '1 ONLINE'
+                                  : isWaiting
+                                  ? 'WAITING'
+                                  : 'OFFLINE'}
+                              </span>
+                            </td>
+
+                            {/* ACTIONS */}
+                            <td style={{ textAlign: 'right' }}>
+                              <div className="flex items-center gap-1.5" style={{ justifyContent: 'flex-end' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedTeamForDetails(t)}
+                                  className="admin-btn-primary"
+                                  style={{ padding: '4px 8px', fontSize: '10px' }}
+                                  title="Inspect full team telemetry and player connections"
+                                >
+                                  <Eye size={12} />
+                                  <span>Inspect</span>
+                                </button>
+
+                                {isPaused ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResumeTeamAction(t.teamId, t.teamName)}
+                                    className="admin-btn-secondary"
+                                    style={{ padding: '4px 8px', fontSize: '10px', color: 'var(--status-success)', borderColor: 'var(--status-success)' }}
+                                    title="Resume gameplay for this team"
+                                  >
+                                    <Play size={12} />
+                                    <span>Resume</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePauseTeamAction(t.teamId, t.teamName)}
+                                    className="admin-btn-secondary"
+                                    style={{ padding: '4px 8px', fontSize: '10px' }}
+                                    title="Pause gameplay for this team"
+                                  >
+                                    <Pause size={12} />
+                                    <span>Pause</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => setTeamToReset({ id: t.teamId, name: t.teamName, code: t.teamCode })}
+                                  className="admin-btn-secondary"
+                                  style={{ padding: '4px 8px', fontSize: '10px', color: 'var(--accent-danger)', borderColor: 'var(--accent-danger)' }}
+                                  title="Reset credentials and purge active sessions"
+                                >
+                                  <Trash2 size={12} />
+                                  <span>Creds</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleTeamReset(t.teamId, t.teamName)}
+                                  className="admin-btn-secondary"
+                                  style={{ padding: '4px 8px', fontSize: '10px', color: 'var(--accent-warning)', borderColor: 'var(--accent-warning)' }}
+                                  title="Reset progress to Level 1"
+                                >
+                                  <RotateCcw size={12} />
+                                  <span>L1</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Compact Infrastructure Telemetry */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+              {/* Live Connection Matrix Overview */}
+              <div className="admin-panel" style={{ margin: 0 }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
+                  <h3 className="flex items-center gap-2" style={{ margin: 0, fontSize: '13px' }}>
+                    <Wifi className="text-accent" size={15} />
+                    <span>OPERATOR LINK MATRIX</span>
+                  </h3>
+                  <span className="text-secondary" style={{ fontSize: '10px' }}>AGGREGATE</span>
+                </div>
+
+                <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '10px', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <p className="text-secondary" style={{ fontSize: '9px', margin: 0 }}>BOTH ONLINE</p>
+                    <p className="text-success" style={{ fontSize: '18px', fontWeight: 900, margin: '2px 0 0 0' }}>{stats.bothPlayersOnlineTeams}</p>
+                  </div>
+
+                  <div style={{ background: 'rgba(245, 158, 11, 0.08)', padding: '10px', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                    <p className="text-secondary" style={{ fontSize: '9px', margin: 0 }}>1 OFFLINE</p>
+                    <p className="text-warning" style={{ fontSize: '18px', fontWeight: 900, margin: '2px 0 0 0' }}>{stats.onePlayerOfflineTeams}</p>
+                  </div>
+
+                  <div style={{ background: 'rgba(225, 29, 72, 0.08)', padding: '10px', borderRadius: '4px', border: '1px solid rgba(225, 29, 72, 0.2)' }}>
+                    <p className="text-secondary" style={{ fontSize: '9px', margin: 0 }}>OFFLINE</p>
+                    <p className="text-danger" style={{ fontSize: '18px', fontWeight: 900, margin: '2px 0 0 0' }}>{stats.bothPlayersOfflineTeams}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Level Distribution Bar */}
+              <div className="admin-panel" style={{ margin: 0 }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
+                  <h3 className="flex items-center gap-2" style={{ margin: 0, fontSize: '13px' }}>
+                    <Activity className="text-accent" size={15} />
+                    <span>LEVEL DISTRIBUTION</span>
+                  </h3>
+                  <span className="text-secondary" style={{ fontSize: '10px' }}>ACTIVE SPREAD</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
+                  {[1, 2, 3, 4, 5, 6].map((lvl) => (
+                    <div key={lvl} style={{ textAlign: 'center', background: 'rgba(0,0,0,0.3)', padding: '8px 4px', borderRadius: '4px', border: '1px solid var(--border-dim)' }}>
+                      <p className="text-secondary" style={{ fontSize: '9px', margin: 0 }}>L0{lvl}</p>
+                      <p style={{ fontSize: '16px', fontWeight: 800, color: 'var(--accent-cyan)', margin: '2px 0 0 0' }}>
+                        {stats.levelDistribution[lvl] || 0}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -1270,6 +1842,16 @@ export const AdminDashboardPage: React.FC = () => {
                           <td className="text-warning font-bold">{t.hintsUnlocked} / 6</td>
                           <td>
                             <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedTeamForDetails(t)}
+                                className="admin-btn-primary"
+                                style={{ padding: '4px 10px', fontSize: '11px' }}
+                                title="Inspect full team telemetry and player connections"
+                              >
+                                <Eye size={12} />
+                                <span>Inspect</span>
+                              </button>
                               {t.status === 'PAUSED' ? (
                                 <button
                                   type="button"
