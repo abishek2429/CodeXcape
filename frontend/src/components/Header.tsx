@@ -14,8 +14,12 @@ export const Header: React.FC = () => {
     pathname === '/admin/login' ||
     pathname === '/login';
 
-  // Rule: Home page: no header. Login page: no header.
-  if (isHomeRoute || isLoginRoute) {
+  const isGameplayRoute =
+    pathname.startsWith('/player/game') ||
+    pathname.startsWith('/player/waiting');
+
+  // Rule: Home page, login pages, and active gameplay screens have NO website header
+  if (isHomeRoute || isLoginRoute || isGameplayRoute) {
     return null;
   }
 

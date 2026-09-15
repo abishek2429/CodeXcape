@@ -1,19 +1,49 @@
+/* ============================================================
+   CODEXCAPE — PLAYER GAME SPACE CONSOLE
+   Dark, Cinematic, Technical, Minimal, Focused
+   ============================================================ */
+
 .game-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-void);
+  background-color: var(--bg-void, #050505);
+  color: var(--text-primary, #f5f5f5);
   position: relative;
+  overflow-x: hidden;
 }
 
+/* ------------------------------------------------------------
+   TOP HUD
+   ------------------------------------------------------------ */
+.game-hud {
+  height: 52px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba(5, 5, 8, 0.96);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  font-family: var(--font-mono, monospace);
+}
+
+/* ------------------------------------------------------------
+   MAIN GAMEPLAY WORKSPACE (CENTERED & FOCUSED)
+   ------------------------------------------------------------ */
 .game-main {
   flex: 1;
   width: 100%;
-  max-width: 1440px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 24px 28px;
+  padding: 36px 24px 72px 24px;
   position: relative;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
 }
 
 .centered-main {
@@ -22,160 +52,857 @@
   justify-content: center;
 }
 
-.status-panel {
-  text-align: center;
-  padding: var(--space-2xl) var(--space-xl);
-  max-width: 620px;
-  width: 100%;
-  background-color: var(--bg-panel-elevated);
-  border: 1px solid var(--border-crimson);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 24px rgba(225, 6, 19, 0.15);
-}
-
-.success-panel {
-  border-color: var(--status-success);
-  box-shadow: 0 0 40px rgba(16, 185, 129, 0.25);
-}
-
-.status-icon {
-  margin: 0 auto var(--space-l) auto;
-}
-
-.status-title {
-  font-family: var(--font-sans);
-  font-size: 28px;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  color: var(--text-cold-white);
-  margin-bottom: var(--space-m);
-}
-
-.text-cyan { color: var(--accent-crimson-bright); }
-.text-crimson { color: var(--accent-crimson-bright); }
-.text-success { color: var(--status-success); }
-.mt-l { margin-top: var(--space-l); }
-.mt-m { margin-top: var(--space-m); }
-.mb-m { margin-bottom: var(--space-m); }
-
-.game-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.85fr) minmax(320px, 1.15fr);
-  gap: 24px;
-  margin-top: 16px;
-  align-items: start;
-}
-
-@media (max-width: 1100px) {
-  .game-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.panel-container {
+.game-workspace {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 28px;
+  width: 100%;
 }
 
-.sidebar-container {
-  gap: 20px;
-}
-
+/* ------------------------------------------------------------
+   NOTIFICATIONS & SYSTEM ALERTS
+   ------------------------------------------------------------ */
 .notification-banner {
   padding: 12px 18px;
   display: flex;
   align-items: center;
   gap: 12px;
-  border-left: 3px solid var(--accent-crimson);
+  border-left: 3px solid var(--accent-crimson, #e10613);
   background-color: rgba(225, 6, 19, 0.08);
-  border-radius: var(--radius-xs);
-  font-family: var(--font-mono);
+  border-radius: 2px;
+  font-family: var(--font-mono, monospace);
   font-size: 12px;
-  color: var(--text-primary);
+  color: var(--text-primary, #f5f5f5);
 }
 
 .banner-error {
-  border-left-color: var(--accent-crimson-bright);
+  border-left-color: var(--accent-crimson-bright, #ff2446);
   color: #ff99a4;
   background: rgba(225, 6, 19, 0.14);
 }
 
 .banner-success {
-  border-left-color: var(--status-success);
-  color: var(--status-success);
+  border-left-color: var(--status-success, #10b981);
+  color: var(--status-success, #10b981);
   background: rgba(16, 185, 129, 0.08);
 }
 
+/* ------------------------------------------------------------
+   PUZZLE SECTION (THE VISUAL CENTER)
+   ------------------------------------------------------------ */
+.puzzle-section {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+}
+
+.puzzle-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.puzzle-title {
+  font-family: var(--font-sans, 'Space Grotesk', sans-serif);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: var(--text-cold-white, #ffffff);
+  text-transform: uppercase;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.puzzle-mission {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary, #999999);
+  margin: 0;
+  max-width: 840px;
+}
+
+/* ------------------------------------------------------------
+   YOUR INTELLIGENCE (ASYMMETRIC COOPERATIVE DATA)
+   ------------------------------------------------------------ */
+.intelligence-panel {
+  background-color: rgba(10, 10, 14, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85);
+  position: relative;
+  overflow: hidden;
+}
+
+.intelligence-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 18px;
+  font-family: var(--font-mono, monospace);
+}
+
+.intelligence-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--accent-crimson-bright, #ff2446);
+  text-transform: uppercase;
+}
+
+.intelligence-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--accent-crimson-bright, #ff2446);
+  box-shadow: 0 0 8px var(--accent-crimson-bright, #ff2446);
+}
+
+.intelligence-coop-tag {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary, #888888);
+  font-weight: 700;
+}
+
+.intelligence-body {
+  width: 100%;
+}
+
+.intelligence-content {
+  margin: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-cold-white, #f0f0f0);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.intelligence-coop-reminder {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.coop-reminder-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary, #888888);
+  opacity: 0.9;
+}
+
+/* Extra instructions if any */
+.puzzle-instructions {
+  display: flex;
+  gap: 8px;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary, #999999);
+}
+
+.instructions-label {
+  font-weight: 800;
+  color: var(--accent-crimson, #e10613);
+  letter-spacing: 0.08em;
+}
+
+.instructions-text {
+  color: var(--text-primary, #e0e0e0);
+}
+
+/* ------------------------------------------------------------
+   TEAM ANSWER AREA
+   ------------------------------------------------------------ */
+.answer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.answer-header {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary, #888888);
+  text-transform: uppercase;
+}
+
+.answer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.answer-input-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.answer-input-field {
+  flex: 1;
+  height: 52px;
+  padding: 0 18px;
+  background-color: rgba(8, 8, 12, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 3px;
+  font-family: var(--font-mono, monospace);
+  font-size: 15px;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.answer-input-field:focus {
+  border-color: var(--accent-crimson, #e10613);
+  box-shadow: 0 0 14px rgba(225, 6, 19, 0.25);
+}
+
+.answer-input-field::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+}
+
+.answer-submit-btn {
+  height: 52px;
+  padding: 0 28px;
+  background-color: var(--accent-crimson, #e10613);
+  border: 1px solid var(--accent-crimson-bright, #ff2446);
+  border-radius: 3px;
+  color: #ffffff;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.answer-submit-btn:hover:not(:disabled) {
+  background-color: var(--accent-crimson-bright, #ff2446);
+  box-shadow: 0 0 16px rgba(225, 6, 19, 0.4);
+}
+
+.answer-submit-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: transparent;
+}
+
+/* MCQ Options */
+.answer-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.answer-option-btn {
+  padding: 12px 16px;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background-color: rgba(12, 12, 16, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  color: var(--text-secondary, #999999);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.answer-option-btn:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.answer-option-btn.selected {
+  border-color: var(--accent-crimson, #e10613);
+  background-color: rgba(225, 6, 19, 0.15);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(225, 6, 19, 0.3);
+}
+
+/* Verified Stage Panel */
 .verified-panel {
   text-align: center;
   padding: 24px;
   background: rgba(16, 185, 129, 0.08);
-  border: 1px solid var(--status-success);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
+  border: 1px solid var(--status-success, #10b981);
+  border-radius: 3px;
+  font-family: var(--font-mono, monospace);
 }
 
-.team-matrix-panel {
-  padding: 18px 20px;
-  background-color: var(--bg-panel-elevated);
-  border: 1px solid var(--border-crimson);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+/* ------------------------------------------------------------
+   SECONDARY ACTION BAR / DOCK (MYSTERY BOARD & HINTS)
+   ------------------------------------------------------------ */
+.game-secondary-dock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.panel-header {
+.secondary-action-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed var(--border-dim);
-  margin-bottom: 14px;
+  padding: 9px 18px;
+  background-color: rgba(14, 14, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  font-family: var(--font-mono, monospace);
   font-size: 11px;
-  color: var(--accent-crimson-bright);
-  letter-spacing: 0.1em;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary, #888888);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.matrix-row {
+.secondary-action-btn:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--text-cold-white, #ffffff);
+  background-color: rgba(22, 22, 30, 0.95);
+}
+
+.dock-icon {
+  color: var(--accent-crimson-bright, #ff2446);
+  font-size: 11px;
+}
+
+.dock-badge {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #888888);
+  font-weight: 800;
+}
+
+.dock-badge.active {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: var(--status-warning, #f59e0b);
+}
+
+/* ------------------------------------------------------------
+   DRAWERS (MYSTERY BOARD & STAGE HINTS)
+   ------------------------------------------------------------ */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drawer-panel {
+  width: 480px;
+  max-width: 92vw;
+  height: 100%;
+  background-color: rgba(10, 10, 14, 0.98);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  font-family: var(--font-mono, monospace);
+  box-shadow: -10px 0 50px rgba(0, 0, 0, 0.9);
+}
+
+.drawer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  background: rgba(8, 8, 10, 0.75);
-  border: 1px solid var(--border-dim);
-  border-radius: var(--radius-xs);
-  margin-bottom: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.drawer-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drawer-title {
+  font-family: var(--font-sans, sans-serif);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: var(--text-cold-white, #ffffff);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.drawer-subtitle {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #888888);
+  margin: 2px 0 0 0;
+}
+
+.drawer-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #888888);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: color 0.15s ease;
+}
+
+.drawer-close-btn:hover {
+  color: #ffffff;
+}
+
+.drawer-meta-banner {
+  padding: 12px 14px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 3px;
+  margin: 16px 0;
+  font-size: 11px;
+  color: var(--text-secondary, #888888);
+  line-height: 1.5;
+}
+
+.drawer-meta-banner p {
+  margin: 0;
+}
+
+.riddles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.riddle-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  background-color: rgba(14, 14, 20, 0.7);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.riddle-card.unlocked:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.riddle-card.selected {
+  border-color: var(--accent-crimson, #e10613);
+  background-color: rgba(18, 18, 26, 0.95);
+}
+
+.riddle-card.locked {
+  opacity: 0.45;
+}
+
+.riddle-card-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.riddle-status-icon {
+  font-size: 11px;
+}
+
+.unlocked-diamond {
+  color: var(--accent-crimson-bright, #ff2446);
+}
+
+.locked-diamond {
+  color: var(--text-muted, #555555);
+}
+
+.riddle-title-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
 }
 
-.row-cyan {
-  background: rgba(225, 6, 19, 0.08);
-  border-color: var(--border-crimson);
+.riddle-numeral {
+  font-weight: 800;
+  color: var(--text-cold-white, #ffffff);
 }
 
-.row-cyan span:first-child {
-  color: var(--accent-crimson-bright);
+.riddle-title-text {
+  color: var(--text-secondary, #888888);
+  font-size: 11px;
 }
 
-.row-purple {
-  background: rgba(139, 14, 27, 0.08);
-  border-color: rgba(225, 6, 19, 0.35);
+.riddle-action-indicator {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary, #888888);
 }
 
-.row-purple span:first-child {
-  color: #ff99a4;
+.locked-label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #555555);
+  font-weight: 700;
 }
 
-.row-warning {
-  background: rgba(214, 168, 75, 0.08);
-  border-color: rgba(214, 168, 75, 0.35);
+.riddle-expanded-content {
+  padding: 14px 16px 18px 16px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  background-color: rgba(6, 6, 9, 0.85);
 }
 
-.text-lg { font-size: 17px; }
-.font-bold { font-weight: 700; }
-.flex { display: flex; }
-.items-center { align-items: center; }
-.gap-2 { gap: 8px; }
+.riddle-role-badge {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--accent-crimson-bright, #ff2446);
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.riddle-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-primary, #f0f0f0);
+  white-space: pre-wrap;
+  margin: 0 0 12px 0;
+}
+
+.riddle-footer-note {
+  font-size: 10px;
+  color: var(--text-secondary, #777777);
+  font-style: italic;
+}
+
+/* Hints Drawer Details */
+.hints-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.hints-empty-state {
+  text-align: center;
+  padding: 32px 0;
+  color: var(--text-muted, #666666);
+  font-size: 12px;
+}
+
+.hint-item {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  padding: 14px 16px;
+  background-color: rgba(14, 14, 20, 0.7);
+}
+
+.hint-item.unlocked {
+  border-color: rgba(245, 158, 11, 0.3);
+  background-color: rgba(245, 158, 11, 0.03);
+}
+
+.hint-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.hint-item-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-primary, #ffffff);
+}
+
+.hint-unlocked-badge {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  background-color: rgba(245, 158, 11, 0.15);
+  color: var(--status-warning, #f59e0b);
+  font-weight: 800;
+}
+
+.hint-content-box {
+  margin-top: 8px;
+}
+
+.hint-content-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-cold-white, #ffffff);
+}
+
+.hint-lock-action {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.hint-prompt-text {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-secondary, #888888);
+}
+
+.hint-request-btn {
+  padding: 8px 14px;
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px solid var(--status-warning, #f59e0b);
+  border-radius: 2px;
+  color: var(--status-warning, #f59e0b);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all 0.15s ease;
+}
+
+.hint-request-btn:hover {
+  background-color: var(--status-warning, #f59e0b);
+  color: #000000;
+}
+
+/* ------------------------------------------------------------
+   FINAL DEDUCTION SECTION
+   ------------------------------------------------------------ */
+.final-deduction-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.final-deduction-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.final-deduction-title {
+  font-family: var(--font-sans, sans-serif);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--text-cold-white, #ffffff);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.final-deduction-subtitle {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  color: var(--accent-crimson-bright, #ff2446);
+  margin: 0;
+}
+
+.final-riddles-selector {
+  background-color: rgba(10, 10, 14, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.final-riddles-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.final-riddle-tab {
+  padding: 8px 4px;
+  background-color: rgba(18, 18, 24, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  color: var(--text-secondary, #888888);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-mono, monospace);
+  transition: all 0.15s ease;
+}
+
+.final-riddle-tab.selected {
+  border-color: var(--accent-crimson, #e10613);
+  background-color: rgba(225, 6, 19, 0.15);
+  color: #ffffff;
+}
+
+.tab-numeral {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.tab-role {
+  font-size: 8px;
+  opacity: 0.75;
+}
+
+.final-riddle-inspection {
+  padding: 16px;
+  background-color: rgba(6, 6, 9, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+}
+
+.inspection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+}
+
+.inspection-title {
+  font-weight: 800;
+  color: var(--accent-crimson-bright, #ff2446);
+}
+
+.inspection-role {
+  color: var(--text-secondary, #888888);
+}
+
+.inspection-text {
+  margin: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-cold-white, #ffffff);
+  white-space: pre-wrap;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.final-question-box {
+  padding: 18px 22px;
+  background-color: rgba(225, 6, 19, 0.08);
+  border: 1px solid var(--accent-crimson, #e10613);
+  border-radius: 3px;
+  font-family: var(--font-mono, monospace);
+}
+
+.question-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--accent-crimson-bright, #ff2446);
+  margin-bottom: 6px;
+}
+
+.question-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-cold-white, #ffffff);
+}
+
+.final-deduction-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ------------------------------------------------------------
+   ANIMATIONS & TRANSITIONS
+   ------------------------------------------------------------ */
+@keyframes slideLeft {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-left {
+  animation: slideLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ------------------------------------------------------------
+   RESPONSIVE DESIGN
+   ------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .game-hud {
+    padding: 0 14px;
+    height: 48px;
+  }
+
+  .game-main {
+    padding: 20px 16px 60px 16px;
+  }
+
+  .puzzle-title {
+    font-size: 20px;
+  }
+
+  .intelligence-panel {
+    padding: 18px 16px;
+  }
+
+  .intelligence-content {
+    font-size: 13px;
+  }
+
+  .answer-input-row {
+    flex-direction: column;
+  }
+
+  .answer-submit-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .final-riddles-tabs {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

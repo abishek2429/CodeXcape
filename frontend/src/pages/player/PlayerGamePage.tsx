@@ -5,18 +5,15 @@ import { fetchPlayerGameState, PlayerGameStateResponse, fetchPlayerScore, Player
 import { fetchCurrentQuestion, submitAnswer, PlayerQuestionResponse } from '../../services/questionService';
 import { useGameWebSocket } from '../../hooks/useGameWebSocket';
 import { GameHeader } from '../../components/game/GameHeader';
-import { LevelProgress } from '../../components/game/LevelProgress';
 import { ChallengePanel } from '../../components/game/ChallengePanel';
 import { AnswerInput } from '../../components/game/AnswerInput';
-import { PartnerStatus } from '../../components/game/PartnerStatus';
 import { HintPanel } from '../../components/game/HintPanel';
 import { FinalDeductionTerminal } from '../../components/game/FinalDeductionTerminal';
 import { MysteryBoard } from '../../components/game/MysteryBoard';
 import { RiddleRevealModal } from '../../components/game/RiddleRevealModal';
-import { GameStatus } from '../../components/game/GameStatus';
 import { GameLoadingState } from '../../components/game/GameLoadingState';
 import { GameErrorState } from '../../components/game/GameErrorState';
-import { Shield, ShieldAlert, CheckCircle2, Radio, AlertOctagon, Terminal, Cpu, Trophy } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, AlertOctagon } from 'lucide-react';
 import { GameSessionState, ChallengeData } from '../../types/game';
 import { useAntiCheat } from '../../hooks/useAntiCheat';
 
@@ -32,7 +29,6 @@ import { CinematicStoryModal } from '../../components/game/CinematicStoryModal';
 import { fetchCurrentStory, skipStory, completeStory } from '../../services/storySyncService';
 import { STORY_SEQUENCES, StorySequence } from '../../config/storyConfig';
 import { CodeXcapeBackground } from '../../components/cinematic/CodeXcapeBackground';
-import { SpotlightCard } from '../../components/cinematic/SpotlightCard';
 import { SystemInitializationLoader } from '../../components/cinematic/SystemInitializationLoader';
 import { soundService } from '../../services/soundService';
 import { voiceNarratorService } from '../../services/voiceNarratorService';
@@ -79,6 +75,8 @@ export const PlayerGamePage: React.FC = () => {
   const [isRestorationOpen, setIsRestorationOpen] = useState(false);
   const [activeStory, setActiveStory] = useState<StorySequence | null>(null);
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [isMysteryBoardOpen, setIsMysteryBoardOpen] = useState(false);
+  const [isHintPanelOpen, setIsHintPanelOpen] = useState(false);
   const [transitionInfo, setTransitionInfo] = useState<{
     completedLevel: number;
     nextLevel: number;
@@ -629,59 +627,30 @@ export const PlayerGamePage: React.FC = () => {
       />
 
       <main className="game-main">
-        <LevelProgress levels={gameState.levels} currentLevel={gameState.currentLevel} />
+        <div className="game-workspace animate-fade-in">
+          {/* System Notifications & Alerts */}
+          {latestNotification && (
+            <div className="notification-banner animate-fade-in">
+              <span className="terminal-text">{latestNotification}</span>
+            </div>
+          )}
 
-        <div className="game-grid animate-slide-up">
-          {/* Main Investigation Workspace Column */}
-          <div className="panel-container">
-            <GameStatus message={gameState.gameStatusMessage} />
+          {lastAlert && (
+            <div className="notification-banner banner-error animate-pulse">
+              <ShieldAlert size={16} />
+              <span className="terminal-text font-bold">{lastAlert}</span>
+            </div>
+          )}
 
-            {latestNotification && (
-              <div className="notification-banner animate-pulse">
-                <Radio size={16} />
-                <span>{latestNotification}</span>
-              </div>
-            )}
+          {feedbackMsg && (
+            <div className={`notification-banner animate-fade-in ${feedbackIsError ? 'banner-error' : 'banner-success'}`}>
+              {feedbackIsError ? <AlertOctagon size={16} /> : <CheckCircle2 size={16} />}
+              <span className="terminal-text font-bold">{feedbackMsg}</span>
+            </div>
+          )}
 
-            {lastAlert && (
-              <div className="notification-banner banner-error animate-pulse" style={{ borderColor: 'var(--accent-crimson)', backgroundColor: 'rgba(225, 29, 72, 0.15)' }}>
-                <ShieldAlert size={16} color="var(--accent-crimson)" />
-                <span className="terminal-text" style={{ color: 'var(--accent-crimson)', fontWeight: 800 }}>{lastAlert}</span>
-              </div>
-            )}
-
-            {feedbackMsg && (
-              <div className={`notification-banner animate-fade-in ${feedbackIsError ? 'banner-error' : 'banner-success'}`}>
-                {feedbackIsError ? <AlertOctagon size={16} /> : <CheckCircle2 size={16} />}
-                <span className="terminal-text">{feedbackMsg}</span>
-              </div>
-            )}
-
-            <ChallengePanel challenge={gameState.challenge} playerNumber={player.playerNumber} />
-
-            {isChallengeCompleted ? (
-              <div className="verified-panel">
-                <div className="badge badge-success mb-m">
-                  <CheckCircle2 size={14} style={{ marginRight: '6px' }} />
-                  NODE VERIFIED
-                </div>
-                <p className="terminal-text text-muted" style={{ margin: 0 }}>
-                  &gt; AWAITING PARTNER NODE SYNCHRONIZATION FOR TIER 0{gameState.currentLevel}_
-                </p>
-              </div>
-            ) : (
-              <AnswerInput
-                key={`stage-input-${gameState.currentLevel}-${gameState.challenge.stageNumber || 1}`}
-                stageKey={`${gameState.currentLevel}-${gameState.challenge.stageNumber || 1}`}
-                answerType={gameState.challenge.answerType}
-                placeholderText={gameState.challenge.placeholderText}
-                puzzleMetadata={gameState.challenge.puzzleMetadata}
-                options={gameState.challenge.options}
-                onSubmit={handleAnswerSubmit}
-                isSubmitting={isSubmitting}
-              />
-            )}
-
+          {/* Central Puzzle Space or Final Deduction Console */}
+          {gameState.isFinalTerminalUnlocked ? (
             <FinalDeductionTerminal
               isUnlocked={gameState.isFinalTerminalUnlocked}
               isCompleted={serverState?.gameStatus === 'COMPLETED'}
@@ -690,72 +659,88 @@ export const PlayerGamePage: React.FC = () => {
                 loadData();
               }}
             />
-          </div>
+          ) : (
+            <div className="puzzle-container">
+              <ChallengePanel challenge={gameState.challenge} playerNumber={player.playerNumber} />
 
-          {/* Sidebar Telemetry & Dossier Column */}
-          <div className="panel-container sidebar-container">
-            <PartnerStatus partner={gameState.partner} />
-
-            {/* Team Identity Matrix with SpotlightCard */}
-            <SpotlightCard variant="cyan" className="team-matrix-panel">
-              <div className="panel-header">
-                <Shield size={14} color="var(--accent-cyan)" />
-                <span>TEAM IDENTITY MATRIX</span>
-              </div>
-
-              <div className="matrix-row">
-                <span className="terminal-text text-muted">TEAM CODE:</span>
-                <span className="terminal-text font-bold text-cyan">{player.teamCode}</span>
-              </div>
-
-              {gameState.currentRank !== undefined && (
-                <div className="matrix-row row-warning">
-                  <span className="terminal-text text-warning flex items-center gap-2 font-bold">
-                    <Trophy size={14} /> CURRENT RANK
-                  </span>
-                  <span className="terminal-text text-warning text-lg font-bold">#{gameState.currentRank}</span>
+              {isChallengeCompleted ? (
+                <div className="verified-panel">
+                  <div className="badge badge-success mb-m">
+                    <CheckCircle2 size={14} style={{ marginRight: '6px' }} />
+                    NODE VERIFIED
+                  </div>
+                  <p className="terminal-text text-muted" style={{ margin: 0 }}>
+                    &gt; AWAITING PARTNER NODE SYNCHRONIZATION FOR TIER 0{gameState.currentLevel}_
+                  </p>
                 </div>
+              ) : (
+                <AnswerInput
+                  key={`stage-input-${gameState.currentLevel}-${liveQuestion?.stageNumber || 1}-${liveQuestion?.questionId || 0}`}
+                  stageId={`${gameState.currentLevel}-${liveQuestion?.stageNumber || 1}-${liveQuestion?.questionId || 0}`}
+                  answerType={gameState.challenge.answerType}
+                  placeholderText={gameState.challenge.placeholderText}
+                  puzzleMetadata={gameState.challenge.puzzleMetadata}
+                  options={gameState.challenge.options}
+                  onSubmit={handleAnswerSubmit}
+                  isSubmitting={isSubmitting}
+                />
               )}
+            </div>
+          )}
 
-              {teamScore && (
-                <div className="matrix-row">
-                  <span className="terminal-text text-muted font-bold">TEAM SCORE:</span>
-                  <span className="terminal-text font-bold text-cyan" style={{ fontSize: '14px', letterSpacing: '0.05em' }}>
-                    {teamScore.finalScore} PTS
-                  </span>
-                </div>
+          {/* Secondary Action Bar: Mystery Board & Hints */}
+          <div className="game-secondary-dock">
+            <button
+              type="button"
+              onClick={() => {
+                soundService.playClick();
+                setIsMysteryBoardOpen(true);
+              }}
+              className="secondary-action-btn"
+              title="Open Mystery Board (General Logic Riddles)"
+            >
+              <span className="dock-icon">◆</span>
+              <span className="dock-label">MYSTERY BOARD</span>
+              <span className="dock-badge">
+                {Math.min(gameState.levels.filter((l) => l.status === 'COMPLETED').length, 6)}/6
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                soundService.playClick();
+                setIsHintPanelOpen(true);
+              }}
+              className="secondary-action-btn"
+              title="Open Stage Hints"
+            >
+              <span className="dock-icon">💡</span>
+              <span className="dock-label">HINTS</span>
+              {hints.filter((h) => h.isUnlocked).length > 0 && (
+                <span className="dock-badge active">
+                  {hints.filter((h) => h.isUnlocked).length}
+                </span>
               )}
-
-              <div className={`matrix-row ${player.playerNumber === 1 ? 'row-cyan' : ''}`}>
-                <div className="flex items-center gap-2 terminal-text">
-                  <Terminal size={14} />
-                  <span>NODE 01 {player.playerNumber === 1 ? '(YOU)' : ''}</span>
-                </div>
-                <span className="text-muted" style={{ fontSize: '11px' }}>{player.playerNumber === 1 ? player.playerName : 'PARTNER'}</span>
-              </div>
-
-              <div className={`matrix-row ${player.playerNumber === 2 ? 'row-purple' : ''}`}>
-                <div className="flex items-center gap-2 terminal-text">
-                  <Cpu size={14} />
-                  <span>NODE 02 {player.playerNumber === 2 ? '(YOU)' : ''}</span>
-                </div>
-                <span className="text-muted" style={{ fontSize: '11px' }}>{player.playerNumber === 2 ? player.playerName : 'PARTNER'}</span>
-              </div>
-            </SpotlightCard>
-
-            <MysteryBoard
-              completedLevelsCount={gameState.levels.filter((l) => l.status === 'COMPLETED').length}
-            />
-
-            <HintPanel
-              hints={gameState.hints}
-              currentLevel={gameState.currentLevel}
-              currentStage={liveQuestion?.stageNumber}
-              onUseHint={handleUseHint}
-            />
+            </button>
           </div>
         </div>
       </main>
+
+      <MysteryBoard
+        completedLevelsCount={gameState.levels.filter((l) => l.status === 'COMPLETED').length}
+        isOpen={isMysteryBoardOpen}
+        onClose={() => setIsMysteryBoardOpen(false)}
+      />
+
+      <HintPanel
+        hints={gameState.hints}
+        currentLevel={gameState.currentLevel}
+        currentStage={liveQuestion?.stageNumber}
+        isOpen={isHintPanelOpen}
+        onClose={() => setIsHintPanelOpen(false)}
+        onUseHint={handleUseHint}
+      />
 
       <OpeningBriefingModal
         isOpen={isBriefingOpen}

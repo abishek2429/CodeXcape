@@ -1,26 +1,14 @@
 import React, { useState } from 'react';
-import { Terminal, LogOut, Cpu, Clock, Volume2, VolumeX, ShieldAlert, Radio } from 'lucide-react';
+import { Volume2, VolumeX, LogOut, Clock } from 'lucide-react';
 import { PlayerInfo } from '../../types/player';
 import { SystemConnectionStatus } from '../../types/game';
-import { StatusDot } from '../ui/StatusDot';
-import { RankDisplay } from '../ui/RankDisplay';
-import { CinematicButton } from '../cinematic/CinematicButton';
 import { soundService } from '../../services/soundService';
 import { GameCountdownTimer } from './GameCountdownTimer';
-
-const LEVEL_NAMES: Record<number, string> = {
-  1: 'SYSTEM RECONSTRUCTION',
-  2: 'DATA VAULT',
-  3: 'NETWORK INCIDENT',
-  4: 'ENCRYPTED ROOM',
-  5: 'COLLAPSED SYSTEM',
-  6: 'THE CORE',
-};
 
 interface GameHeaderProps {
   player: PlayerInfo;
   currentLevel: number;
-  totalLevels: number;
+  totalLevels?: number;
   currentStage?: number;
   totalStages?: number;
   deadline?: string | null;
@@ -40,23 +28,15 @@ interface GameHeaderProps {
 export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
   player,
   currentLevel,
-  totalLevels,
   currentStage = 1,
-  totalStages = 1,
   deadline,
   serverTime,
   formattedRemaining,
-  remainingSeconds,
-  currentRank,
   teamScore,
-  connectionStatus,
   partnerStatus = 'CONNECTED',
   onLogout,
-  onOpenBriefing,
-  onOpenTransmission,
   onTimerExpire,
 }) => {
-  const isPlayer1 = player.playerNumber === 1;
   const [isMuted, setIsMuted] = useState<boolean>(soundService.isMuted());
 
   const toggleSound = () => {
@@ -64,92 +44,59 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
     setIsMuted(next);
   };
 
-  const isTimerCritical = remainingSeconds !== null && remainingSeconds !== undefined && remainingSeconds < 300; // < 5 mins
-  const isTimerWarning = remainingSeconds !== null && remainingSeconds !== undefined && remainingSeconds < 900; // < 15 mins
-  const levelName = LEVEL_NAMES[currentLevel] || `TIER 0${currentLevel}`;
+  const isPartnerConnected = partnerStatus === 'CONNECTED';
 
   return (
     <header
-      className="game-header"
+      className="game-hud"
       style={{
-        padding: '10px 24px',
+        height: '52px',
+        padding: '0 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid var(--border-crimson)',
-        backgroundColor: 'rgba(5, 5, 5, 0.95)',
+        backgroundColor: 'rgba(5, 5, 8, 0.96)',
         backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
         position: 'sticky',
         top: 0,
         zIndex: 100,
         fontFamily: 'var(--font-mono)',
       }}
     >
-      {/* Left: Restricted System Brand & Tier Identifier */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'rgba(225, 6, 19, 0.12)',
-              border: '1px solid var(--accent-crimson)',
-              color: 'var(--accent-crimson-bright)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 'var(--glow-crimson)',
-            }}
-          >
-            <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '18px' }}>X</span>
-          </div>
-
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
-              <span>CODEXCAPE // CRIMSON HUD</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '1px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.05em' }}>
-                LEVEL 0{currentLevel} / 0{totalLevels}: {levelName}
-              </span>
-              <span
-                style={{
-                  fontSize: '10px',
-                  backgroundColor: 'rgba(225, 6, 19, 0.12)',
-                  color: 'var(--accent-crimson-bright)',
-                  padding: '1px 6px',
-                  borderRadius: '2px',
-                  border: '1px solid var(--border-crimson)',
-                  fontWeight: 700,
-                }}
-              >
-                STAGE {String(currentStage).padStart(2, '0')} / {String(totalStages).padStart(2, '0')}
-              </span>
-            </div>
-          </div>
+      {/* LEFT: CODEXCAPE & LEVEL / STAGE */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            letterSpacing: '0.14em',
+            fontWeight: 900,
+            fontSize: '13px',
+            color: 'var(--text-cold-white)',
+          }}
+        >
+          <span style={{ color: 'var(--accent-crimson-bright)' }}>CODE</span>
+          <span>XCAPE</span>
         </div>
 
-        <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-dim)' }} />
+        <div style={{ width: '1px', height: '14px', backgroundColor: 'rgba(255, 255, 255, 0.12)' }} />
 
-        {/* Team Code & Active Node Pill */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="badge badge-crimson" style={{ fontSize: '10px', padding: '3px 8px' }}>
-            TEAM: {player.teamCode}
-          </div>
-          <div
-            className={`badge ${isPlayer1 ? 'badge-crimson' : 'badge-purple'}`}
-            style={{ fontSize: '10px', padding: '3px 8px' }}
-          >
-            {isPlayer1 ? <Terminal size={11} style={{ marginRight: '4px' }} /> : <Cpu size={11} style={{ marginRight: '4px' }} />}
-            <span>NODE 0{player.playerNumber}</span>
-          </div>
+        <div
+          style={{
+            fontSize: '11px',
+            letterSpacing: '0.08em',
+            color: 'var(--text-secondary)',
+            fontWeight: 700,
+          }}
+        >
+          LEVEL {currentLevel} · STAGE {currentStage}
         </div>
       </div>
 
-      {/* Center: Authoritative Remaining Timer & Masked Position */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        {/* Authoritative Timer */}
+      {/* CENTER: TIMER */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {deadline ? (
           <GameCountdownTimer
             deadline={deadline}
@@ -159,162 +106,126 @@ export const GameHeader: React.FC<GameHeaderProps> = React.memo(({
         ) : formattedRemaining ? (
           <div
             style={{
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '6px 14px',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: isTimerCritical ? 'rgba(225, 6, 19, 0.2)' : isTimerWarning ? 'rgba(214, 168, 75, 0.12)' : 'rgba(8, 8, 10, 0.8)',
-              border: '1px solid',
-              borderColor: isTimerCritical ? 'var(--accent-crimson)' : isTimerWarning ? 'var(--status-warning)' : 'var(--border-crimson)',
-              color: isTimerCritical ? 'var(--accent-crimson-bright)' : isTimerWarning ? 'var(--status-warning)' : 'var(--accent-crimson-bright)',
-              boxShadow: isTimerCritical ? 'var(--glow-crimson-intense)' : 'none',
-              fontSize: '13px',
+              gap: '6px',
+              fontSize: '18px',
               fontWeight: 800,
-              letterSpacing: '0.08em',
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: '0.1em',
+              color: 'var(--text-cold-white)',
             }}
           >
-            <Clock size={14} className={isTimerCritical ? 'animate-pulse' : ''} />
-            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>TIME REMAINING:</span>
+            <Clock size={14} style={{ opacity: 0.6, color: 'var(--text-secondary)' }} />
             <span>{formattedRemaining}</span>
           </div>
         ) : null}
-
-        {/* Player Masked Position with CountUp */}
-        {currentRank !== undefined && (
-          <RankDisplay currentRank={currentRank} />
-        )}
       </div>
 
-      {/* Right: Operator Telemetry Sync, Audio, Briefing & Disconnect */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {/* Authoritative Clear Team Score Display */}
-        {teamScore !== undefined && teamScore !== null && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '5px 10px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-cyan)',
-              backgroundColor: 'rgba(0, 217, 255, 0.08)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '11px',
-              fontWeight: 800,
-            }}
-          >
-            <span style={{ color: 'var(--text-secondary)', fontSize: '9px', letterSpacing: '0.08em' }}>TEAM SCORE:</span>
-            <span style={{ color: 'var(--accent-cyan)', letterSpacing: '0.05em' }}>{teamScore}</span>
-          </div>
-        )}
-
-        {/* Dual Operator Live Sync Indicator */}
+      {/* RIGHT: TEAM & SCORE & SUBTLE CONTROLS */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+        {/* Team with minimal player presence dots */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-dim)',
-            backgroundColor: 'rgba(8, 8, 10, 0.7)',
-            fontSize: '10px',
+            fontSize: '11px',
+            letterSpacing: '0.06em',
+            color: 'var(--text-secondary)',
           }}
         >
-          <span style={{ color: 'var(--text-secondary)' }}>OPERATORS:</span>
-          <span style={{ color: 'var(--status-success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: 'var(--status-success)', boxShadow: '0 0 4px var(--status-success)' }} />
-            OP 01
+          <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
+            TEAM {player.teamCode}
           </span>
-          <span style={{ color: partnerStatus === 'CONNECTED' ? 'var(--status-success)' : 'var(--status-warning)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: partnerStatus === 'CONNECTED' ? 'var(--status-success)' : 'var(--status-warning)', boxShadow: partnerStatus === 'CONNECTED' ? '0 0 4px var(--status-success)' : 'none' }} />
-            OP 02
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', opacity: 0.85 }}>
+            <span
+              title="You (P1) Connected"
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--status-success)',
+                display: 'inline-block',
+              }}
+            />
+            <span
+              title={isPartnerConnected ? 'Teammate Connected' : 'Teammate Reconnecting'}
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: isPartnerConnected ? 'var(--status-success)' : 'var(--status-warning)',
+                display: 'inline-block',
+                boxShadow: isPartnerConnected ? '0 0 4px var(--status-success)' : 'none',
+              }}
+            />
+          </div>
         </div>
 
-        {onOpenTransmission && (
-          <CinematicButton
-            variant="primary"
-            onClick={onOpenTransmission}
-            showBrackets={false}
-            style={{ padding: '6px 12px', fontSize: '10px', letterSpacing: '0.08em', backgroundColor: 'rgba(0, 240, 255, 0.12)', borderColor: 'var(--accent-cyan)', color: 'var(--accent-cyan)' }}
-            title="Open Holographic Story Transmission"
-          >
-            <Radio size={12} className="animate-pulse" color="#00f0ff" />
-            <span>TRANSMISSION</span>
-          </CinematicButton>
-        )}
+        <div style={{ width: '1px', height: '14px', backgroundColor: 'rgba(255, 255, 255, 0.12)' }} />
 
-        {onOpenBriefing && (
-          <CinematicButton
-            variant="secondary"
-            onClick={onOpenBriefing}
-            showBrackets={false}
-            style={{ padding: '6px 10px', fontSize: '10px', letterSpacing: '0.08em' }}
-            title="Review Investigation Dossier"
-          >
-            <ShieldAlert size={12} color="var(--accent-crimson)" />
-            <span>DOSSIER</span>
-          </CinematicButton>
-        )}
-
-        {/* Audio Toggle */}
-        <button
-          type="button"
-          onClick={toggleSound}
-          title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
-          style={{
-            padding: '6px 10px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-dim)',
-            backgroundColor: 'rgba(8, 8, 10, 0.8)',
-            color: isMuted ? 'var(--text-secondary)' : 'var(--accent-crimson-bright)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-        </button>
-
-        {/* Connection Status Dot */}
+        {/* Score (Single display, unadorned, supports negative scores) */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '4px 8px',
-            borderRadius: 'var(--radius-sm)',
-            backgroundColor: 'rgba(16, 185, 129, 0.08)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            color: 'var(--status-success)',
-            fontSize: '10px',
-            fontWeight: 'bold',
+            fontSize: '12px',
+            fontWeight: 800,
+            letterSpacing: '0.06em',
+            fontFamily: 'var(--font-mono)',
           }}
         >
-          <StatusDot status={connectionStatus === 'CONNECTED' ? 'connected' : 'disconnected'} />
-          <span>{connectionStatus}</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>SCORE</span>
+          <span style={{ color: 'var(--accent-cyan)' }}>
+            {teamScore !== null && teamScore !== undefined ? teamScore : 0}
+          </span>
         </div>
 
-        {/* Logout */}
-        <button
-          type="button"
-          onClick={onLogout}
-          title="Disconnect Console"
-          style={{
-            padding: '6px 8px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-dim)',
-            backgroundColor: 'var(--bg-panel)',
-            color: 'var(--accent-crimson)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <LogOut size={14} />
-        </button>
+        {/* Subtle controls: sound mute & discrete logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px' }}>
+          <button
+            type="button"
+            onClick={toggleSound}
+            title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: isMuted ? 'var(--text-muted)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: '2px',
+              transition: 'color 0.15s ease',
+            }}
+          >
+            {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+          </button>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            title="Disconnect session"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: '2px',
+              opacity: 0.5,
+              transition: 'opacity 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.5')}
+          >
+            <LogOut size={13} />
+          </button>
+        </div>
       </div>
     </header>
   );

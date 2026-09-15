@@ -62,48 +62,40 @@ export const GameCountdownTimer: React.FC<GameCountdownTimerProps> = ({
   const isTimerCritical = remainingSeconds < 300; // < 5 mins
   const isTimerWarning = remainingSeconds < 900; // < 15 mins
 
-  const hours = Math.floor(remainingSeconds / 3600);
-  const minutes = Math.floor((remainingSeconds % 3600) / 60);
+  const totalMinutes = Math.floor(remainingSeconds / 60);
   const seconds = remainingSeconds % 60;
-  const formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  const formatted = `${String(totalMinutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   return (
     <div
       className={`game-countdown-timer ${className}`}
       style={{
-        display: 'flex',
+        display: 'inline-flex',
         alignItems: 'center',
-        gap: '8px',
-        padding: '6px 14px',
-        borderRadius: 'var(--radius-sm)',
-        backgroundColor: isTimerCritical
-          ? 'rgba(225, 29, 72, 0.15)'
-          : isTimerWarning
-          ? 'rgba(245, 158, 11, 0.1)'
-          : 'rgba(0, 0, 0, 0.6)',
-        border: '1px solid',
-        borderColor: isTimerCritical
-          ? 'var(--accent-crimson)'
-          : isTimerWarning
-          ? 'var(--status-warning)'
-          : 'var(--border-cyan)',
+        gap: '6px',
         color: isTimerCritical
-          ? 'var(--accent-crimson)'
+          ? 'var(--accent-crimson-bright)'
           : isTimerWarning
           ? 'var(--status-warning)'
-          : 'var(--accent-cyan)',
-        boxShadow: isTimerCritical ? 'var(--glow-crimson)' : 'none',
-        fontSize: '13px',
+          : 'var(--text-cold-white)',
+        fontSize: '18px',
         fontWeight: 800,
-        letterSpacing: '0.08em',
+        letterSpacing: '0.1em',
         fontFamily: 'var(--font-mono)',
+        textShadow: isTimerCritical ? '0 0 12px rgba(225, 6, 19, 0.6)' : 'none',
       }}
       role="timer"
       aria-live="polite"
     >
-      <Clock size={14} className={isTimerCritical ? 'animate-pulse' : ''} />
-      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>TIME REMAINING:</span>
-      <span>{formatted}</span>
+      <Clock
+        size={14}
+        className={isTimerCritical ? 'animate-pulse' : ''}
+        style={{
+          opacity: 0.6,
+          color: isTimerCritical ? 'var(--accent-crimson-bright)' : 'var(--text-secondary)',
+        }}
+      />
+      <span className={isTimerCritical ? 'animate-pulse' : ''}>{formatted}</span>
     </div>
   );
 };
