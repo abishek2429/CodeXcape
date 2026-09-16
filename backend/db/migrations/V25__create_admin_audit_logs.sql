@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+    id BIGSERIAL PRIMARY KEY,
+    admin_username VARCHAR(100) NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    target VARCHAR(255),
+    details TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,0 +1,1 @@
+ALTER TABLE answer_attempts ADD COLUMN IF NOT EXISTS interaction_payload TEXT;
