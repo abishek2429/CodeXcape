@@ -48,6 +48,17 @@ class ScoreEventRepository {
     );
     return res.rows[0];
   }
+
+  async deleteByTeamId(teamId, client = null) {
+    const executor = client || db;
+    await executor.query(`DELETE FROM score_events WHERE team_id = $1`, [teamId]);
+  }
+
+  async deleteAll(client = null) {
+    const executor = client || db;
+    await executor.query(`DELETE FROM score_events`);
+  }
 }
 
 module.exports = new ScoreEventRepository();
+

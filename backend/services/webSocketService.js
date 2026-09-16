@@ -218,6 +218,13 @@ class WebSocketService {
     this.broadcast('/topic/admin', eventPayload);
   }
 
+  broadcastAll(eventPayload) {
+    this.broadcastToAdmin(eventPayload);
+    for (const [topic] of this.subscriptions.entries()) {
+      this.broadcast(topic, eventPayload);
+    }
+  }
+
   notifyPlayerConnection(teamId, playerId, playerNumber, displayName, isConnected) {
     const payload = {
       type: isConnected ? 'PLAYER_CONNECTED' : 'PLAYER_DISCONNECTED',

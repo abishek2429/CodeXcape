@@ -76,6 +76,21 @@ class PlayerRepository {
     await executor.query(`DELETE FROM players WHERE team_id = $1`, [teamId]);
   }
 
+  async resetStatusByTeamId(teamId, client = null) {
+    const executor = client || db;
+    await executor.query(
+      `UPDATE players SET status = 'INACTIVE', is_ready = false, updated_at = NOW() WHERE team_id = $1`,
+      [teamId]
+    );
+  }
+
+  async resetAllStatuses(client = null) {
+    const executor = client || db;
+    await executor.query(
+      `UPDATE players SET status = 'INACTIVE', is_ready = false, updated_at = NOW()`
+    );
+  }
+
   _mapRow(r) {
     if (!r) return null;
     return {

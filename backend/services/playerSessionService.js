@@ -340,7 +340,8 @@ class PlayerSessionService {
   }
 
   async resetTeamCredentialsAndSessions(adminPrincipal, teamId) {
-    await gameSessionRepository.terminateByTeamId(teamId);
+    const adminTeamResetService = require('./admin/adminTeamResetService');
+    await adminTeamResetService.resetTeamProgress(adminPrincipal, teamId);
   }
 
   async revokeAllTeamSessions(adminPrincipal, teamId) {
@@ -348,7 +349,8 @@ class PlayerSessionService {
   }
 
   async resetAllSessionsAndCredentials(adminPrincipal) {
-    await gameSessionRepository.terminateAll();
+    const adminTeamResetService = require('./admin/adminTeamResetService');
+    await adminTeamResetService.resetAllTeams(adminPrincipal);
   }
 }
 

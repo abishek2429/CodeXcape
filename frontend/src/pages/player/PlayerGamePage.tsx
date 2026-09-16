@@ -110,6 +110,7 @@ export const PlayerGamePage: React.FC = () => {
     soundService.playLevelUnlock();
 
     // 2. BLACK SCREEN TRANSITION STARTS
+    transitionStageRef.current = 'BLACK_TRANSITION_ACTIVE';
     setTransitionStage('BLACK_TRANSITION_ACTIVE');
 
     const nextLevelObj = serverState?.levels?.find((l) => l.levelNumber === nextLevel);
@@ -470,12 +471,12 @@ export const PlayerGamePage: React.FC = () => {
     setFeedbackMsg(null);
 
     try {
-      const res = await submitAnswer(answer, interactionPayload);
+      const res = await submitAnswer(answer, interactionPayload, gameState.currentLevel, liveQuestion?.stageNumber);
       if (res.correct) {
         soundService.playCorrectAnswer();
         setFeedbackIsError(false);
         setFeedbackMsg(res.message || 'ACCESS GRANTED: EVIDENCE VERIFIED. PROTOCOL UNLOCKED.');
-        if (res.isCompleted && res.stageCompleted) {
+        if (res.levelCompleted || (res.stageCompleted && res.nextStageNumber === null && gameState.currentLevel < 6)) {
           triggerLevelCompletedTransition(gameState.currentLevel, gameState.currentLevel + 1);
         }
         await loadData();
@@ -839,7 +840,7 @@ export const PlayerGamePage: React.FC = () => {
 
       <CinematicStoryModal
         sequence={activeStory}
-        isOpen={isStoryModalOpen && transitionStage !== 'BLACK_TRANSITION_ACTIVE'}
+        isOpen={isStoryModalOpen && transitionStage !== 'BLACK_TRANSITION_ACTIVE' && transitionInfo === null}
         onSkip={handleStorySkip}
         onComplete={handleStoryComplete}
       />

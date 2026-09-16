@@ -68,6 +68,11 @@ class TeamStoryProgressRepository {
     await executor.query(`DELETE FROM team_story_progress WHERE team_id = $1`, [teamId]);
   }
 
+  async deleteAll(client = null) {
+    const executor = client || db;
+    await executor.query(`DELETE FROM team_story_progress`);
+  }
+
   _mapRow(r) {
     if (!r) return null;
     return {

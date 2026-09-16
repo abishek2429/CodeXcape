@@ -148,6 +148,58 @@ class TeamRepository {
     await db.query(`DELETE FROM teams WHERE id = $1`, [id]);
   }
 
+  async resetTeamStateById(teamId, client = null) {
+    const executor = client || db;
+    const res = await executor.query(
+      `UPDATE teams SET
+         status = 'REGISTERED',
+         game_state = 'NOT_STARTED',
+         started_at = NULL,
+         completed_at = NULL,
+         base_score = 0,
+         wrong_attempt_penalty = 0,
+         hint_penalty = 0,
+         anti_cheat_penalty = 0,
+         final_score = 0,
+         completed_mini_games = 0,
+         completed_levels = 0,
+         is_flagged_for_review = false,
+         security_incident_count = 0,
+         current_story_key = NULL,
+         story_paused_at = NULL,
+         total_story_pause_seconds = 0,
+         updated_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [teamId]
+    );
+    return res.rows[0] ? this._mapRow(res.rows[0]) : null;
+  }
+
+  async resetAllTeamStates(client = null) {
+    const executor = client || db;
+    await executor.query(
+      `UPDATE teams SET
+         status = 'REGISTERED',
+         game_state = 'NOT_STARTED',
+         started_at = NULL,
+         completed_at = NULL,
+         base_score = 0,
+         wrong_attempt_penalty = 0,
+         hint_penalty = 0,
+         anti_cheat_penalty = 0,
+         final_score = 0,
+         completed_mini_games = 0,
+         completed_levels = 0,
+         is_flagged_for_review = false,
+         security_incident_count = 0,
+         current_story_key = NULL,
+         story_paused_at = NULL,
+         total_story_pause_seconds = 0,
+         updated_at = NOW()`
+    );
+  }
+
   _mapRow(row) {
     if (!row) return null;
     return {

@@ -56,6 +56,16 @@ class TeamAntiCheatSummaryRepository {
     return this._mapRow(res.rows[0]);
   }
 
+  async deleteByTeamId(teamId, client = null) {
+    const executor = client || db;
+    await executor.query(`DELETE FROM team_anti_cheat_summary WHERE team_id = $1`, [teamId]);
+  }
+
+  async deleteAll(client = null) {
+    const executor = client || db;
+    await executor.query(`DELETE FROM team_anti_cheat_summary`);
+  }
+
   _mapRow(r) {
     if (!r) return null;
     return {
