@@ -9,7 +9,7 @@ const isRemote = connectionString.includes('aws') || connectionString.includes('
 
 const poolConfig = {
   connectionString,
-  max: 20,
+  max: process.env.VERCEL ? 2 : 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
 };
