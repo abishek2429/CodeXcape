@@ -95,6 +95,12 @@ export const PlayerGamePage: React.FC = () => {
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [isMysteryBoardOpen, setIsMysteryBoardOpen] = useState(false);
   const [riddleBoardState, setRiddleBoardState] = useState<RiddleBoardState | null>(null);
+  const [partnerCompletedStage, setPartnerCompletedStage] = useState<boolean>(false);
+  const serverStateRef = useRef<PlayerGameStateResponse | null>(null);
+  serverStateRef.current = serverState;
+  const isFetchingRef = useRef<boolean>(false);
+  const hasPendingFetchRef = useRef<boolean>(false);
+  const storylineLoadedRef = useRef<boolean>(false);
   const [isHintPanelOpen, setIsHintPanelOpen] = useState(false);
   const [transitionInfo, setTransitionInfo] = useState<{
     completedLevel: number;
@@ -144,17 +150,38 @@ export const PlayerGamePage: React.FC = () => {
   }, [serverState?.levels]);
 
   const loadData = useCallback(async () => {
+    if (isFetchingRef.current) {
+      hasPendingFetchRef.current = true;
+      return;
+    }
+    isFetchingRef.current = true;
+
     try {
-      setLoadError(null);
-      const [stateData, storyData, scoreData, activeStoryData] = await Promise.all([
+      if (!serverStateRef.current) {
+        setLoadError(null);
+      }
+
+      const tasks: [
+        Promise<PlayerGameStateResponse | null>,
+        Promise<StorylineData | null>,
+        Promise<PlayerScoreResponse | null>,
+        Promise<any>
+      ] = [
         fetchPlayerGameState(),
-        fetchStoryline(),
+        storylineLoadedRef.current ? Promise.resolve(null) : fetchStoryline(),
         fetchPlayerScore(),
         fetchCurrentStory(),
-      ]);
+      ];
+
+      const [stateData, storyData, scoreData, activeStoryData] = await Promise.all(tasks);
 
       if (scoreData) {
         setTeamScore(scoreData);
+      }
+
+      if (storyData) {
+        storylineLoadedRef.current = true;
+        setStoryline(storyData);
       }
 
       if (activeStoryData && activeStoryData.isStoryActive && activeStoryData.storyKey) {
@@ -181,8 +208,12 @@ export const PlayerGamePage: React.FC = () => {
         }
       }
 
+      // If stateData failed on a background refresh, keep existing state and don't wipe UI
       if (!stateData) {
-        throw new Error('AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
+        if (!serverStateRef.current) {
+          throw new Error('AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
+        }
+        return;
       }
 
       // If team has not started the event, redirect to Player Profile / Team Lobby
@@ -193,12 +224,12 @@ export const PlayerGamePage: React.FC = () => {
 
       // Check if level has transitioned during live play
       if (prevLevelRef.current !== null && stateData.currentLevel > prevLevelRef.current && stateData.currentLevel <= 6) {
+        setPartnerCompletedStage(false);
         triggerLevelCompletedTransition(prevLevelRef.current, stateData.currentLevel);
       }
       prevLevelRef.current = stateData.currentLevel;
 
       setServerState(stateData);
-      setStoryline(storyData);
       if (stateData.currentRank !== undefined) {
         setLiveRank(stateData.currentRank);
       }
@@ -237,12 +268,25 @@ export const PlayerGamePage: React.FC = () => {
         fetchCurrentQuestion(3),
         fetchPlayerHints(),
       ]);
-      setLiveQuestion(questionData);
+
+      if (questionData) {
+        setLiveQuestion(questionData);
+        if (typeof questionData.partnerCompleted === 'boolean') {
+          setPartnerCompletedStage(questionData.partnerCompleted);
+        }
+      }
       setHints(hintsData || []);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
+      if (!serverStateRef.current) {
+        setLoadError(err instanceof Error ? err.message : 'AUTHORITATIVE GAME STATE UNAVAILABLE. RECONNECT AND TRY AGAIN.');
+      }
     } finally {
       setIsLoadingData(false);
+      isFetchingRef.current = false;
+      if (hasPendingFetchRef.current) {
+        hasPendingFetchRef.current = false;
+        loadData();
+      }
     }
   }, [navigate, triggerLevelCompletedTransition]);
 
@@ -352,7 +396,18 @@ export const PlayerGamePage: React.FC = () => {
     playerNumber: player?.playerNumber,
     onRefreshData: loadData,
     onRankChanged: (newRank) => setLiveRank(newRank),
+    onPartnerChallengeCompleted: (payload) => {
+      if (payload.playerNumber !== player?.playerNumber) {
+        setPartnerCompletedStage(true);
+        soundService.playSelect();
+      }
+    },
+    onRiddleSolved: () => {
+      fetchRiddleBoardState().then(setRiddleBoardState).catch(() => {});
+      soundService.playSelect();
+    },
     onLevelCompleted: (levelNumber) => {
+      setPartnerCompletedStage(false);
       if (levelNumber <= 6) {
         triggerLevelCompletedTransition(levelNumber, levelNumber + 1);
       }
@@ -402,6 +457,16 @@ export const PlayerGamePage: React.FC = () => {
     }
   }, [authStatus, player]);
 
+  // Auto-retry connection if initial load fails
+  useEffect(() => {
+    if (loadError && !serverState) {
+      const retryTimer = setTimeout(() => {
+        loadData();
+      }, 4000);
+      return () => clearTimeout(retryTimer);
+    }
+  }, [loadError, serverState, loadData]);
+
   // Procedural Ambient Hum and Final Protocol Silence
   useEffect(() => {
     const isPlaying = serverState?.gameStatus === 'IN_PROGRESS' || serverState?.gameStatus === 'FINAL_PASSKEY';
@@ -436,17 +501,17 @@ export const PlayerGamePage: React.FC = () => {
 
   if (authStatus === 'INITIALIZING' || !player || isLoadingData || !serverState) {
     if (authStatus === 'AUTHENTICATED' && loadError && !serverState) {
-      return <GameErrorState message={loadError || 'AUTHORITATIVE GAME STATE UNAVAILABLE.'} />;
+      return <GameErrorState message={loadError || 'AUTHORITATIVE GAME STATE UNAVAILABLE.'} onRetry={loadData} />;
     }
     return <GameLoadingState message="SYNCHRONIZING SECURE ESCAPE NODES..." />;
   }
 
   if (authStatus !== 'AUTHENTICATED') {
-    return <GameErrorState message="SESSION EXPIRED OR UNAUTHENTICATED. PLEASE RE-ENTER CREDENTIALS." />;
+    return <GameErrorState message="SESSION EXPIRED OR UNAUTHENTICATED. PLEASE RE-ENTER CREDENTIALS." onRetry={() => navigate('/player/login')} />;
   }
 
-  if (loadError || !serverState) {
-    return <GameErrorState message={loadError || 'AUTHORITATIVE GAME STATE UNAVAILABLE.'} />;
+  if (!serverState) {
+    return <GameErrorState message={loadError || 'AUTHORITATIVE GAME STATE UNAVAILABLE.'} onRetry={loadData} />;
   }
 
   if (!liveQuestion && serverState.gameStatus !== 'NOT_STARTED' && serverState.gameStatus !== 'FINAL_PASSKEY' && serverState.gameStatus !== 'COMPLETED') {
@@ -495,8 +560,10 @@ export const PlayerGamePage: React.FC = () => {
     partner: {
       playerNumber: player.playerNumber === 1 ? 2 : 1,
       displayName: 'PARTNER',
-      challengeCompleted: false,
-      statusMessage: 'Teammate status is synchronized by the server.',
+      challengeCompleted: partnerCompletedStage,
+      statusMessage: partnerCompletedStage
+        ? 'Teammate verified stage telemetry.'
+        : 'Teammate status is synchronized by the server.',
       status: partnerStatus === 'CONNECTED' ? 'CONNECTED' : 'DISCONNECTED',
     },
     connectionStatus: wsConnectionStatus === 'CONNECTED' ? 'CONNECTED' : wsConnectionStatus === 'RECONNECTING' ? 'RECONNECTING' : 'DISCONNECTED',
@@ -542,8 +609,12 @@ export const PlayerGamePage: React.FC = () => {
           } : null);
         }
         if (res.levelCompleted || (res.stageCompleted && res.nextStageNumber === null && gameState.currentLevel < 6)) {
+          setPartnerCompletedStage(false);
           triggerLevelCompletedTransition(gameState.currentLevel, gameState.currentLevel + 1);
         } else {
+          if (res.stageCompleted) {
+            setPartnerCompletedStage(false);
+          }
           await loadData();
         }
       } else {
@@ -840,6 +911,7 @@ export const PlayerGamePage: React.FC = () => {
         completedLevelsCount={gameState.levels.filter((l) => l.status === 'COMPLETED').length}
         isOpen={isMysteryBoardOpen}
         onClose={() => setIsMysteryBoardOpen(false)}
+        riddleBoardState={riddleBoardState}
         onRiddleSolved={() => {
           fetchRiddleBoardState().then(setRiddleBoardState).catch(() => {});
           loadData();

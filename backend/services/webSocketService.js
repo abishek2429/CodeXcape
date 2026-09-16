@@ -215,11 +215,12 @@ class WebSocketService {
       await db.query('SELECT pg_notify($1, $2)', ['codexcape_events', msgPayload]).catch(() => {});
     } catch (_) {}
 
-    // Direct HTTP bridge to Render WebSocket Server if configured
-    if (process.env.RENDER_WS_HTTP_URL) {
+    // Direct HTTP bridge to Render WebSocket Server
+    const renderWsUrl = process.env.RENDER_WS_HTTP_URL || (process.env.NODE_ENV === 'production' ? 'https://codexcape-hpo8.onrender.com' : null);
+    if (renderWsUrl) {
       try {
         const secret = process.env.INTERNAL_WS_SECRET || 'codexcape-internal-secret';
-        const targetUrl = `${process.env.RENDER_WS_HTTP_URL.replace(/\/$/, '')}/api/internal/broadcast`;
+        const targetUrl = `${renderWsUrl.replace(/\/$/, '')}/api/internal/broadcast`;
         await fetch(targetUrl, {
           method: 'POST',
           headers: {
@@ -227,9 +228,7 @@ class WebSocketService {
             'X-Internal-Secret': secret
           },
           body: JSON.stringify({ topic, payload })
-        }).catch((err) => {
-          console.warn('[WS HTTP Bridge] Webhook delivery failed:', err.message);
-        });
+        }).catch(() => {});
       } catch (_) {}
     }
   }

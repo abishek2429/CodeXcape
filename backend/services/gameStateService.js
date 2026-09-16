@@ -289,9 +289,22 @@ class GameStateService {
     const currentRank = await leaderboardService.getTeamCurrentRank(team.id);
 
     let currentStage = 1;
+    let myCompletedStage = false;
+    let partnerCompletedStage = false;
+
     if (activeProgress) {
       const questionAnswerService = require('./questionAnswerService');
       currentStage = await questionAnswerService.findCurrentStage(team.id, activeProgress.levelId, currentLevel);
+      const stageProgress = await teamStageProgressRepository.findByTeamIdAndLevelIdAndStageNumber(team.id, activeProgress.levelId, currentStage);
+      if (stageProgress) {
+        if (principal.playerNumber === 1) {
+          myCompletedStage = Boolean(stageProgress.player1Completed);
+          partnerCompletedStage = Boolean(stageProgress.player2Completed);
+        } else {
+          myCompletedStage = Boolean(stageProgress.player2Completed);
+          partnerCompletedStage = Boolean(stageProgress.player1Completed);
+        }
+      }
     }
 
     const teamScore = {
@@ -322,6 +335,8 @@ class GameStateService {
       completedAt: team.completedAt,
       myCompletedCurrentLevel: myCompleted,
       partnerCompletedCurrentLevel: partnerCompleted,
+      myCompletedCurrentStage: myCompletedStage,
+      partnerCompletedCurrentStage: partnerCompletedStage,
       teamScore,
       stateVersion: team.stateVersion || 1
     };

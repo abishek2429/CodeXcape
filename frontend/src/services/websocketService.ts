@@ -12,6 +12,7 @@ export type WebSocketEventType =
   | 'HINT_UNLOCKED'
   | 'GAME_COMPLETED'
   | 'GAME_STATE_UPDATED'
+  | 'RIDDLE_SOLVED'
   | 'RANK_CHANGED'
   | 'ANTI_CHEAT_ALERT'
   | 'ANTI_CHEAT_EVENT'
@@ -42,6 +43,10 @@ export interface WebSocketEventPayload {
   newRank?: number;
   message?: string;
   timestamp?: string;
+  riddleIndex?: number;
+  solvedDigit?: string;
+  solvedCount?: number;
+  allRiddlesSolved?: boolean;
   violationType?: string;
   penaltyPoints?: number;
   teamTotalPenalties?: number;

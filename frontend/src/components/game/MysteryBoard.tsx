@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, HelpCircle, ChevronRight, ChevronDown, CheckCircle2, Lock, Send, AlertCircle, Loader2 } from 'lucide-react';
 import { SIX_MYSTERY_RIDDLES, MysteryRiddle } from '../../config/riddleConfig';
-import { fetchRiddleBoardState, submitRiddleDigit, RiddleItemState } from '../../services/riddleService';
+import { fetchRiddleBoardState, submitRiddleDigit, RiddleItemState, RiddleBoardState } from '../../services/riddleService';
 import { soundService } from '../../services/soundService';
 
 interface MysteryBoardProps {
@@ -9,6 +9,7 @@ interface MysteryBoardProps {
   isOpen: boolean;
   onClose: () => void;
   onRiddleSolved?: () => void;
+  riddleBoardState?: RiddleBoardState | null;
 }
 
 export const MysteryBoard: React.FC<MysteryBoardProps> = ({
@@ -16,6 +17,7 @@ export const MysteryBoard: React.FC<MysteryBoardProps> = ({
   isOpen,
   onClose,
   onRiddleSolved,
+  riddleBoardState,
 }) => {
   const [selectedRiddleId, setSelectedRiddleId] = useState<number | null>(null);
   const [riddleStates, setRiddleStates] = useState<Record<number, RiddleItemState>>({});
@@ -24,13 +26,24 @@ export const MysteryBoard: React.FC<MysteryBoardProps> = ({
   const [feedbackMessages, setFeedbackMessages] = useState<Record<number, { text: string; isError: boolean }>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load server-authoritative riddle states whenever opened
+  // Synchronize when parent passes updated riddle board state (via WebSocket or parent sync)
+  useEffect(() => {
+    if (riddleBoardState?.riddles) {
+      const map: Record<number, RiddleItemState> = {};
+      riddleBoardState.riddles.forEach((r) => {
+        map[r.riddleIndex] = r;
+      });
+      setRiddleStates(map);
+    }
+  }, [riddleBoardState]);
+
+  // Load server-authoritative riddle states whenever opened and poll while modal is active
   useEffect(() => {
     if (!isOpen) return;
 
     let isMounted = true;
-    const loadStates = async () => {
-      setIsLoading(true);
+    const loadStates = async (showLoading: boolean = false) => {
+      if (showLoading) setIsLoading(true);
       try {
         const data = await fetchRiddleBoardState();
         if (isMounted && data.riddles) {
@@ -57,13 +70,18 @@ export const MysteryBoard: React.FC<MysteryBoardProps> = ({
       } catch {
         // Fallback to completedLevelsCount if network error
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted && showLoading) setIsLoading(false);
       }
     };
 
-    loadStates();
+    loadStates(true);
+    const pollInterval = setInterval(() => {
+      loadStates(false);
+    }, 3000);
+
     return () => {
       isMounted = false;
+      clearInterval(pollInterval);
     };
   }, [isOpen, completedLevelsCount]);
 
