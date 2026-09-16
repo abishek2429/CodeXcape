@@ -9,6 +9,7 @@ class HealthService {
         dbStatus = 'DOWN';
       }
     } catch (e) {
+      console.error('Health check DB error:', e.message);
       dbStatus = 'DOWN';
     }
 
