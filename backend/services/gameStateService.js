@@ -218,6 +218,15 @@ class GameStateService {
 
     team.completedLevels = (team.completedLevels || 0) + 1;
 
+    // Broadcast LEVEL_COMPLETED FIRST so players enter the black-screen transition before next story
+    webSocketService.broadcastToTeam(team.id, {
+      type: 'LEVEL_COMPLETED',
+      teamId: team.id,
+      levelNumber,
+      message: `Level ${levelNumber} completed! Both operators synchronized.`,
+      timestamp: new Date().toISOString()
+    });
+
     if (levelNumber < 6) {
       const nextLevel = await levelRepository.findByLevelNumber(levelNumber + 1);
       if (nextLevel) {

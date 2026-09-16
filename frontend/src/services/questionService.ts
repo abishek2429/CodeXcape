@@ -19,6 +19,7 @@ export interface AnswerSubmissionResponse {
   correct: boolean;
   isCompleted: boolean;
   stageCompleted?: boolean;
+  levelCompleted?: boolean;
   stageNumber?: number;
   nextStageNumber?: number;
   message: string;
@@ -45,14 +46,19 @@ export async function fetchCurrentQuestion(): Promise<PlayerQuestionResponse | n
   }
 }
 
-export async function submitAnswer(answer: string, interactionPayload?: string): Promise<AnswerSubmissionResponse> {
+export async function submitAnswer(
+  answer: string,
+  interactionPayload?: string,
+  levelNumber?: number,
+  stageNumber?: number
+): Promise<AnswerSubmissionResponse> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE}/answer`, {
       method: 'POST',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       credentials: 'include',
-      body: JSON.stringify({ answer, interactionPayload }),
+      body: JSON.stringify({ answer, interactionPayload, levelNumber, stageNumber }),
     });
   } catch (err) {
     throw new Error('Unable to connect to the game server. Please try again.');

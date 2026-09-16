@@ -48,6 +48,11 @@ class AnswerAttemptRepository {
     const executor = client || db;
     await executor.query(`DELETE FROM answer_attempts WHERE team_id = $1`, [teamId]);
   }
+
+  async deleteAll(client = null) {
+    const executor = client || db;
+    await executor.query(`DELETE FROM answer_attempts`);
+  }
 }
 
 module.exports = new AnswerAttemptRepository();

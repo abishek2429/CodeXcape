@@ -84,6 +84,28 @@ class TeamStageProgressRepository {
     }
   }
 
+  async resetByTeamId(teamId, client = null) {
+    const executor = client || db;
+    await executor.query(
+      `UPDATE team_stage_progress
+       SET player1_completed = false,
+           player2_completed = false,
+           completed_at = NULL
+       WHERE team_id = $1`,
+      [teamId]
+    );
+  }
+
+  async resetAll(client = null) {
+    const executor = client || db;
+    await executor.query(
+      `UPDATE team_stage_progress
+       SET player1_completed = false,
+           player2_completed = false,
+           completed_at = NULL`
+    );
+  }
+
   _mapRow(r) {
     if (!r) return null;
     return {

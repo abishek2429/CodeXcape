@@ -207,8 +207,11 @@ class QuestionAnswerService {
       if (completedLvl) {
         return {
           correct: true,
+          isCorrect: true,
+          status: 'CORRECT',
           isCompleted: true,
           stageCompleted: true,
+          levelCompleted: true,
           message: 'Level completed. Both players solved the final stage.'
         };
       }
@@ -217,6 +220,21 @@ class QuestionAnswerService {
 
     const currentStage = await this.findCurrentStage(team.id, level.id, level.levelNumber);
     const totalStages = this.getTotalStages(level.levelNumber);
+
+    // Idempotency: if request specifies a stageNumber that has already been completed for this level
+    if (request.stageNumber != null && parseInt(request.stageNumber, 10) < currentStage) {
+      return {
+        correct: true,
+        isCorrect: true,
+        status: 'CORRECT',
+        isCompleted: true,
+        stageCompleted: true,
+        levelCompleted: false,
+        stageNumber: parseInt(request.stageNumber, 10),
+        nextStageNumber: currentStage,
+        message: 'Stage already completed.'
+      };
+    }
 
     const question = await questionRepository.findByLevelIdAndStageNumberAndPlayerNumber(
       level.id,
@@ -252,8 +270,11 @@ class QuestionAnswerService {
       const isLevelCompleted = activeProgress.levelStatus === 'COMPLETED' || (bothCompleted && finalStage);
       return {
         correct: true,
+        isCorrect: true,
+        status: 'CORRECT',
         isCompleted: true,
         stageCompleted: bothCompleted,
+        levelCompleted: isLevelCompleted,
         stageNumber: currentStage,
         nextStageNumber: bothCompleted && !finalStage ? currentStage + 1 : null,
         message: bothCompleted
@@ -360,20 +381,13 @@ class QuestionAnswerService {
         const gameStateService = require('./gameStateService');
         await gameStateService.completeLevel(team.id, level.levelNumber);
 
-        webSocketService.broadcastToTeam(team.id, {
-          type: 'LEVEL_COMPLETED',
-          teamId: team.id,
-          levelNumber: level.levelNumber,
-          message: `Level ${level.levelNumber} completed! Both operators synchronized.`,
-          timestamp: new Date().toISOString()
-        });
-
         return {
           correct: true,
           isCorrect: true,
           status: 'CORRECT',
           isCompleted: true,
           stageCompleted: true,
+          levelCompleted: true,
           stageNumber: currentStage,
           nextStageNumber: null,
           message: 'Level completed. Both players solved the final stage.'
@@ -385,6 +399,7 @@ class QuestionAnswerService {
           status: 'CORRECT',
           isCompleted: true,
           stageCompleted: true,
+          levelCompleted: false,
           stageNumber: currentStage,
           nextStageNumber: currentStage + 1,
           message: 'Stage completed. The next cooperative stage is now available.'
@@ -397,6 +412,7 @@ class QuestionAnswerService {
         status: 'CORRECT',
         isCompleted: true,
         stageCompleted: false,
+        levelCompleted: false,
         stageNumber: currentStage,
         nextStageNumber: null,
         message: 'ACCESS GRANTED: EVIDENCE VERIFIED. AWAITING PARTNER SYNCHRONIZATION.'

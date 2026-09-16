@@ -47,6 +47,16 @@ class HintUsageRepository {
       throw e;
     }
   }
+
+  async deleteByTeamId(teamId, client = null) {
+    const executor = client || db;
+    await executor.query(`DELETE FROM hint_usage WHERE team_id = $1`, [teamId]);
+  }
+
+  async deleteAll(client = null) {
+    const executor = client || db;
+    await executor.query(`DELETE FROM hint_usage`);
+  }
 }
 
 module.exports = new HintUsageRepository();

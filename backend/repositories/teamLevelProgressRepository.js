@@ -86,6 +86,38 @@ class TeamLevelProgressRepository {
     }
   }
 
+  async resetByTeamId(teamId, client = null) {
+    const executor = client || db;
+    await executor.query(
+      `UPDATE team_level_progress tlp
+       SET level_status = CASE WHEN l.level_number = 1 THEN 'AVAILABLE' ELSE 'LOCKED' END,
+           player1_completed = false,
+           player2_completed = false,
+           started_at = NULL,
+           completed_at = NULL,
+           updated_at = NOW()
+       FROM levels l
+       WHERE tlp.level_id = l.id
+         AND tlp.team_id = $1`,
+      [teamId]
+    );
+  }
+
+  async resetAll(client = null) {
+    const executor = client || db;
+    await executor.query(
+      `UPDATE team_level_progress tlp
+       SET level_status = CASE WHEN l.level_number = 1 THEN 'AVAILABLE' ELSE 'LOCKED' END,
+           player1_completed = false,
+           player2_completed = false,
+           started_at = NULL,
+           completed_at = NULL,
+           updated_at = NOW()
+       FROM levels l
+       WHERE tlp.level_id = l.id`
+    );
+  }
+
   _mapRow(r) {
     if (!r) return null;
     return {
