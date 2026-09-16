@@ -224,7 +224,27 @@ class WebSocketService {
       teamId,
       playerId,
       playerNumber,
+      displayName,
       message: `${displayName || 'Operator ' + playerNumber} ${isConnected ? 'connected' : 'disconnected'}`,
+      timestamp: new Date().toISOString()
+    };
+    this.broadcastToTeam(teamId, payload);
+    this.broadcastToAdmin(payload);
+  }
+
+  notifyPlayerReady(teamId, playerId, playerNumber, displayName, isReady, allReady, gameState) {
+    const payload = {
+      type: 'PLAYER_READY_CHANGED',
+      teamId,
+      playerId,
+      playerNumber,
+      displayName,
+      isReady: Boolean(isReady),
+      allReady: Boolean(allReady),
+      gameState: gameState || 'NOT_STARTED',
+      message: allReady
+        ? 'BOTH PLAYERS READY: TEAM BRIEFING AUTHORIZED'
+        : `Player ${playerNumber} is ${isReady ? 'READY' : 'WAITING'}`,
       timestamp: new Date().toISOString()
     };
     this.broadcastToTeam(teamId, payload);
