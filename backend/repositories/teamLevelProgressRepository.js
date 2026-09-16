@@ -1,8 +1,9 @@
 const db = require('../config/db');
 
 class TeamLevelProgressRepository {
-  async findByTeamIdOrderByLevelIdAsc(teamId) {
-    const res = await db.query(
+  async findByTeamIdOrderByLevelIdAsc(teamId, client = null) {
+    const executor = client || db;
+    const res = await executor.query(
       `SELECT tlp.*, l.level_number, l.name AS level_name
        FROM team_level_progress tlp
        JOIN levels l ON tlp.level_id = l.id
@@ -13,12 +14,13 @@ class TeamLevelProgressRepository {
     return res.rows.map(this._mapRow);
   }
 
-  async findByTeamId(teamId) {
-    return this.findByTeamIdOrderByLevelIdAsc(teamId);
+  async findByTeamId(teamId, client = null) {
+    return this.findByTeamIdOrderByLevelIdAsc(teamId, client);
   }
 
-  async findByTeamIdAndLevelId(teamId, levelId) {
-    const res = await db.query(
+  async findByTeamIdAndLevelId(teamId, levelId, client = null) {
+    const executor = client || db;
+    const res = await executor.query(
       `SELECT tlp.*, l.level_number, l.name AS level_name
        FROM team_level_progress tlp
        JOIN levels l ON tlp.level_id = l.id

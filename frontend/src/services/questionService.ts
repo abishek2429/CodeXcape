@@ -22,28 +22,45 @@ export interface AnswerSubmissionResponse {
   levelCompleted?: boolean;
   stageNumber?: number;
   nextStageNumber?: number;
+  currentLevel?: number;
+  finalScore?: number;
+  baseScore?: number;
+  stateVersion?: number;
   message: string;
 }
 
 const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/player/game/current` : '/api/player/game/current';
 
-export async function fetchCurrentQuestion(): Promise<PlayerQuestionResponse | null> {
-  try {
-    const response = await fetch(`${API_BASE}/question`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-      credentials: 'include',
-      cache: 'no-store',
-    });
+export async function fetchCurrentQuestion(retryCount: number = 2): Promise<PlayerQuestionResponse | null> {
+  for (let attempt = 0; attempt <= retryCount; attempt++) {
+    try {
+      const response = await fetch(`${API_BASE}/question`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        cache: 'no-store',
+      });
 
-    if (!response.ok) {
+      if (response.ok) {
+        return await response.json();
+      }
+
+      // If transitioning (400 or 503) and retries remain, wait briefly and retry
+      if ((response.status === 400 || response.status === 503) && attempt < retryCount) {
+        await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
+        continue;
+      }
+
+      return null;
+    } catch (err) {
+      if (attempt < retryCount) {
+        await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
+        continue;
+      }
       return null;
     }
-
-    return await response.json();
-  } catch (err) {
-    return null;
   }
+  return null;
 }
 
 export async function submitAnswer(

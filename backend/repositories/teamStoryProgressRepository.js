@@ -26,27 +26,26 @@ class TeamStoryProgressRepository {
     return res.rows.map(r => r.story_key);
   }
 
-  async save(sp) {
+  async save(sp, client = null) {
+    const executor = client || db;
     if (sp.id) {
-      const res = await db.query(
+      const res = await executor.query(
         `UPDATE team_story_progress SET
            status = $2,
-           completed_at = $3,
-           completed_by_player_id = $4,
-           pause_duration_seconds = $5
+           ended_at = $3,
+           pause_duration_seconds = $4
          WHERE id = $1
          RETURNING *`,
         [
           sp.id,
           sp.status,
-          sp.completedAt || null,
-          sp.completedByPlayerId || null,
+          sp.endedAt || sp.completedAt || null,
           sp.pauseDurationSeconds || 0
         ]
       );
       return this._mapRow(res.rows[0]);
     } else {
-      const res = await db.query(
+      const res = await executor.query(
         `INSERT INTO team_story_progress (
            team_id, story_key, status, started_at, pause_duration_seconds
          ) VALUES (
@@ -81,8 +80,8 @@ class TeamStoryProgressRepository {
       storyKey: r.story_key,
       status: r.status,
       startedAt: r.started_at,
-      completedAt: r.completed_at,
-      completedByPlayerId: r.completed_by_player_id ? parseInt(r.completed_by_player_id, 10) : null,
+      endedAt: r.ended_at,
+      completedAt: r.ended_at,
       pauseDurationSeconds: parseInt(r.pause_duration_seconds || 0, 10)
     };
   }

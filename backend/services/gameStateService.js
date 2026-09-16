@@ -6,6 +6,7 @@ const questionRepository = require('../repositories/questionRepository');
 const eventRepository = require('../repositories/eventRepository');
 const cinematicStoryService = require('./cinematicStoryService');
 const webSocketService = require('./webSocketService');
+const { withTransaction } = require('../config/db');
 const {
   ResourceNotFoundException,
   InvalidLevelTransitionException,
@@ -30,53 +31,31 @@ class GameStateService {
       return existing;
     }
 
-    const activeLevels = await levelRepository.findAllActive();
-    const gameLevels = activeLevels.filter(l => l.levelNumber >= 1 && l.levelNumber <= 6);
-
-    if (gameLevels.length === 0) {
-      throw new ResourceNotFoundException('No active game levels configured in the system.');
-    }
-
-    const now = new Date().toISOString();
+    const allLevels = await levelRepository.findAllOrderByLevelNumberAsc();
     const progressList = [];
 
-    for (let i = 0; i < gameLevels.length; i++) {
-      const level = gameLevels[i];
-      const status = (i === 0) ? 'AVAILABLE' : 'LOCKED';
-      const startedAt = (i === 0 && markStarted) ? now : null;
-
-      const p = await teamLevelProgressRepository.save({
+    for (let i = 0; i < allLevels.length; i++) {
+      const lvl = allLevels[i];
+      const isFirst = (i === 0);
+      const lp = await teamLevelProgressRepository.save({
         teamId: team.id,
-        levelId: level.id,
-        levelStatus: status,
-        player1Completed: false,
-        player2Completed: false,
-        startedAt
+        levelId: lvl.id,
+        levelStatus: isFirst ? 'AVAILABLE' : 'LOCKED',
+        startedAt: isFirst && markStarted ? new Date().toISOString() : null
       });
-      progressList.push(p);
-
-      // Seed stage progress
-      const totalStages = (level.levelNumber >= 4) ? 3 : 2;
-      for (let s = 1; s <= totalStages; s++) {
-        await teamStageProgressRepository.save({
-          teamId: team.id,
-          levelId: level.id,
-          stageNumber: s,
-          player1Completed: false,
-          player2Completed: false,
-          discoveryKey: `DISCOVERY-L${level.levelNumber}-S${s}`
-        });
-      }
+      progressList.push({
+        ...lp,
+        level: lvl
+      });
     }
 
     if (markStarted) {
+      const now = new Date().toISOString();
       team.startedAt = now;
       team.totalStoryPauseSeconds = 0;
       team.storyPausedAt = null;
       team.gameState = 'IN_PROGRESS';
       await teamRepository.save(team);
-
-      // Trigger opening Prologue
       await cinematicStoryService.triggerStory(team, 'STORY_PROLOGUE');
     }
 
@@ -101,7 +80,8 @@ class GameStateService {
         eventStatus: event ? event.status : null,
         levels: [],
         serverTime,
-        deadline: null
+        deadline: null,
+        stateVersion: team.stateVersion || 1
       };
     }
 
@@ -163,7 +143,8 @@ class GameStateService {
       eventStatus: event ? event.status : null,
       levels: levelDtos,
       serverTime,
-      deadline
+      deadline,
+      stateVersion: team.stateVersion || 1
     };
   }
 
@@ -194,60 +175,88 @@ class GameStateService {
     };
   }
 
-  async completeLevel(teamId, levelNumber) {
-    const team = await teamRepository.findById(teamId);
-    if (!team) throw new ResourceNotFoundException('Team not found.');
+  async completeLevel(teamId, levelNumber, existingClient = null) {
+    const executeComplete = async (client) => {
+      const team = await teamRepository.findForUpdateById(teamId, client);
+      if (!team) throw new ResourceNotFoundException('Team not found.');
 
-    const level = await levelRepository.findByLevelNumber(levelNumber);
-    if (!level) throw new ResourceNotFoundException(`Level ${levelNumber} not found.`);
+      const level = await levelRepository.findByLevelNumber(levelNumber, client);
+      if (!level) throw new ResourceNotFoundException(`Level ${levelNumber} not found.`);
 
-    const progress = await teamLevelProgressRepository.findByTeamIdAndLevelId(teamId, level.id);
-    if (!progress) throw new ResourceNotFoundException('Level progress not initialized for team.');
+      const progress = await teamLevelProgressRepository.findByTeamIdAndLevelId(teamId, level.id, client);
+      if (!progress) throw new ResourceNotFoundException('Level progress not initialized for team.');
 
-    if (progress.levelStatus === 'LOCKED') {
-      throw new InvalidLevelTransitionException(`Cannot complete Level ${levelNumber} because it is currently locked.`);
+      if (progress.levelStatus === 'LOCKED') {
+        throw new InvalidLevelTransitionException(`Cannot complete Level ${levelNumber} because it is currently locked.`);
+      }
+
+      if (progress.levelStatus === 'COMPLETED') {
+        return { team, level, alreadyCompleted: true };
+      }
+
+      // Mark current level COMPLETED
+      progress.levelStatus = 'COMPLETED';
+      progress.completedAt = new Date().toISOString();
+      await teamLevelProgressRepository.save(progress, client);
+
+      team.completedLevels = (team.completedLevels || 0) + 1;
+      team.stateVersion = (team.stateVersion || 1) + 1;
+
+      // Unpack next level atomically inside the SAME transaction
+      let nextStoryKey = null;
+      if (levelNumber < 6) {
+        const nextLevel = await levelRepository.findByLevelNumber(levelNumber + 1, client);
+        if (nextLevel) {
+          const nextProgress = await teamLevelProgressRepository.findByTeamIdAndLevelId(teamId, nextLevel.id, client);
+          if (nextProgress && nextProgress.levelStatus === 'LOCKED') {
+            nextProgress.levelStatus = 'AVAILABLE';
+            nextProgress.startedAt = new Date().toISOString();
+            await teamLevelProgressRepository.save(nextProgress, client);
+          }
+        }
+        team.gameState = 'IN_PROGRESS';
+        nextStoryKey = `STORY_L${levelNumber + 1}_INTRO`;
+      } else if (levelNumber === 6) {
+        team.gameState = 'FINAL_PASSKEY';
+        nextStoryKey = 'STORY_FINAL_PROTOCOL';
+      }
+
+      const savedTeam = await teamRepository.save(team, client);
+      return { team: savedTeam, level, nextStoryKey, alreadyCompleted: false };
+    };
+
+    let result;
+    if (existingClient) {
+      result = await executeComplete(existingClient);
+    } else {
+      result = await withTransaction(executeComplete);
     }
 
-    if (progress.levelStatus === 'COMPLETED') {
-      return;
+    if (result.alreadyCompleted) {
+      return result.team;
     }
 
-    progress.levelStatus = 'COMPLETED';
-    progress.completedAt = new Date().toISOString();
-    await teamLevelProgressRepository.save(progress);
+    const { team, nextStoryKey } = result;
 
-    team.completedLevels = (team.completedLevels || 0) + 1;
-
-    // Broadcast LEVEL_COMPLETED FIRST so players enter the black-screen transition before next story
+    // Broadcast LEVEL_COMPLETED after atomic commit so next level is ALREADY AVAILABLE in database
     webSocketService.broadcastToTeam(team.id, {
       type: 'LEVEL_COMPLETED',
       teamId: team.id,
       levelNumber,
+      nextLevelNumber: levelNumber < 6 ? levelNumber + 1 : 6,
+      stateVersion: team.stateVersion,
       message: `Level ${levelNumber} completed! Both operators synchronized.`,
       timestamp: new Date().toISOString()
     });
 
-    if (levelNumber < 6) {
-      const nextLevel = await levelRepository.findByLevelNumber(levelNumber + 1);
-      if (nextLevel) {
-        const nextProgress = await teamLevelProgressRepository.findByTeamIdAndLevelId(teamId, nextLevel.id);
-        if (nextProgress && nextProgress.levelStatus === 'LOCKED') {
-          nextProgress.levelStatus = 'AVAILABLE';
-          nextProgress.startedAt = new Date().toISOString();
-          await teamLevelProgressRepository.save(nextProgress);
-        }
-      }
-      team.gameState = 'IN_PROGRESS';
-      await teamRepository.save(team);
-      await cinematicStoryService.triggerStory(team, `STORY_L${levelNumber + 1}_INTRO`);
-    } else if (levelNumber === 6) {
-      team.gameState = 'FINAL_PASSKEY';
-      await teamRepository.save(team);
-      await cinematicStoryService.triggerStory(team, 'STORY_FINAL_PROTOCOL');
+    if (nextStoryKey) {
+      await cinematicStoryService.triggerStory(team, nextStoryKey);
     }
 
     const leaderboardService = require('./admin/leaderboardService');
-    await leaderboardService.recalculateAndBroadcastRanks(team.eventId);
+    leaderboardService.recalculateAndBroadcastRanks(team.eventId).catch(() => {});
+
+    return team;
   }
 
   async getFullResyncStateForPlayer(principal) {
@@ -279,6 +288,26 @@ class GameStateService {
     const leaderboardService = require('./admin/leaderboardService');
     const currentRank = await leaderboardService.getTeamCurrentRank(team.id);
 
+    let currentStage = 1;
+    if (activeProgress) {
+      const questionAnswerService = require('./questionAnswerService');
+      currentStage = await questionAnswerService.findCurrentStage(team.id, activeProgress.levelId, currentLevel);
+    }
+
+    const teamScore = {
+      teamId: team.id,
+      teamCode: team.teamCode,
+      teamName: team.teamName,
+      baseScore: team.baseScore || 0,
+      hintPenalty: team.hintPenalty || 0,
+      wrongAttemptPenalty: team.wrongAttemptPenalty || 0,
+      antiCheatPenalty: team.antiCheatPenalty || 0,
+      finalScore: team.finalScore || 0,
+      stagesCompleted: team.completedMiniGames || 0,
+      totalStages: 15,
+      rank: currentRank || 0
+    };
+
     return {
       teamId: team.id,
       teamCode: team.teamCode,
@@ -287,11 +316,14 @@ class GameStateService {
       displayName: principal.displayName,
       gameState: team.gameState,
       currentLevel,
+      currentStage,
       currentRank,
       isCompleted,
       completedAt: team.completedAt,
       myCompletedCurrentLevel: myCompleted,
-      partnerCompletedCurrentLevel: partnerCompleted
+      partnerCompletedCurrentLevel: partnerCompleted,
+      teamScore,
+      stateVersion: team.stateVersion || 1
     };
   }
 }

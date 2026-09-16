@@ -16,8 +16,10 @@ async function initSchema() {
         created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL DEFAULT NOW(),
         CONSTRAINT uq_team_riddle UNIQUE (team_id, riddle_index)
-      )
+      );
     `);
+
+    await db.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS state_version INT NOT NULL DEFAULT 1`);
 
     // Synchronize sequences to prevent duplicate key errors after manual/seed inserts
     const tables = ['events', 'teams', 'players', 'game_sessions', 'levels', 'questions'];

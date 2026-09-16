@@ -57,9 +57,30 @@ export interface WebSocketEventPayload {
     completedMiniGames: number;
     completedLevels: number;
   };
+  stateVersion?: number;
+  eventId?: string;
 }
 
 export type ConnectionStatus = 'CONNECTED' | 'DISCONNECTED' | 'RECONNECTING';
+
+function resolveBrokerUrl(): string {
+  const envUrl = import.meta.env.VITE_WS_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+    let normalized = envUrl.trim();
+    if (normalized.startsWith('http://')) {
+      normalized = 'ws://' + normalized.slice(7);
+    } else if (normalized.startsWith('https://')) {
+      normalized = 'wss://' + normalized.slice(8);
+    }
+    if (!normalized.includes('/ws')) {
+      normalized = normalized.replace(/\/$/, '') + '/ws';
+    }
+    return normalized;
+  }
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host;
+  return `${protocol}//${host}/ws`;
+}
 
 export class GameWebSocketService {
   private client: Client | null = null;
@@ -84,9 +105,7 @@ export class GameWebSocketService {
     this.isAdmin = false;
     this.reconnectAttempt = 0;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = import.meta.env.VITE_WS_URL || `${protocol}//${host}/ws`;
+    const wsUrl = resolveBrokerUrl();
 
     this.updateStatus('RECONNECTING');
 
@@ -136,9 +155,7 @@ export class GameWebSocketService {
     this.teamId = null;
     this.reconnectAttempt = 0;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = import.meta.env.VITE_WS_URL || `${protocol}//${host}/ws`;
+    const wsUrl = resolveBrokerUrl();
 
     this.updateStatus('RECONNECTING');
 

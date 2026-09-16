@@ -44,6 +44,23 @@ const FRAGMENT_TITLES: Record<number, string> = {
   6: 'FINAL PROTOCOL UNLOCKED',
 };
 
+const getProcessedStories = (): Set<string> => {
+  try {
+    const raw = sessionStorage.getItem('codexcape_processed_stories');
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const markStoryProcessed = (storyKey: string) => {
+  try {
+    const processed = getProcessedStories();
+    processed.add(storyKey);
+    sessionStorage.setItem('codexcape_processed_stories', JSON.stringify(Array.from(processed)));
+  } catch {}
+};
+
 export type LevelTransitionStage =
   | 'IDLE'
   | 'LEVEL_COMPLETED'
@@ -89,6 +106,7 @@ export const PlayerGamePage: React.FC = () => {
   const transitionStageRef = useRef<LevelTransitionStage>('IDLE');
   transitionStageRef.current = transitionStage;
 
+  const processedStoriesRef = useRef<Set<string>>(getProcessedStories());
   const [revealingRiddleLevel, setRevealingRiddleLevel] = useState<number | null>(null);
   const lastCompletedLevelRef = useRef<number | null>(null);
   const pendingNextLevelStoryRef = useRef<StorySequence | null>(null);
@@ -96,8 +114,11 @@ export const PlayerGamePage: React.FC = () => {
 
   // Trigger explicit level completed transition flow
   const triggerLevelCompletedTransition = useCallback((completedLevel: number, nextLevel: number) => {
-    // If already in a level transition, ignore re-entrant triggers
+    // If already in a level transition or already processed for this level, ignore re-entrant triggers
     if (transitionStageRef.current === 'BLACK_TRANSITION_ACTIVE' || transitionStageRef.current === 'LEVEL_COMPLETED') {
+      return;
+    }
+    if (lastCompletedLevelRef.current === completedLevel) {
       return;
     }
 
@@ -137,18 +158,24 @@ export const PlayerGamePage: React.FC = () => {
       }
 
       if (activeStoryData && activeStoryData.isStoryActive && activeStoryData.storyKey) {
-        const seq = activeStoryData.sequence || STORY_SEQUENCES[activeStoryData.storyKey];
-        if (seq) {
-          // If in black screen transition, queue next story so it never starts prematurely
-          if (
-            transitionStageRef.current === 'BLACK_TRANSITION_ACTIVE' ||
-            transitionStageRef.current === 'LEVEL_COMPLETED'
-          ) {
-            pendingNextLevelStoryRef.current = seq;
-          } else {
-            setActiveStory(seq);
-            if (sessionStorage.getItem('codexcape_briefing_seen')) {
-              setIsStoryModalOpen(true);
+        const key = activeStoryData.storyKey;
+        // Only trigger story if not previously processed or resolved
+        if (!processedStoriesRef.current.has(key)) {
+          const seq = activeStoryData.sequence || STORY_SEQUENCES[key];
+          if (seq) {
+            // If in black screen transition, queue next story so it never starts prematurely
+            if (
+              transitionStageRef.current === 'BLACK_TRANSITION_ACTIVE' ||
+              transitionStageRef.current === 'LEVEL_COMPLETED'
+            ) {
+              pendingNextLevelStoryRef.current = seq;
+            } else {
+              processedStoriesRef.current.add(key);
+              markStoryProcessed(key);
+              setActiveStory(seq);
+              if (sessionStorage.getItem('codexcape_briefing_seen')) {
+                setIsStoryModalOpen(true);
+              }
             }
           }
         }
@@ -207,7 +234,7 @@ export const PlayerGamePage: React.FC = () => {
       }
 
       const [questionData, hintsData] = await Promise.all([
-        fetchCurrentQuestion(),
+        fetchCurrentQuestion(3),
         fetchPlayerHints(),
       ]);
       setLiveQuestion(questionData);
@@ -240,9 +267,14 @@ export const PlayerGamePage: React.FC = () => {
     pendingNextLevelStoryRef.current = null;
 
     const nextKey = nextLvl === 6 ? 'STORY_FINAL_PROTOCOL' : `STORY_L${nextLvl}_INTRO`;
-    const storyToPlay = queuedStory || STORY_SEQUENCES[nextKey] || (nextLvl === 6 ? STORY_SEQUENCES.STORY_L6_INTRO : null);
+    const isAlreadyPlayed = processedStoriesRef.current.has(nextKey);
+    const storyToPlay = !isAlreadyPlayed
+      ? (queuedStory || STORY_SEQUENCES[nextKey] || (nextLvl === 6 ? STORY_SEQUENCES.STORY_L6_INTRO : null))
+      : null;
 
     if (storyToPlay) {
+      processedStoriesRef.current.add(nextKey);
+      markStoryProcessed(nextKey);
       setTransitionStage('NEXT_LEVEL_STORY');
       setActiveStory(storyToPlay);
       setIsStoryModalOpen(true);
@@ -256,6 +288,10 @@ export const PlayerGamePage: React.FC = () => {
   const handleStorySkip = async () => {
     voiceNarratorService.stop();
     setIsStoryModalOpen(false);
+    if (activeStory?.storyKey) {
+      processedStoriesRef.current.add(activeStory.storyKey);
+      markStoryProcessed(activeStory.storyKey);
+    }
     setActiveStory(null);
     soundService.playClick();
     setTransitionStage('NEXT_LEVEL_STORY_COMPLETE');
@@ -280,6 +316,10 @@ export const PlayerGamePage: React.FC = () => {
   const handleStoryComplete = async () => {
     voiceNarratorService.stop();
     setIsStoryModalOpen(false);
+    if (activeStory?.storyKey) {
+      processedStoriesRef.current.add(activeStory.storyKey);
+      markStoryProcessed(activeStory.storyKey);
+    }
     setActiveStory(null);
     setTransitionStage('NEXT_LEVEL_STORY_COMPLETE');
     try {
@@ -319,6 +359,9 @@ export const PlayerGamePage: React.FC = () => {
     },
     onStoryStarted: (payload) => {
       const key = payload.storyKey;
+      if (!key || processedStoriesRef.current.has(key)) {
+        return;
+      }
       const seq = payload.storyState?.sequence || (key ? STORY_SEQUENCES[key] : null);
       if (seq) {
         // If in black screen transition, queue next story so it never overlaps or speaks
@@ -329,16 +372,20 @@ export const PlayerGamePage: React.FC = () => {
         ) {
           pendingNextLevelStoryRef.current = seq;
         } else {
+          processedStoriesRef.current.add(key);
+          markStoryProcessed(key);
           setActiveStory(seq);
           setIsStoryModalOpen(true);
         }
       }
     },
     onStorySkipped: () => {
+      voiceNarratorService.stop();
       setIsStoryModalOpen(false);
       setActiveStory(null);
     },
     onStoryCompleted: () => {
+      voiceNarratorService.stop();
       setIsStoryModalOpen(false);
       setActiveStory(null);
     },
@@ -403,7 +450,18 @@ export const PlayerGamePage: React.FC = () => {
   }
 
   if (!liveQuestion && serverState.gameStatus !== 'NOT_STARTED' && serverState.gameStatus !== 'FINAL_PASSKEY' && serverState.gameStatus !== 'COMPLETED') {
-    return <GameErrorState message="CURRENT COOPERATIVE STAGE DATA IS UNAVAILABLE. RECONNECT AND TRY AGAIN." />;
+    if (transitionStage !== 'IDLE' || isLoadingData) {
+      return <GameLoadingState message="SYNCHRONIZING SECURE ESCAPE NODES..." />;
+    }
+    return (
+      <GameErrorState
+        message="CURRENT COOPERATIVE STAGE DATA IS TEMPORARILY UNAVAILABLE."
+        onRetry={() => {
+          setIsLoadingData(true);
+          loadData();
+        }}
+      />
+    );
   }
 
   const activeChallenge: ChallengeData = liveQuestion
@@ -476,10 +534,18 @@ export const PlayerGamePage: React.FC = () => {
         soundService.playCorrectAnswer();
         setFeedbackIsError(false);
         setFeedbackMsg(res.message || 'ACCESS GRANTED: EVIDENCE VERIFIED. PROTOCOL UNLOCKED.');
+        if (res.finalScore !== undefined) {
+          setTeamScore((prev) => prev ? {
+            ...prev,
+            finalScore: res.finalScore!,
+            baseScore: res.baseScore ?? prev.baseScore,
+          } : null);
+        }
         if (res.levelCompleted || (res.stageCompleted && res.nextStageNumber === null && gameState.currentLevel < 6)) {
           triggerLevelCompletedTransition(gameState.currentLevel, gameState.currentLevel + 1);
+        } else {
+          await loadData();
         }
-        await loadData();
       } else {
         soundService.playWrongAnswer();
         setFeedbackIsError(true);

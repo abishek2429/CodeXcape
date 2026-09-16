@@ -183,29 +183,52 @@ class WebSocketService {
 
   broadcast(topic, payload) {
     const clients = this.subscriptions.get(topic);
-    if (!clients || clients.size === 0) return;
+    if (clients && clients.size > 0) {
+      const payloadJson = typeof payload === 'object' ? JSON.stringify(payload) : String(payload);
+      const msgId = 'msg-' + (this.msgCounter++);
 
-    const payloadJson = typeof payload === 'object' ? JSON.stringify(payload) : String(payload);
-    const msgId = 'msg-' + (this.msgCounter++);
+      for (const { ws, subId } of clients) {
+        if (ws.readyState === 1 /* OPEN */) {
+          const messageFrame = [
+            'MESSAGE',
+            `destination:${topic}`,
+            'content-type:application/json',
+            `subscription:${subId}`,
+            `message-id:${msgId}`,
+            '',
+            payloadJson
+          ].join('\n') + '\0';
 
-    for (const { ws, subId } of clients) {
-      if (ws.readyState === 1 /* OPEN */) {
-        const messageFrame = [
-          'MESSAGE',
-          `destination:${topic}`,
-          'content-type:application/json',
-          `subscription:${subId}`,
-          `message-id:${msgId}`,
-          '',
-          payloadJson
-        ].join('\n') + '\0';
-
-        try {
-          ws.send(messageFrame);
-        } catch (e) {
-          console.warn('Failed to send STOMP frame to client', e.message);
+          try {
+            ws.send(messageFrame);
+          } catch (e) {
+            console.warn('Failed to send STOMP frame to client', e.message);
+          }
         }
       }
+    }
+
+    // Broadcast via PostgreSQL LISTEN/NOTIFY bridge for standalone WebSocket servers (Render)
+    try {
+      const db = require('../config/db');
+      const msgPayload = JSON.stringify({ topic, payload });
+      db.query('SELECT pg_notify($1, $2)', ['codexcape_events', msgPayload]).catch(() => {});
+    } catch (_) {}
+
+    // Direct HTTP bridge to Render WebSocket Server if configured
+    if (process.env.RENDER_WS_HTTP_URL) {
+      try {
+        const secret = process.env.INTERNAL_WS_SECRET || 'codexcape-internal-secret';
+        const targetUrl = `${process.env.RENDER_WS_HTTP_URL.replace(/\/$/, '')}/api/internal/broadcast`;
+        fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Secret': secret
+          },
+          body: JSON.stringify({ topic, payload })
+        }).catch(() => {});
+      } catch (_) {}
     }
   }
 
@@ -323,8 +346,11 @@ class WebSocketService {
     const payload = {
       type: 'STORY_STARTED',
       teamId,
+      storyKey,
+      eventId: `story_${teamId}_${storyKey}`,
       message: `Cinematic story sequence triggered [${storyKey}]`,
       activeStoryState,
+      storyState: activeStoryState,
       timestamp: new Date().toISOString()
     };
     this.broadcastToTeam(teamId, payload);
@@ -335,7 +361,22 @@ class WebSocketService {
     const payload = {
       type: 'STORY_COMPLETED',
       teamId,
+      storyKey,
+      eventId: `story_${teamId}_${storyKey}`,
       message: `Cinematic story sequence completed [${storyKey}]`,
+      timestamp: new Date().toISOString()
+    };
+    this.broadcastToTeam(teamId, payload);
+    this.broadcastToAdmin(payload);
+  }
+
+  notifyStorySkipped(teamId, storyKey) {
+    const payload = {
+      type: 'STORY_SKIPPED',
+      teamId,
+      storyKey,
+      eventId: `story_${teamId}_${storyKey}`,
+      message: `Cinematic story sequence skipped [${storyKey}]`,
       timestamp: new Date().toISOString()
     };
     this.broadcastToTeam(teamId, payload);

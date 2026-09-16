@@ -11,7 +11,10 @@ class CinematicStoryService {
 
     return {
       hasActiveStory,
+      isStoryActive: hasActiveStory,
       storyKey: team.currentStoryKey || null,
+      eventId: team.currentStoryKey ? `story_${team.id}_${team.currentStoryKey}` : null,
+      stateVersion: team.stateVersion || 1,
       title: sequence ? sequence.title : null,
       subTitle: sequence ? sequence.subTitle : null,
       canSkip: sequence ? sequence.canSkip : true,
@@ -85,7 +88,7 @@ class CinematicStoryService {
       await teamStoryProgressRepository.save(progress);
     }
 
-    webSocketService.notifyStoryCompleted(team.id, storyKey);
+    webSocketService.notifyStorySkipped(team.id, storyKey);
     return this.buildActiveState(team);
   }
 

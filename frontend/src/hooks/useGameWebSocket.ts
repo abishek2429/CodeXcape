@@ -50,6 +50,19 @@ export function useGameWebSocket({
   onLevelCompletedRef.current = onLevelCompleted;
 
   const refreshTimerRef = useRef<any>(null);
+  const lastStateVersionRef = useRef<number>(0);
+
+  const checkAndApplyVersion = (payload?: WebSocketEventPayload): boolean => {
+    if (!payload || payload.stateVersion === undefined) return true;
+    if (payload.stateVersion < lastStateVersionRef.current) {
+      // Stale update received out of order; discard
+      return false;
+    }
+    if (payload.stateVersion > lastStateVersionRef.current) {
+      lastStateVersionRef.current = payload.stateVersion;
+    }
+    return true;
+  };
 
   const triggerCoalescedRefresh = () => {
     if (refreshTimerRef.current) {
@@ -60,7 +73,7 @@ export function useGameWebSocket({
       if (onRefreshRef.current) {
         onRefreshRef.current();
       }
-    }, 100);
+    }, 150);
   };
 
   useEffect(() => {
@@ -100,6 +113,7 @@ export function useGameWebSocket({
     });
 
     const unsubPartnerComplete = webSocketService.subscribe('PARTNER_CHALLENGE_COMPLETED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       if (payload.playerNumber && payload.playerNumber !== playerNumber) {
         setLatestNotification(payload.message || 'Your teammate has completed their challenge ✓');
         triggerCoalescedRefresh();
@@ -107,11 +121,13 @@ export function useGameWebSocket({
     });
 
     const unsubStageComplete = webSocketService.subscribe('STAGE_COMPLETED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       setLatestNotification(payload.message || `Stage ${payload.stageNumber} completed by both players! ✓`);
       triggerCoalescedRefresh();
     });
 
     const unsubLevelComplete = webSocketService.subscribe('LEVEL_COMPLETED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       setLatestNotification(`Level ${payload.levelNumber} Completed by both players! ✓`);
       if (onLevelCompletedRef.current && payload.levelNumber) {
         onLevelCompletedRef.current(payload.levelNumber);
@@ -120,16 +136,19 @@ export function useGameWebSocket({
     });
 
     const unsubNextLevel = webSocketService.subscribe('NEXT_LEVEL_UNLOCKED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       setLatestNotification(`Level ${payload.nextLevelNumber} unlocked!`);
       triggerCoalescedRefresh();
     });
 
     const unsubHintUnlocked = webSocketService.subscribe('HINT_UNLOCKED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       setLatestNotification(payload.message || `Hint ${payload.levelNumber} unlocked!`);
       triggerCoalescedRefresh();
     });
 
     const unsubGameCompleted = webSocketService.subscribe('GAME_COMPLETED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       setLatestNotification(payload.message || '🎉 CODEXCAPE COMPLETED! Your team escaped!');
       triggerCoalescedRefresh();
     });
@@ -148,6 +167,7 @@ export function useGameWebSocket({
     });
 
     const unsubEventStarted = webSocketService.subscribe('EVENT_STARTED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       if (onEventStartedRef.current) {
         onEventStartedRef.current(payload);
       }
@@ -160,17 +180,20 @@ export function useGameWebSocket({
     });
 
     const unsubScoreUpdated = webSocketService.subscribe('SCORE_UPDATED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       setLatestNotification(payload.message || 'Score updated.');
       triggerCoalescedRefresh();
     });
 
     const unsubStoryStarted = webSocketService.subscribe('STORY_STARTED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       if (onStoryStartedRef.current) {
         onStoryStartedRef.current(payload);
       }
     });
 
     const unsubStorySkipped = webSocketService.subscribe('STORY_SKIPPED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       if (onStorySkippedRef.current) {
         onStorySkippedRef.current(payload);
       }
@@ -178,6 +201,7 @@ export function useGameWebSocket({
     });
 
     const unsubStoryCompleted = webSocketService.subscribe('STORY_COMPLETED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
       if (onStoryCompletedRef.current) {
         onStoryCompletedRef.current(payload);
       }

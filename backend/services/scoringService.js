@@ -14,12 +14,16 @@ class ScoringService {
     return team.finalScore;
   }
 
-  async recordMiniGameCompletion(teamId, levelNumber, stageNumber) {
+  async recordMiniGameCompletion(teamId, levelNumber, stageNumber, existingClient = null) {
     const referenceId = `MINI_GAME_L${levelNumber}_S${stageNumber}`;
-    const exists = await scoreEventRepository.existsByTeamIdAndReferenceId(teamId, referenceId);
-    if (exists) return;
+    const executor = existingClient || null;
 
-    await withTransaction(async (client) => {
+    if (!executor) {
+      const exists = await scoreEventRepository.existsByTeamIdAndReferenceId(teamId, referenceId);
+      if (exists) return;
+    }
+
+    const executeRecord = async (client) => {
       const team = await teamRepository.findForUpdateById(teamId, client);
       if (!team) return;
 
@@ -41,15 +45,24 @@ class ScoringService {
 
       await teamRepository.save(team, client);
       this.broadcastScoreUpdate(team);
-    });
+      return team;
+    };
+
+    if (existingClient) {
+      return await executeRecord(existingClient);
+    } else {
+      return await withTransaction(executeRecord);
+    }
   }
 
-  async recordWrongAttempt(teamId, playerId, levelNumber, stageNumber, attemptId) {
+  async recordWrongAttempt(teamId, playerId, levelNumber, stageNumber, attemptId, existingClient = null) {
     const referenceId = `WRONG_ATTEMPT_${attemptId}`;
-    const exists = await scoreEventRepository.existsByTeamIdAndReferenceId(teamId, referenceId);
-    if (exists) return;
+    if (!existingClient) {
+      const exists = await scoreEventRepository.existsByTeamIdAndReferenceId(teamId, referenceId);
+      if (exists) return;
+    }
 
-    await withTransaction(async (client) => {
+    const executeWrong = async (client) => {
       const team = await teamRepository.findForUpdateById(teamId, client);
       if (!team) return;
 
@@ -71,7 +84,13 @@ class ScoringService {
 
       await teamRepository.save(team, client);
       this.broadcastScoreUpdate(team);
-    });
+    };
+
+    if (existingClient) {
+      await executeWrong(existingClient);
+    } else {
+      await withTransaction(executeWrong);
+    }
   }
 
   async recordHintUsage(teamId, playerId, levelNumber, stageNumber, hintNumber) {
