@@ -106,7 +106,7 @@ class PlayerSessionService {
           await playerRepository.updateStatus(player.id, 'CONNECTED');
           this.setSessionCookie(res, activeSession.session_token);
           webSocketService.notifyPlayerConnection(team.id, player.id, player.player_number, player.display_name, true);
-          return this.mapToResponse(team, player, activeSession.session_token);
+          return await this.mapToResponse(team, player, activeSession.session_token);
         } else {
           // Rotate prior session cleanly
           await gameSessionRepository.updateStatus(activeSession.id, 'TERMINATED', false);
@@ -118,6 +118,7 @@ class PlayerSessionService {
     const newToken = uuidv4();
     await gameSessionRepository.createSession(team.id, player.id, newToken);
     await playerRepository.updateStatus(player.id, 'CONNECTED');
+    await playerRepository.updateReady(player.id, false);
 
     await auditService.logEvent(
       'PLAYER_LOGIN_SUCCESS',
@@ -131,48 +132,96 @@ class PlayerSessionService {
     this.setSessionCookie(res, newToken);
     webSocketService.notifyPlayerConnection(team.id, player.id, player.player_number, player.display_name, true);
 
-    return this.mapToResponse(team, player, newToken);
+    return await this.mapToResponse(team, player, newToken);
   }
 
   async getCurrentPlayer(principal) {
     if (!principal) throw new ResourceNotFoundException('No authenticated player found.');
     const team = await teamRepository.findById(principal.teamId);
     const player = await playerRepository.findById(principal.playerId);
-    return this.mapToResponse(team, player, principal.sessionToken);
+    return await this.mapToResponse(team, player, principal.sessionToken);
   }
 
   async getLobbyState(principal) {
     if (!principal) throw new ResourceNotFoundException('No authenticated player found.');
     const team = await teamRepository.findById(principal.teamId);
+    if (!team) throw new ResourceNotFoundException('Team not found.');
     const player = await playerRepository.findById(principal.playerId);
-    const teammates = await playerRepository.findByTeamId(team.id);
+    if (!player) throw new ResourceNotFoundException('Player not found.');
 
-    return {
-      ...this.mapToResponse(team, player, principal.sessionToken),
-      players: teammates.map(p => ({
-        id: p.id,
-        playerNumber: p.player_number,
-        displayName: p.display_name,
-        status: p.status,
-        ready: p.status === 'CONNECTED'
-      }))
-    };
+    return await this.mapToResponse(team, player, principal.sessionToken);
   }
 
   async setPlayerReady(principal, isReady) {
     if (!principal) throw new ResourceNotFoundException('No authenticated player found.');
-    const player = await playerRepository.updateReady(principal.playerId, isReady);
     const team = await teamRepository.findById(principal.teamId);
-    return this.mapToResponse(team, player, principal.sessionToken);
+    if (!team) throw new ResourceNotFoundException('Team not found.');
+
+    if (team.gameState && team.gameState !== 'NOT_STARTED') {
+      const player = await playerRepository.findById(principal.playerId);
+      return await this.mapToResponse(team, player, principal.sessionToken);
+    }
+
+    const player = await playerRepository.updateReady(principal.playerId, isReady);
+
+    const teamPlayers = await playerRepository.findByTeamId(team.id);
+    const allReady = teamPlayers.length >= 2 && teamPlayers.every(p => Boolean(p.isReady));
+
+    webSocketService.notifyPlayerReady(
+      team.id,
+      player.id,
+      player.playerNumber,
+      player.displayName,
+      isReady,
+      allReady,
+      team.gameState
+    );
+
+    return await this.mapToResponse(team, player, principal.sessionToken);
   }
 
   async startTeamEvent(principal) {
     if (!principal) throw new ResourceNotFoundException('No authenticated player found.');
     const team = await teamRepository.findById(principal.teamId);
     if (!team) throw new ResourceNotFoundException('Team not found.');
+    const player = await playerRepository.findById(principal.playerId);
+    if (!player) throw new ResourceNotFoundException('Player not found.');
+
+    if (team.gameState && team.gameState !== 'NOT_STARTED') {
+      return await this.mapToResponse(team, player, principal.sessionToken);
+    }
+
+    const teamPlayers = await playerRepository.findByTeamId(team.id);
+    if (teamPlayers.length < 2) {
+      throw new Error('Both players must be registered for the team before starting.');
+    }
+
+    // Ensure self is ready
+    await playerRepository.updateReady(player.id, true);
+    player.isReady = true;
+
+    // Validate teammate presence and readiness
+    const teammateNumber = (player.playerNumber || player.player_number) === 1 ? 2 : 1;
+    const teammate = teamPlayers.find(p => (p.playerNumber || p.player_number) === teammateNumber);
+    if (!teammate) {
+      throw new Error(`OPERATOR 0${teammateNumber} IS NOT REGISTERED FOR THIS TEAM.`);
+    }
+
+    const teammateActive = await gameSessionRepository.hasActiveSession(teammate.id);
+    if (!teammateActive) {
+      const err = new Error(`OPERATOR 0${teammateNumber} IS NOT LOGGED IN. BOTH OPERATORS MUST BE PRESENT.`);
+      err.status = 400;
+      throw err;
+    }
+
+    if (!teammate.isReady) {
+      const err = new Error(`WAITING FOR SECOND OPERATOR. OPERATOR 0${teammateNumber} MUST CONFIRM READINESS.`);
+      err.status = 400;
+      throw err;
+    }
 
     const gameStateService = require('./gameStateService');
-    await gameStateService.initializeTeamGameState(team);
+    await gameStateService.initializeTeamGameState(team, true);
 
     team.gameState = 'IN_PROGRESS';
     if (!team.startedAt) {
@@ -182,14 +231,14 @@ class PlayerSessionService {
 
     webSocketService.notifyEventStarted(team.id);
 
-    const player = await playerRepository.findById(principal.playerId);
-    return this.mapToResponse(team, player, principal.sessionToken);
+    return await this.mapToResponse(team, player, principal.sessionToken);
   }
 
   async logout(principal, res) {
     if (principal) {
       await gameSessionRepository.terminateByPlayerId(principal.playerId);
       await playerRepository.updateStatus(principal.playerId, 'DISCONNECTED');
+      await playerRepository.updateReady(principal.playerId, false);
       webSocketService.notifyPlayerConnection(principal.teamId, principal.playerId, principal.playerNumber, principal.displayName, false);
     }
     if (res) {
@@ -214,11 +263,53 @@ class PlayerSessionService {
     });
   }
 
-  mapToResponse(team, player, sessionToken) {
+  async mapToResponse(team, player, sessionToken) {
+    const playerNum = player.playerNumber || player.player_number;
+    const teammateNumber = playerNum === 1 ? 2 : 1;
+    const teammate = await playerRepository.findByTeamIdAndPlayerNumber(team.id, teammateNumber);
+
+    let teammateName = null;
+    let teammateLoggedIn = false;
+    let teammateReady = false;
+
+    if (teammate) {
+      teammateName = teammate.displayName || `OPERATOR 0${teammateNumber}`;
+      teammateReady = Boolean(teammate.isReady);
+      teammateLoggedIn = await gameSessionRepository.hasActiveSession(teammate.id);
+    }
+
+    const currentLoggedIn = await gameSessionRepository.hasActiveSession(player.id);
+    const selfReady = Boolean(player.isReady);
+
+    const playersList = [
+      {
+        id: player.id,
+        playerNumber: playerNum,
+        displayName: player.displayName || `OPERATOR 0${playerNum}`,
+        status: currentLoggedIn ? 'CONNECTED' : (player.status || 'DISCONNECTED'),
+        online: currentLoggedIn,
+        ready: selfReady
+      }
+    ];
+
+    if (teammate) {
+      playersList.push({
+        id: teammate.id,
+        playerNumber: teammateNumber,
+        displayName: teammate.displayName || `OPERATOR 0${teammateNumber}`,
+        status: teammateLoggedIn ? 'CONNECTED' : (teammate.status || 'DISCONNECTED'),
+        online: teammateLoggedIn,
+        ready: teammateReady
+      });
+    }
+
+    playersList.sort((a, b) => a.playerNumber - b.playerNumber);
+
     return {
       playerId: player.id,
-      playerNumber: player.player_number,
-      displayName: player.display_name,
+      playerNumber: playerNum,
+      playerName: player.displayName || `OPERATOR 0${playerNum}`,
+      displayName: player.displayName || `OPERATOR 0${playerNum}`,
       teamId: team.id,
       teamCode: team.teamCode,
       teamName: team.teamName,
@@ -226,9 +317,20 @@ class PlayerSessionService {
       status: player.status,
       teamStatus: team.status,
       gameState: team.gameState,
+      eventStatus: team.event ? team.event.status : 'RUNNING',
+      eventStartedAt: team.startedAt,
       sessionToken,
       startedAt: team.startedAt,
-      completedAt: team.completedAt
+      completedAt: team.completedAt,
+      isActive: player.isActive !== false,
+      isReady: selfReady,
+      teammateName,
+      teammateNumber,
+      teammateLoggedIn,
+      teammateReady,
+      currentLevel: 1,
+      currentStage: 1,
+      players: playersList
     };
   }
 

@@ -1,6 +1,21 @@
 const db = require('../config/db');
+const env = require('../config/env');
 
 class GameSessionRepository {
+  async hasActiveSession(playerId) {
+    if (!playerId) return false;
+    const timeoutMinutes = env.SESSION_TIMEOUT_MINUTES || 60;
+    const res = await db.query(
+      `SELECT id FROM game_sessions 
+       WHERE player_id = $1 
+         AND status = 'ACTIVE' 
+         AND last_activity_at > NOW() - ($2 || ' minutes')::interval
+       LIMIT 1`,
+      [playerId, timeoutMinutes]
+    );
+    return res.rows.length > 0;
+  }
+
   async findBySessionTokenWithDetails(token) {
     const query = `
       SELECT 

@@ -44,10 +44,11 @@ class PlayerRepository {
       `UPDATE players
        SET display_name = $2,
            status = $3,
+           is_ready = $4,
            updated_at = NOW()
        WHERE id = $1
        RETURNING *`,
-      [player.id, player.displayName || player.display_name, player.status]
+      [player.id, player.displayName || player.display_name, player.status, Boolean(player.isReady ?? player.is_ready)]
     );
     return this._mapRow(res.rows[0]);
   }
@@ -64,8 +65,8 @@ class PlayerRepository {
   async updateReady(id, isReady, client = null) {
     const executor = client || db;
     const res = await executor.query(
-      `UPDATE players SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING *`,
-      [id, isReady ? 'CONNECTED' : 'DISCONNECTED']
+      `UPDATE players SET is_ready = $2, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      [id, Boolean(isReady)]
     );
     return this._mapRow(res.rows[0]);
   }
@@ -86,6 +87,10 @@ class PlayerRepository {
       displayName: r.display_name,
       display_name: r.display_name,
       status: r.status,
+      isReady: Boolean(r.is_ready),
+      is_ready: Boolean(r.is_ready),
+      isActive: r.is_active !== false,
+      is_active: r.is_active !== false,
       createdAt: r.created_at,
       updatedAt: r.updated_at
     };

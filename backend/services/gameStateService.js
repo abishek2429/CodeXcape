@@ -15,9 +15,18 @@ const {
 const GAME_DURATION_SECONDS = 100 * 60; // 6000s = 100 minutes
 
 class GameStateService {
-  async initializeTeamGameState(team) {
+  async initializeTeamGameState(team, markStarted = false) {
     const existing = await teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.id);
     if (existing.length > 0) {
+      if (markStarted && team.gameState === 'NOT_STARTED') {
+        const now = new Date().toISOString();
+        team.startedAt = now;
+        team.totalStoryPauseSeconds = 0;
+        team.storyPausedAt = null;
+        team.gameState = 'IN_PROGRESS';
+        await teamRepository.save(team);
+        await cinematicStoryService.triggerStory(team, 'STORY_PROLOGUE');
+      }
       return existing;
     }
 
@@ -34,7 +43,7 @@ class GameStateService {
     for (let i = 0; i < gameLevels.length; i++) {
       const level = gameLevels[i];
       const status = (i === 0) ? 'AVAILABLE' : 'LOCKED';
-      const startedAt = (i === 0) ? now : null;
+      const startedAt = (i === 0 && markStarted) ? now : null;
 
       const p = await teamLevelProgressRepository.save({
         teamId: team.id,
@@ -60,14 +69,16 @@ class GameStateService {
       }
     }
 
-    team.startedAt = now;
-    team.totalStoryPauseSeconds = 0;
-    team.storyPausedAt = null;
-    team.gameState = 'IN_PROGRESS';
-    await teamRepository.save(team);
+    if (markStarted) {
+      team.startedAt = now;
+      team.totalStoryPauseSeconds = 0;
+      team.storyPausedAt = null;
+      team.gameState = 'IN_PROGRESS';
+      await teamRepository.save(team);
 
-    // Trigger opening Prologue
-    await cinematicStoryService.triggerStory(team, 'STORY_PROLOGUE');
+      // Trigger opening Prologue
+      await cinematicStoryService.triggerStory(team, 'STORY_PROLOGUE');
+    }
 
     return progressList;
   }

@@ -18,6 +18,21 @@ async function initSchema() {
         CONSTRAINT uq_team_riddle UNIQUE (team_id, riddle_index)
       )
     `);
+
+    // Synchronize sequences to prevent duplicate key errors after manual/seed inserts
+    const tables = ['events', 'teams', 'players', 'game_sessions', 'levels', 'questions'];
+    for (const table of tables) {
+      try {
+        await db.query(`
+          SELECT setval(
+            pg_get_serial_sequence('${table}', 'id'),
+            COALESCE((SELECT MAX(id) FROM ${table}), 1)
+          )
+        `);
+      } catch (e) {
+        // Table or sequence might not exist yet; ignore
+      }
+    }
   } catch (err) {
     console.warn('initSchema notice:', err.message);
   }
