@@ -14,12 +14,16 @@ class ScoringService {
     return team.finalScore;
   }
 
-  async recordMiniGameCompletion(teamId, levelNumber, stageNumber) {
+  async recordMiniGameCompletion(teamId, levelNumber, stageNumber, existingClient = null) {
     const referenceId = `MINI_GAME_L${levelNumber}_S${stageNumber}`;
-    const exists = await scoreEventRepository.existsByTeamIdAndReferenceId(teamId, referenceId);
-    if (exists) return;
+    const executor = existingClient || null;
 
-    await withTransaction(async (client) => {
+    if (!executor) {
+      const exists = await scoreEventRepository.existsByTeamIdAndReferenceId(teamId, referenceId);
+      if (exists) return;
+    }
+
+    const executeRecord = async (client) => {
       const team = await teamRepository.findForUpdateById(teamId, client);
       if (!team) return;
 
@@ -41,7 +45,14 @@ class ScoringService {
 
       await teamRepository.save(team, client);
       this.broadcastScoreUpdate(team);
-    });
+      return team;
+    };
+
+    if (existingClient) {
+      return await executeRecord(existingClient);
+    } else {
+      return await withTransaction(executeRecord);
+    }
   }
 
   async recordWrongAttempt(teamId, playerId, levelNumber, stageNumber, attemptId) {

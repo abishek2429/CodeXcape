@@ -323,8 +323,11 @@ class WebSocketService {
     const payload = {
       type: 'STORY_STARTED',
       teamId,
+      storyKey,
+      eventId: `story_${teamId}_${storyKey}`,
       message: `Cinematic story sequence triggered [${storyKey}]`,
       activeStoryState,
+      storyState: activeStoryState,
       timestamp: new Date().toISOString()
     };
     this.broadcastToTeam(teamId, payload);
@@ -335,7 +338,22 @@ class WebSocketService {
     const payload = {
       type: 'STORY_COMPLETED',
       teamId,
+      storyKey,
+      eventId: `story_${teamId}_${storyKey}`,
       message: `Cinematic story sequence completed [${storyKey}]`,
+      timestamp: new Date().toISOString()
+    };
+    this.broadcastToTeam(teamId, payload);
+    this.broadcastToAdmin(payload);
+  }
+
+  notifyStorySkipped(teamId, storyKey) {
+    const payload = {
+      type: 'STORY_SKIPPED',
+      teamId,
+      storyKey,
+      eventId: `story_${teamId}_${storyKey}`,
+      message: `Cinematic story sequence skipped [${storyKey}]`,
       timestamp: new Date().toISOString()
     };
     this.broadcastToTeam(teamId, payload);

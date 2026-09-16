@@ -57,6 +57,8 @@ export interface WebSocketEventPayload {
     completedMiniGames: number;
     completedLevels: number;
   };
+  stateVersion?: number;
+  eventId?: string;
 }
 
 export type ConnectionStatus = 'CONNECTED' | 'DISCONNECTED' | 'RECONNECTING';

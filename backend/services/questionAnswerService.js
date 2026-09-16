@@ -125,11 +125,37 @@ class QuestionAnswerService {
     }
 
     const progressList = await teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.id);
-    const activeProgress = progressList.find(
+    let activeProgress = progressList.find(
       p => p.levelStatus === 'AVAILABLE' || p.levelStatus === 'IN_PROGRESS'
     );
     if (!activeProgress) {
-      throw new InvalidLevelTransitionException('No active level available for current game state.');
+      const completedCount = progressList.filter(p => p.levelStatus === 'COMPLETED').length;
+      if (completedCount >= 6 || team.gameState === 'FINAL_PASSKEY' || team.gameState === 'COMPLETED') {
+        return null;
+      }
+
+      // Auto-recovery: If previous level was completed but next level remained locked, unlock next level
+      const lastCompleted = progressList.filter(p => p.levelStatus === 'COMPLETED').pop();
+      if (lastCompleted) {
+        const lastLvl = await levelRepository.findById(lastCompleted.levelId);
+        const lastLvlNum = lastLvl ? lastLvl.levelNumber : (lastCompleted.level ? lastCompleted.level.levelNumber : null);
+        if (lastLvlNum && lastLvlNum < 6) {
+          const nextLevel = await levelRepository.findByLevelNumber(lastLvlNum + 1);
+          if (nextLevel) {
+            let nextProgress = await teamLevelProgressRepository.findByTeamIdAndLevelId(team.id, nextLevel.id);
+            if (nextProgress) {
+              nextProgress.levelStatus = 'AVAILABLE';
+              nextProgress.startedAt = nextProgress.startedAt || new Date().toISOString();
+              await teamLevelProgressRepository.save(nextProgress);
+              activeProgress = nextProgress;
+            }
+          }
+        }
+      }
+
+      if (!activeProgress) {
+        throw new InvalidLevelTransitionException('No active level available for current game state.');
+      }
     }
 
     const level = await levelRepository.findById(activeProgress.levelId);
@@ -170,187 +196,255 @@ class QuestionAnswerService {
       puzzleMetadata: question.puzzleMetadata,
       answerType: question.answerType,
       isCompleted,
-      attemptCount
+      attemptCount,
+      stateVersion: team.stateVersion || 1
     };
   }
 
   async submitAnswer(principal, request) {
     if (!principal) throw new ResourceNotFoundException('No authenticated player session found.');
-    const team = await teamRepository.findById(principal.teamId);
-    if (!team) throw new ResourceNotFoundException('Team not found.');
 
-    await this.enforceDeadline(team);
+    const txResult = await withTransaction(async (client) => {
+      const team = await teamRepository.findForUpdateById(principal.teamId, client);
+      if (!team) throw new ResourceNotFoundException('Team not found.');
 
-    if (team.gameState === 'NOT_STARTED') {
-      throw new EventUnavailableException('The event has not been started by your team yet. Please enter the team lobby.');
-    }
-    if (team.gameState === 'FINAL_PASSKEY') {
-      throw new EventUnavailableException('All 6 levels completed. Master terminal override active. Please submit the final passkey at the final terminal.');
-    }
-    if (team.gameState === 'COMPLETED') {
-      throw new EventUnavailableException('CodeXcape has already been completed by your team.');
-    }
+      await this.enforceDeadline(team);
 
-    const progressList = await teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.id);
-    const activeProgress = progressList.find(
-      p => p.levelStatus === 'AVAILABLE' || p.levelStatus === 'IN_PROGRESS'
-    );
-    if (!activeProgress) {
-      throw new InvalidLevelTransitionException('No active level available for answer submission.');
-    }
+      if (team.gameState === 'NOT_STARTED') {
+        throw new EventUnavailableException('The event has not been started by your team yet. Please enter the team lobby.');
+      }
+      if (team.gameState === 'FINAL_PASSKEY') {
+        throw new EventUnavailableException('All 6 levels completed. Master terminal override active. Please submit the final passkey at the final terminal.');
+      }
+      if (team.gameState === 'COMPLETED') {
+        throw new EventUnavailableException('CodeXcape has already been completed by your team.');
+      }
 
-    const level = await levelRepository.findById(activeProgress.levelId);
-    if (request.levelNumber != null && parseInt(request.levelNumber, 10) !== level.levelNumber) {
-      const completedLvl = progressList.find(
-        p => p.level.levelNumber === parseInt(request.levelNumber, 10) && p.levelStatus === 'COMPLETED'
+      const progressList = await teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.id);
+      const activeProgress = progressList.find(
+        p => p.levelStatus === 'AVAILABLE' || p.levelStatus === 'IN_PROGRESS'
       );
-      if (completedLvl) {
+      if (!activeProgress) {
+        throw new InvalidLevelTransitionException('No active level available for answer submission.');
+      }
+
+      const level = await levelRepository.findById(activeProgress.levelId);
+      if (request.levelNumber != null && parseInt(request.levelNumber, 10) !== level.levelNumber) {
+        const completedLvl = progressList.find(
+          p => p.level.levelNumber === parseInt(request.levelNumber, 10) && p.levelStatus === 'COMPLETED'
+        );
+        if (completedLvl) {
+          return {
+            earlyReturn: true,
+            response: {
+              correct: true,
+              isCorrect: true,
+              status: 'CORRECT',
+              isCompleted: true,
+              stageCompleted: true,
+              levelCompleted: true,
+              stageNumber: null,
+              nextStageNumber: null,
+              currentLevel: level.levelNumber,
+              finalScore: team.finalScore || 0,
+              baseScore: team.baseScore || 0,
+              stateVersion: team.stateVersion || 1,
+              message: 'Level completed. Both players solved the final stage.'
+            }
+          };
+        }
+        throw new InvalidLevelTransitionException(`Submitted level number does not match current active level ${level.levelNumber}.`);
+      }
+
+      const currentStage = await this.findCurrentStage(team.id, level.id, level.levelNumber);
+      const totalStages = this.getTotalStages(level.levelNumber);
+
+      // Idempotency: if request specifies a stageNumber that has already been completed for this level
+      if (request.stageNumber != null && parseInt(request.stageNumber, 10) < currentStage) {
         return {
-          correct: true,
-          isCorrect: true,
-          status: 'CORRECT',
-          isCompleted: true,
-          stageCompleted: true,
-          levelCompleted: true,
-          message: 'Level completed. Both players solved the final stage.'
+          earlyReturn: true,
+          response: {
+            correct: true,
+            isCorrect: true,
+            status: 'CORRECT',
+            isCompleted: true,
+            stageCompleted: true,
+            levelCompleted: false,
+            stageNumber: parseInt(request.stageNumber, 10),
+            nextStageNumber: currentStage,
+            currentLevel: level.levelNumber,
+            finalScore: team.finalScore || 0,
+            baseScore: team.baseScore || 0,
+            stateVersion: team.stateVersion || 1,
+            message: 'Stage already completed.'
+          }
         };
       }
-      throw new InvalidLevelTransitionException(`Submitted level number does not match current active level ${level.levelNumber}.`);
-    }
 
-    const currentStage = await this.findCurrentStage(team.id, level.id, level.levelNumber);
-    const totalStages = this.getTotalStages(level.levelNumber);
+      const question = await questionRepository.findByLevelIdAndStageNumberAndPlayerNumber(
+        level.id,
+        currentStage,
+        principal.playerNumber
+      );
+      if (!question) {
+        throw new ResourceNotFoundException(`Question not found for Level ${level.levelNumber}, Stage ${currentStage}`);
+      }
 
-    // Idempotency: if request specifies a stageNumber that has already been completed for this level
-    if (request.stageNumber != null && parseInt(request.stageNumber, 10) < currentStage) {
-      return {
-        correct: true,
-        isCorrect: true,
-        status: 'CORRECT',
-        isCompleted: true,
-        stageCompleted: true,
-        levelCompleted: false,
-        stageNumber: parseInt(request.stageNumber, 10),
-        nextStageNumber: currentStage,
-        message: 'Stage already completed.'
-      };
-    }
+      let stageProgress = await teamStageProgressRepository.findForUpdate(
+        team.id,
+        level.id,
+        currentStage,
+        client
+      );
+      if (!stageProgress) {
+        stageProgress = await teamStageProgressRepository.save({
+          teamId: team.id,
+          levelId: level.id,
+          stageNumber: currentStage,
+          player1Completed: false,
+          player2Completed: false,
+          discoveryKey: `DISCOVERY-L${level.levelNumber}-S${currentStage}`
+        }, client);
+      }
 
-    const question = await questionRepository.findByLevelIdAndStageNumberAndPlayerNumber(
-      level.id,
-      currentStage,
-      principal.playerNumber
-    );
-    if (!question) {
-      throw new ResourceNotFoundException(`Question not found for Level ${level.levelNumber}, Stage ${currentStage}`);
-    }
+      const playerAlreadyCompleted = (principal.playerNumber === 1 && stageProgress.player1Completed) ||
+                                     (principal.playerNumber === 2 && stageProgress.player2Completed);
+      const bothCompleted = Boolean(stageProgress.player1Completed && stageProgress.player2Completed);
 
-    let stageProgress = await teamStageProgressRepository.findByTeamIdAndLevelIdAndStageNumber(
-      team.id,
-      level.id,
-      currentStage
-    );
-    if (!stageProgress) {
-      stageProgress = await teamStageProgressRepository.save({
+      if (playerAlreadyCompleted || bothCompleted || activeProgress.levelStatus === 'COMPLETED') {
+        const finalStage = currentStage >= totalStages;
+        const isLevelCompleted = activeProgress.levelStatus === 'COMPLETED' || (bothCompleted && finalStage);
+        return {
+          earlyReturn: true,
+          response: {
+            correct: true,
+            isCorrect: true,
+            status: 'CORRECT',
+            isCompleted: true,
+            stageCompleted: bothCompleted,
+            levelCompleted: isLevelCompleted,
+            stageNumber: currentStage,
+            nextStageNumber: bothCompleted && !finalStage ? currentStage + 1 : null,
+            currentLevel: isLevelCompleted ? Math.min(6, level.levelNumber + 1) : level.levelNumber,
+            finalScore: team.finalScore || 0,
+            baseScore: team.baseScore || 0,
+            stateVersion: team.stateVersion || 1,
+            message: bothCompleted
+              ? (isLevelCompleted
+                  ? 'Level completed. Both players solved the final stage.'
+                  : 'Stage completed. The next cooperative stage is now available.')
+              : 'ACCESS GRANTED: EVIDENCE VERIFIED. AWAITING PARTNER SYNCHRONIZATION.'
+          }
+        };
+      }
+
+      // Check Answer
+      const submittedRaw = request.answer ? request.answer.trim() : '';
+      const isCorrect = this.normalizeAndValidate(submittedRaw, question.expectedAnswerHash, question.answerType);
+
+      const previousAttempts = await answerAttemptRepository.countByTeamIdAndPlayerIdAndLevelIdAndQuestionId(
+        team.id,
+        principal.playerId,
+        level.id,
+        question.id
+      );
+      const attemptNumber = previousAttempts + 1;
+
+      const recordedAttempt = await answerAttemptRepository.recordAttempt({
         teamId: team.id,
+        playerId: principal.playerId,
         levelId: level.id,
-        stageNumber: currentStage,
-        player1Completed: false,
-        player2Completed: false,
-        discoveryKey: `DISCOVERY-L${level.levelNumber}-S${currentStage}`
-      });
-    }
+        questionId: question.id,
+        attemptNumber,
+        submittedAnswer: submittedRaw,
+        interactionPayload: request.interactionPayload ? JSON.stringify(request.interactionPayload) : null,
+        isCorrect
+      }, client);
 
-    const playerAlreadyCompleted = (principal.playerNumber === 1 && stageProgress.player1Completed) ||
-                                   (principal.playerNumber === 2 && stageProgress.player2Completed);
-    const bothCompleted = Boolean(stageProgress.player1Completed && stageProgress.player2Completed);
+      if (!isCorrect) {
+        await scoringService.recordWrongAttempt(team.id, principal.playerId, level.levelNumber, currentStage, recordedAttempt.id);
+        await auditService.logEvent(
+          'ANSWER_WRONG',
+          team.event,
+          team,
+          { id: principal.playerId },
+          { levelNumber: level.levelNumber, stageNumber: currentStage, attemptNumber },
+          'PLAYER'
+        );
+        return {
+          earlyReturn: true,
+          response: {
+            correct: false,
+            isCorrect: false,
+            status: 'INCORRECT',
+            isCompleted: false,
+            stageCompleted: false,
+            levelCompleted: false,
+            stageNumber: currentStage,
+            nextStageNumber: null,
+            currentLevel: level.levelNumber,
+            finalScore: team.finalScore || 0,
+            baseScore: team.baseScore || 0,
+            stateVersion: team.stateVersion || 1,
+            message: 'INCORRECT ANSWER. ANALYZE SYSTEM TELEMETRY AND RE-ENGAGE.'
+          }
+        };
+      }
 
-    if (playerAlreadyCompleted || bothCompleted || activeProgress.levelStatus === 'COMPLETED') {
-      const finalStage = currentStage >= totalStages;
-      const isLevelCompleted = activeProgress.levelStatus === 'COMPLETED' || (bothCompleted && finalStage);
-      return {
-        correct: true,
-        isCorrect: true,
-        status: 'CORRECT',
-        isCompleted: true,
-        stageCompleted: bothCompleted,
-        levelCompleted: isLevelCompleted,
-        stageNumber: currentStage,
-        nextStageNumber: bothCompleted && !finalStage ? currentStage + 1 : null,
-        message: bothCompleted
-          ? (isLevelCompleted
-              ? 'Level completed. Both players solved the final stage.'
-              : 'Stage completed. The next cooperative stage is now available.')
-          : 'ACCESS GRANTED: EVIDENCE VERIFIED. AWAITING PARTNER SYNCHRONIZATION.'
-      };
-    }
-
-    // Check Answer
-    const submittedRaw = request.answer ? request.answer.trim() : '';
-    const isCorrect = this.normalizeAndValidate(submittedRaw, question.expectedAnswerHash, question.answerType);
-
-    const previousAttempts = await answerAttemptRepository.countByTeamIdAndPlayerIdAndLevelIdAndQuestionId(
-      team.id,
-      principal.playerId,
-      level.id,
-      question.id
-    );
-    const attemptNumber = previousAttempts + 1;
-
-    const recordedAttempt = await answerAttemptRepository.recordAttempt({
-      teamId: team.id,
-      playerId: principal.playerId,
-      levelId: level.id,
-      questionId: question.id,
-      attemptNumber,
-      submittedAnswer: submittedRaw,
-      interactionPayload: request.interactionPayload ? JSON.stringify(request.interactionPayload) : null,
-      isCorrect
-    });
-
-    if (!isCorrect) {
-      await scoringService.recordWrongAttempt(team.id, principal.playerId, level.levelNumber, currentStage, recordedAttempt.id);
+      // Answer is Correct!
       await auditService.logEvent(
-        'ANSWER_WRONG',
+        'ANSWER_CORRECT',
         team.event,
         team,
         { id: principal.playerId },
         { levelNumber: level.levelNumber, stageNumber: currentStage, attemptNumber },
         'PLAYER'
       );
+
+      if (principal.playerNumber === 1) {
+        stageProgress.player1Completed = true;
+      } else {
+        stageProgress.player2Completed = true;
+      }
+
+      const stageFinished = Boolean(stageProgress.player1Completed && stageProgress.player2Completed);
+      const isFinalStage = Boolean(stageFinished && (currentStage >= totalStages));
+
+      if (stageFinished) {
+        stageProgress.completedAt = new Date().toISOString();
+        await teamStageProgressRepository.save(stageProgress, client);
+        await scoringService.recordMiniGameCompletion(team.id, level.levelNumber, currentStage, client);
+
+        team.stateVersion = (team.stateVersion || 1) + 1;
+
+        if (isFinalStage) {
+          const gameStateService = require('./gameStateService');
+          await gameStateService.completeLevel(team.id, level.levelNumber, client);
+        } else {
+          await teamRepository.save(team, client);
+        }
+      } else {
+        await teamStageProgressRepository.save(stageProgress, client);
+        team.stateVersion = (team.stateVersion || 1) + 1;
+        await teamRepository.save(team, client);
+      }
+
       return {
-        correct: false,
-        isCorrect: false,
-        status: 'INCORRECT',
-        isCompleted: false,
-        stageCompleted: false,
-        message: 'INCORRECT ANSWER. ANALYZE SYSTEM TELEMETRY AND RE-ENGAGE.'
+        earlyReturn: false,
+        team,
+        level,
+        currentStage,
+        totalStages,
+        stageFinished,
+        isFinalStage
       };
+    });
+
+    if (txResult.earlyReturn) {
+      return txResult.response;
     }
 
-    // Is Correct!
-    await auditService.logEvent(
-      'ANSWER_CORRECT',
-      team.event,
-      team,
-      { id: principal.playerId },
-      { levelNumber: level.levelNumber, stageNumber: currentStage, attemptNumber },
-      'PLAYER'
-    );
-
-    if (principal.playerNumber === 1) {
-      stageProgress.player1Completed = true;
-    } else {
-      stageProgress.player2Completed = true;
-    }
-
-    const partnerCompleted = (principal.playerNumber === 1) ? stageProgress.player2Completed : stageProgress.player1Completed;
-    const stageFinished = Boolean(stageProgress.player1Completed && stageProgress.player2Completed);
-
-    if (stageFinished) {
-      stageProgress.completedAt = new Date().toISOString();
-    }
-    await teamStageProgressRepository.save(stageProgress);
+    const { team, level, currentStage, stageFinished, isFinalStage } = txResult;
 
     // Broadcast challenge completed notification
     webSocketService.broadcastToTeam(team.id, {
@@ -360,64 +454,43 @@ class QuestionAnswerService {
       playerNumber: principal.playerNumber,
       levelNumber: level.levelNumber,
       stageNumber: currentStage,
+      stateVersion: team.stateVersion,
       message: `${principal.displayName} verified stage telemetry ✓`,
       timestamp: new Date().toISOString()
     });
 
-    if (stageFinished) {
-      await scoringService.recordMiniGameCompletion(team.id, level.levelNumber, currentStage);
-
+    if (stageFinished && !isFinalStage) {
       webSocketService.broadcastToTeam(team.id, {
         type: 'STAGE_COMPLETED',
         teamId: team.id,
         levelNumber: level.levelNumber,
         stageNumber: currentStage,
+        nextStageNumber: currentStage + 1,
+        stateVersion: team.stateVersion,
         message: `Level ${level.levelNumber} Stage ${currentStage} completed!`,
         timestamp: new Date().toISOString()
       });
-
-      const isFinalStage = (currentStage >= totalStages);
-      if (isFinalStage) {
-        const gameStateService = require('./gameStateService');
-        await gameStateService.completeLevel(team.id, level.levelNumber);
-
-        return {
-          correct: true,
-          isCorrect: true,
-          status: 'CORRECT',
-          isCompleted: true,
-          stageCompleted: true,
-          levelCompleted: true,
-          stageNumber: currentStage,
-          nextStageNumber: null,
-          message: 'Level completed. Both players solved the final stage.'
-        };
-      } else {
-        return {
-          correct: true,
-          isCorrect: true,
-          status: 'CORRECT',
-          isCompleted: true,
-          stageCompleted: true,
-          levelCompleted: false,
-          stageNumber: currentStage,
-          nextStageNumber: currentStage + 1,
-          message: 'Stage completed. The next cooperative stage is now available.'
-        };
-      }
-    } else {
-      return {
-        correct: true,
-        isCorrect: true,
-        status: 'CORRECT',
-        isCompleted: true,
-        stageCompleted: false,
-        levelCompleted: false,
-        stageNumber: currentStage,
-        nextStageNumber: null,
-        message: 'ACCESS GRANTED: EVIDENCE VERIFIED. AWAITING PARTNER SYNCHRONIZATION.'
-      };
     }
+
+    return {
+      correct: true,
+      isCorrect: true,
+      status: 'CORRECT',
+      isCompleted: true,
+      stageCompleted: stageFinished,
+      levelCompleted: isFinalStage,
+      stageNumber: currentStage,
+      nextStageNumber: stageFinished ? (isFinalStage ? null : currentStage + 1) : null,
+      currentLevel: isFinalStage ? Math.min(6, level.levelNumber + 1) : level.levelNumber,
+      finalScore: team.finalScore || 0,
+      baseScore: team.baseScore || 0,
+      stateVersion: team.stateVersion || 1,
+      message: stageFinished
+        ? (isFinalStage
+            ? 'Level completed. Both players solved the final stage.'
+            : 'Stage completed. The next cooperative stage is now available.')
+        : 'ACCESS GRANTED: EVIDENCE VERIFIED. AWAITING PARTNER SYNCHRONIZATION.'
+    };
   }
 }
 

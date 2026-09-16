@@ -118,6 +118,7 @@ class TeamRepository {
          current_story_key = $15,
          story_paused_at = $16,
          total_story_pause_seconds = $17,
+         state_version = COALESCE($18, state_version + 1),
          updated_at = NOW()
        WHERE id = $1
        RETURNING *`,
@@ -138,7 +139,8 @@ class TeamRepository {
         team.securityIncidentCount ?? 0,
         team.currentStoryKey,
         team.storyPausedAt,
-        team.totalStoryPauseSeconds ?? 0
+        team.totalStoryPauseSeconds ?? 0,
+        team.stateVersion || team.state_version || null
       ]
     );
     return this._mapRow(res.rows[0]);
@@ -168,6 +170,7 @@ class TeamRepository {
          current_story_key = NULL,
          story_paused_at = NULL,
          total_story_pause_seconds = 0,
+         state_version = 1,
          updated_at = NOW()
        WHERE id = $1
        RETURNING *`,
@@ -196,6 +199,7 @@ class TeamRepository {
          current_story_key = NULL,
          story_paused_at = NULL,
          total_story_pause_seconds = 0,
+         state_version = 1,
          updated_at = NOW()`
     );
   }
@@ -223,6 +227,7 @@ class TeamRepository {
       currentStoryKey: row.current_story_key,
       storyPausedAt: row.story_paused_at,
       totalStoryPauseSeconds: parseInt(row.total_story_pause_seconds || 0, 10),
+      stateVersion: parseInt(row.state_version || 1, 10),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       event: row.event_id ? {

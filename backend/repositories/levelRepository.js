@@ -8,6 +8,10 @@ class LevelRepository {
     return res.rows.map(this._mapRow);
   }
 
+  async findAllOrderByLevelNumberAsc() {
+    return this.findAllActive();
+  }
+
   async findById(id) {
     const res = await db.query(`SELECT * FROM levels WHERE id = $1`, [id]);
     if (res.rows.length === 0) return null;
