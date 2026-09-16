@@ -9,18 +9,15 @@
 ## Technology Stack
 
 ### Backend
-- **Java 21**
-- **Spring Boot 3.3**
-- **Maven**
-- **Spring Web**
-- **Spring Security**
-- **Spring Data JPA**
-- **Spring WebSocket** (STOMP)
-- **Lombok**
+- **Node.js (v20+)**
+- **Express.js**
+- **pg** (Native PostgreSQL connection pooling)
+- **STOMP-over-WebSocket** (Real-time team synchronization)
+- **bcryptjs** (Secure hashing)
 
 ### Database & Migrations
 - **PostgreSQL 16**
-- **Flyway**
+- **Schema & Migrations** (`backend/db/migrations/`)
 
 ### Frontend
 - **React 18**
@@ -36,9 +33,8 @@
 
 ## Prerequisites
 
-- **Java 21 JDK**
 - **Node.js v20+** and `npm`
-- **Docker Desktop** (with Docker Compose v2+)
+- **Docker Desktop** (with Docker Compose v2+) or local PostgreSQL 16 instance
 
 ---
 
@@ -47,13 +43,16 @@
 ```text
 technical-escape-room/
 │
-├── backend/                  # Spring Boot backend source code
-│   ├── .mvn/wrapper/         # Maven wrapper properties & binaries
-│   ├── mvnw / mvnw.cmd       # Maven wrapper scripts
-│   ├── pom.xml               # Maven dependencies & plugins
-│   └── src/
-│       ├── main/java/        # Security, Controllers, Services, DTOs
-│       └── main/resources/   # YML configurations & Flyway migrations
+├── backend/                  # Node.js + Express.js backend
+│   ├── config/               # Database pool, environment & game scoring
+│   ├── controllers/          # Player, Admin, and Public API controllers
+│   ├── middleware/           # Session authentication & rate limiting
+│   ├── repositories/         # PostgreSQL data access layer
+│   ├── routes/               # Express REST routers
+│   ├── services/             # Game engine, progressive hints, riddles, anti-cheat
+│   ├── db/migrations/        # Complete Flyway database schema migrations
+│   ├── server.js             # HTTP & STOMP-over-WebSocket server entrypoint
+│   └── package.json          # Node dependencies & npm scripts
 │
 ├── frontend/                 # React + TypeScript + Vite application
 │   ├── package.json          # Node dependencies
@@ -138,21 +137,22 @@ To stop the database container:
 docker compose down
 ```
 
-### 2. Start Spring Boot Backend
+### 2. Start Node.js Backend
 
-Navigate to the `backend/` directory and execute the Spring Boot application using the bundled Maven Wrapper:
+Navigate to the `backend/` directory, install dependencies, and launch the server:
 
 **Windows (PowerShell / CMD):**
 ```cmd
 cd backend
-.\mvnw.cmd spring-boot:run
+npm install
+npm start
 ```
 
 **Linux / macOS:**
 ```bash
 cd backend
-chmod +x ./mvnw
-./mvnw spring-boot:run
+npm install
+npm start
 ```
 
 The backend server will start on port `8080`.

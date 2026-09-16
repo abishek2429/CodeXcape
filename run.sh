@@ -8,8 +8,8 @@ echo "[1/3] Starting PostgreSQL Container via Docker Compose..."
 docker compose up -d postgres
 
 echo ""
-echo "[2/3] Starting Spring Boot Backend..."
-(cd backend && ./mvnw spring-boot:run) &
+echo "[2/3] Starting Node.js Express Backend..."
+(cd backend && npm start) &
 
 echo ""
 echo "[3/3] Starting React Frontend Dev Server..."
