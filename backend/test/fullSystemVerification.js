@@ -9,7 +9,7 @@
  * 5. Hint System (unlocked hints display real content, duplicate requests idempotent, future hints rejected)
  * 6. Riddle System (Level 1 complete -> Riddle 1 unlocks -> deferred solving -> correct digit '3' saved -> locked riddles rejected)
  * 7. Anti-Cheat (Penalties, deduplication cooldown, summary)
- * 8. Final Passkey (Gated until all levels complete, wrong rejected, '382459' accepted, completion saved)
+ * 8. Final Passkey (Gated until all levels complete, wrong rejected, '382439' accepted, completion saved)
  * 9. Leaderboard & Scoring (Base score, penalties, deterministic ranking)
  * 10. Admin Operations (Dashboard, stats, CSV exports, team reset)
  * 11. WebSocket STOMP Engine (Downstream broadcasts on /ws)
@@ -133,7 +133,7 @@ async function runVerification() {
       body: {
         name: `Verification Event ${Date.now()}`,
         description: 'System verification event',
-        passkey: '382459'
+        passkey: '382439'
       }
     });
     assert(evRes.status === 201, 'Admin creates event with 201 Created');
@@ -348,7 +348,7 @@ async function runVerification() {
     // Final passkey premature attempt
     const prematureKey = await request('POST', '/api/player/game/final-passkey', {
       cookie: p1Cookie,
-      body: { passkey: '382459' }
+      body: { passkey: '382439' }
     });
     assert(prematureKey.status === 200 && prematureKey.json.status === 'FINAL_NOT_AVAILABLE', 'Premature final passkey rejected as FINAL_NOT_AVAILABLE');
 
@@ -356,8 +356,8 @@ async function runVerification() {
     await db.query(`UPDATE teams SET completed_levels = 6, game_state = 'FINAL_PASSKEY' WHERE id = $1`, [teamId]);
     await db.query(`UPDATE team_level_progress SET level_status = 'COMPLETED' WHERE team_id = $1`, [teamId]);
 
-    // Solve riddles 2 through 6 so all 6 are solved (digits 3, 8, 2, 4, 5, 9)
-    const riddleDigits = { 2: '8', 3: '2', 4: '4', 5: '5', 6: '9' };
+    // Solve riddles 2 through 6 so all 6 are solved (digits 3, 8, 2, 4, 3, 9)
+    const riddleDigits = { 2: '8', 3: '2', 4: '4', 5: '3', 6: '9' };
     for (const [idx, dig] of Object.entries(riddleDigits)) {
       await request('POST', '/api/player/riddles/submit', {
         cookie: p1Cookie,
@@ -372,12 +372,12 @@ async function runVerification() {
     });
     assert(wrongKey.status === 200 && wrongKey.json.status === 'INCORRECT', 'Wrong passkey rejected as INCORRECT');
 
-    // Correct passkey ('382459')
+    // Correct passkey ('382439')
     const correctKey = await request('POST', '/api/player/game/final-passkey', {
       cookie: p1Cookie,
-      body: { passkey: '382459' }
+      body: { passkey: '382439' }
     });
-    assert(correctKey.status === 200 && correctKey.json.status === 'COMPLETED', 'Correct passkey 382459 accepted with COMPLETED');
+    assert(correctKey.status === 200 && correctKey.json.status === 'COMPLETED', 'Correct passkey 382439 accepted with COMPLETED');
 
     const completedTeamRow = await db.query('SELECT game_state, completed_at FROM teams WHERE id = $1', [teamId]);
     assert(completedTeamRow.rows[0].game_state === 'COMPLETED', 'Team game_state transitioned to COMPLETED');

@@ -117,6 +117,37 @@ async function runGameStateSyncVerification() {
     const startRes = await request('POST', '/api/player/event/start', { cookie: p1Cookie });
     assert.strictEqual(startRes.status, 200, 'Event start returns 200');
 
+    // 2b. Verify Introductory Prologue Story Lifecycle & Idempotency
+    console.log('\n--- STEP 2b: INTRODUCTORY PROLOGUE STORY LIFECYCLE & COMPLETION ---');
+    const prologueStoryP1 = await request('GET', '/api/player/game/story/current', { cookie: p1Cookie });
+    assert.strictEqual(prologueStoryP1.status, 200, 'Current story returns 200');
+    assert.strictEqual(prologueStoryP1.json.isStoryActive, true, 'Prologue story is active on mission start');
+    assert.strictEqual(prologueStoryP1.json.storyKey, 'STORY_PROLOGUE');
+    assert(prologueStoryP1.json.lines && prologueStoryP1.json.lines.length > 0, 'Prologue lines present');
+
+    // Complete prologue story
+    const completePrologueRes = await request('POST', '/api/player/game/story/complete', {
+      cookie: p1Cookie,
+      body: {}
+    });
+    assert.strictEqual(completePrologueRes.status, 200, 'Complete story returns 200');
+    assert.strictEqual(completePrologueRes.json.isStoryActive, false, 'Story marked inactive after complete');
+
+    // Duplicate complete call is safely idempotent
+    const dupCompleteRes = await request('POST', '/api/player/game/story/complete', {
+      cookie: p2Cookie,
+      body: {}
+    });
+    assert.strictEqual(dupCompleteRes.status, 200, 'Duplicate complete returns 200');
+    assert.strictEqual(dupCompleteRes.json.isStoryActive, false);
+
+    // Verify current story is now inactive for both players
+    const p1StoryAfter = await request('GET', '/api/player/game/story/current', { cookie: p1Cookie });
+    const p2StoryAfter = await request('GET', '/api/player/game/story/current', { cookie: p2Cookie });
+    assert.strictEqual(p1StoryAfter.json.isStoryActive, false);
+    assert.strictEqual(p2StoryAfter.json.isStoryActive, false);
+    console.log('  ✓ Introductory prologue story completed, idempotent, and transitioned to gameplay');
+
     // 3. Verify initial state and stateVersion
     console.log('\n--- STEP 3: INITIAL GAME STATE & VERSION CHECK ---');
     const p1State = await request('GET', '/api/player/game', { cookie: p1Cookie });

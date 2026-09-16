@@ -20,22 +20,31 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
 }) => {
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isMuted, setIsMuted] = useState(voiceNarratorService.getIsMuted());
   const [waveHeights, setWaveHeights] = useState<number[]>([4, 8, 12, 6, 14, 10, 8, 4]);
+
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const onSkipRef = useRef(onSkip);
+  onSkipRef.current = onSkip;
 
   const typingTimeoutRef = useRef<number | null>(null);
   const pauseTimerRef = useRef<number | null>(null);
   const cancelSpeechRef = useRef<(() => void) | null>(null);
   const isSkippingRef = useRef(false);
+  const isAdvancingRef = useRef(false);
+  const activeLineRef = useRef<{ storyKey: string; lineIndex: number } | null>(null);
 
   const lineStartTimeRef = useRef<number>(0);
   const isSpeechDoneRef = useRef(false);
   const isTypingDoneRef = useRef(false);
   const fullTextRef = useRef('');
 
-  // Reset line index whenever sequence changes
+  // Reset line index whenever sequence storyKey changes
   useEffect(() => {
+    activeLineRef.current = null;
     setCurrentLineIndex(0);
   }, [sequence?.storyKey]);
 
@@ -66,17 +75,30 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
     if (isSkippingRef.current) return;
     isSkippingRef.current = true;
     cleanupStory();
-    onSkip();
-  }, [cleanupStory, onSkip]);
+    onSkipRef.current();
+  }, [cleanupStory]);
 
   const handleNextOrComplete = useCallback(() => {
+    if (isAdvancingRef.current) return;
+    isAdvancingRef.current = true;
+
     cleanupStory();
-    if (currentLineIndex < lines.length - 1) {
+    const totalLines = sequence?.lines?.length || 0;
+    if (currentLineIndex < totalLines - 1) {
       setCurrentLineIndex((prev) => prev + 1);
+      setTimeout(() => {
+        isAdvancingRef.current = false;
+      }, 50);
     } else {
-      onComplete();
+      onCompleteRef.current();
+      setTimeout(() => {
+        isAdvancingRef.current = false;
+      }, 100);
     }
-  }, [currentLineIndex, lines.length, cleanupStory, onComplete]);
+  }, [currentLineIndex, sequence?.lines?.length, cleanupStory]);
+
+  const handleNextOrCompleteRef = useRef(handleNextOrComplete);
+  handleNextOrCompleteRef.current = handleNextOrComplete;
 
   // Evaluates completion conditions and schedules automatic advance
   const checkAndScheduleAdvance = useCallback((text: string) => {
@@ -96,15 +118,15 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
     const totalDelay = remainingToRead + DEFAULT_DIALOGUE_CONFIG.postLinePauseMs;
 
     pauseTimerRef.current = window.setTimeout(() => {
-      handleNextOrComplete();
+      handleNextOrCompleteRef.current();
     }, totalDelay);
-  }, [handleNextOrComplete]);
+  }, []);
 
   // Click on dialogue box: reveal immediately if still typing, otherwise advance
-  const handleDialogueClick = () => {
+  const handleDialogueClick = useCallback(() => {
     if (!currentLine) return;
     const fullText = fullTextRef.current;
-    if (!isTypingDoneRef.current || displayedText.length < fullText.length) {
+    if (isTyping || !isTypingDoneRef.current || displayedText.length < fullText.length) {
       // Reveal full line immediately
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
@@ -112,12 +134,13 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
       }
       setDisplayedText(fullText);
       isTypingDoneRef.current = true;
+      setIsTyping(false);
       checkAndScheduleAdvance(fullText);
     } else {
       // Advance to next line immediately
       handleNextOrComplete();
     }
-  };
+  }, [currentLine, isTyping, displayedText.length, checkAndScheduleAdvance, handleNextOrComplete]);
 
   // Audio wave pulse animation during speech
   useEffect(() => {
@@ -133,15 +156,28 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
     return () => clearInterval(waveInterval);
   }, [isSpeaking, isMuted]);
 
-  // Typewriter effect & speech narration for current line
+  // Typewriter effect & speech narration strictly scoped to line index and story key
   useEffect(() => {
-    if (!isOpen || !currentLine) {
+    if (!isOpen || !sequence || !currentLine) {
       cleanupStory();
       return;
     }
 
+    const storyKey = sequence.storyKey;
+    // Guard against duplicate execution for the same line
+    if (
+      activeLineRef.current?.storyKey === storyKey &&
+      activeLineRef.current?.lineIndex === currentLineIndex
+    ) {
+      return;
+    }
+    activeLineRef.current = { storyKey, lineIndex: currentLineIndex };
+
+    cleanupStory();
     isSkippingRef.current = false;
+    isAdvancingRef.current = false;
     setDisplayedText('');
+    setIsTyping(true);
     setIsSpeaking(true);
 
     const fullText = currentLine.text;
@@ -164,6 +200,7 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
       } else {
         setDisplayedText(fullText);
         isTypingDoneRef.current = true;
+        setIsTyping(false);
         typingTimeoutRef.current = null;
         checkAndScheduleAdvance(fullText);
       }
@@ -186,7 +223,7 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
     return () => {
       cleanupStory();
     };
-  }, [isOpen, currentLineIndex, sequence?.storyKey, character, currentLine, cleanupStory, checkAndScheduleAdvance]);
+  }, [isOpen, sequence?.storyKey, currentLineIndex]);
 
   // Keyboard controls: Escape to skip, Space to advance, M to mute
   useEffect(() => {
@@ -207,7 +244,7 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleSkip, displayedText, currentLine]);
+  }, [isOpen, handleSkip, handleDialogueClick]);
 
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -317,12 +354,16 @@ export const CinematicStoryModal: React.FC<CinematicStoryModalProps> = ({
 
               <button
                 type="button"
+                disabled={isTyping}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleNextOrComplete();
+                  if (!isTyping) {
+                    handleNextOrComplete();
+                  }
                 }}
-                className="cinematic-action-btn"
-                title="Next Line (Space)"
+                className={`cinematic-action-btn ${isTyping ? 'disabled-typing' : ''}`}
+                style={isTyping ? { opacity: 0.45, cursor: 'not-allowed', filter: 'grayscale(0.6)' } : undefined}
+                title={isTyping ? 'Transmission in progress... (Click dialogue to reveal)' : currentLineIndex < lines.length - 1 ? 'Next Line (Space)' : 'Complete Transmission'}
               >
                 <span>{currentLineIndex < lines.length - 1 ? 'NEXT' : 'CONTINUE'}</span>
                 <ChevronRight size={14} />

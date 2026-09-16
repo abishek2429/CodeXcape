@@ -304,7 +304,7 @@ async function runLoadTest() {
       body: {
         name: `LOAD_TEST_EVENT_${Date.now()}`,
         description: 'Automated 40-Player / 20-Team Load Test',
-        passkey: '382459'
+        passkey: '382439'
       }
     });
     loadTestEventId = createEventRes.json?.id;
@@ -578,7 +578,7 @@ async function runLoadTest() {
       6: { 1: 'CCX', 2: 'A', 3: 'CHITRA' }
     };
 
-    const riddleAnswers = { 2: '8', 3: '2', 4: '4', 5: '5', 6: '9' };
+    const riddleAnswers = { 2: '8', 3: '2', 4: '4', 5: '3', 6: '9' };
 
     const topTeams = teamsData.slice(0, 5);
     await Promise.all(topTeams.map(async (team) => {
@@ -608,7 +608,7 @@ async function runLoadTest() {
         apiRequest('POST', '/api/player/game/final-passkey', {
           cookie: team.p1.cookie,
           ip: team.p1.ip,
-          body: { passkey: '382459' }
+          body: { passkey: '382439' }
         })
       );
     }

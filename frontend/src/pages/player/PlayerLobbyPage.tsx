@@ -9,6 +9,7 @@ import { SpotlightCard } from '../../components/cinematic/SpotlightCard';
 import { CinematicButton } from '../../components/cinematic/CinematicButton';
 import { SystemInitializationLoader } from '../../components/cinematic/SystemInitializationLoader';
 import { Terminal, Cpu, Users, Shield, AlertOctagon, LogOut } from 'lucide-react';
+import { requestGameFullscreen } from '../../services/fullscreenService';
 import './PlayerLobbyPage.css';
 
 export const PlayerLobbyPage: React.FC = () => {
@@ -64,6 +65,11 @@ export const PlayerLobbyPage: React.FC = () => {
     if (isSubmitting) return;
     setErrorMsg(null);
 
+    // Request browser fullscreen directly from user click gesture when starting mission
+    if (isSelfReady && isTeammateReady) {
+      requestGameFullscreen();
+    }
+
     // If both operators are already verified ready, trigger start confirmation
     if (isSelfReady && isTeammateLoggedIn && isTeammateReady) {
       soundService.playClick();
@@ -101,6 +107,9 @@ export const PlayerLobbyPage: React.FC = () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     setErrorMsg(null);
+
+    // Request browser fullscreen directly from user click gesture
+    requestGameFullscreen();
 
     try {
       setShowConfirmModal(false);
