@@ -334,7 +334,7 @@ async function runAudit() {
       body: {
         name: `AUDIT_EVENT_${Date.now()}`,
         description: 'Automated 30-Phase Verification Event',
-        passkey: '382459'
+        passkey: '382439'
       }
     });
     testEventId = createEv.json?.id;
@@ -577,7 +577,7 @@ async function runAudit() {
     // Premature final key submission (before all levels completed)
     const prematureKey = await apiRequest('POST', '/api/player/game/final-passkey', {
       cookie: p1Cookie,
-      body: { passkey: '382459' }
+      body: { passkey: '382439' }
     });
     recordResult(11, 'Premature Final Key Rejection', 
       prematureKey.status === 200 && prematureKey.json?.status === 'FINAL_NOT_AVAILABLE' ? 'PASS' : 'FAIL',

@@ -21,7 +21,7 @@ export const SIX_MYSTERY_RIDDLES: MysteryRiddle[] = [
     title: 'THE SPRINTERS',
     category: 'ORDERING DEDUCTION',
     difficulty: 'Easy',
-    briefPrompt: 'In which numbered place did Runner C finish? (0–9)',
+    briefPrompt: 'In which numbered place did Runner C finish? (0–5)',
     riddleText: `Five sprinters—A, B, C, D, and E—competed in a final sprint with no ties:
 
 1. Runner D finished in 1st place.
@@ -59,7 +59,7 @@ What single digit replaces the question mark?`,
     title: 'THE THREE INHABITANTS',
     category: 'TRUTH-VALUE LOGIC',
     difficulty: 'Medium',
-    briefPrompt: 'How many Liars are among the three inhabitants? (0–9)',
+    briefPrompt: 'How many Liars are among the three inhabitants? (0–3)',
     riddleText: `On an island, every inhabitant is either:
 • A Truth-teller (who always tells the truth), or
 • A Liar (who always lies).
@@ -101,7 +101,7 @@ What is the MIDDLE digit of this 3-digit combination code?`,
     title: 'THE FOUR SUSPECTS',
     category: 'PERSPECTIVE DEDUCTION',
     difficulty: 'Hard',
-    briefPrompt: 'How many true statements were made by the thief? (0–9)',
+    briefPrompt: 'How many total TRUE statements were made across all four suspects? (0–9)',
     riddleText: `Four suspects—A, B, C, and D—make statements about who stole a jewel.
 Exactly ONE of the four suspects stole the jewel.
 
@@ -112,9 +112,9 @@ Exactly ONE of the four suspects stole the jewel.
 
 It is known that exactly THREE of the four statements are TRUE, and only ONE statement is FALSE.
 
-Deduce who stole the jewel.
+Deduce who stole the jewel and evaluate each suspect's truthfulness.
 
-How many TRUE statements were made by the person who stole the jewel?`,
+How many total TRUE statements were made across all four suspects?`,
   },
   {
     id: 6,

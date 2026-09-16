@@ -43,7 +43,7 @@ class FinalPasskeyService {
     const submittedPasskey = (request.passkey || '').trim();
 
     let isCorrect = false;
-    if (submittedPasskey === '382459') {
+    if (submittedPasskey === '382439') {
       isCorrect = true;
     } else if (submittedPasskey === '849201') {
       isCorrect = true;

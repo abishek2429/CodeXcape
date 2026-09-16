@@ -111,7 +111,7 @@ async function runTests() {
       body: {
         name: `Node Test Event ${Date.now()}`,
         description: 'Integration test event for Node backend',
-        passkey: '382459'
+        passkey: '382439'
       }
     });
     assert(createEventRes.status === 201, 'Create event returns 201');
@@ -279,7 +279,7 @@ async function runTests() {
     console.log('\n--- TEST GROUP 10: Final Passkey Gating ---');
     const prematurePasskeyRes = await request('POST', '/api/player/game/final-passkey', {
       cookie: p1Cookie,
-      body: { passkey: '382459' }
+      body: { passkey: '382439' }
     });
     assert(prematurePasskeyRes.json.status === 'FINAL_NOT_AVAILABLE', 'Premature final passkey rejected as FINAL_NOT_AVAILABLE');
 
