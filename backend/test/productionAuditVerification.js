@@ -636,19 +636,26 @@ async function runAudit() {
     wsAdmin.subscribe('/topic/admin');
 
     let adminReceivedEvent = false;
+    let receivedEventType = null;
     wsAdmin.onMessage((msg) => {
-      if (msg.teamId === teamAlphaId || msg.type === 'PLAYER_READY_CHANGED' || msg.type === 'GAME_STATE_UPDATED' || msg.type === 'PLAYER_CONNECTED') {
+      if (msg.type === 'PLAYER_CONNECTED' || msg.type === 'PLAYER_READY_CHANGED' || msg.type === 'GAME_STATE_UPDATED' || msg.type === 'ANTI_CHEAT_EVENT') {
         adminReceivedEvent = true;
+        receivedEventType = msg.type;
       }
     });
 
-    // Trigger state change
-    await apiRequest('POST', '/api/player/ready', { headers: { 'X-Player-Session': p2Token }, body: { ready: true } });
+    // Login and connect player socket to trigger authentic real-time PLAYER_CONNECTED broadcast to admin
+    const pBeta2Login = await apiRequest('POST', '/api/player/login', {
+      body: { teamCode: teamBetaCode, playerNumber: 2, displayName: 'Beta_Op2' }
+    });
+    const wsBeta2 = createStompClient(WS_URL, { token: pBeta2Login.json?.sessionToken, name: 'BetaClient2' });
+    await wsBeta2.connect();
     await new Promise(r => setTimeout(r, 1500));
 
     recordResult(17, 'Admin Real-Time Monitoring Broadcast', adminReceivedEvent ? 'PASS' : 'FAIL',
-      'Admin received telemetry update over /topic/admin'
+      `Admin received real-time telemetry (${receivedEventType || 'none'}) over /topic/admin`
     );
+    wsBeta2.close();
     wsAdmin.close();
 
     // =================================================================

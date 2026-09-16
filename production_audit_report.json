@@ -1,0 +1,352 @@
+[
+  {
+    "phase": 1,
+    "item": "Vercel Backend Health Probe",
+    "status": "PASS",
+    "evidence": "status=200, service=technical-escape-room-backend, database=UP",
+    "durationMs": 1859
+  },
+  {
+    "phase": 1,
+    "item": "Render WebSocket Health Probe",
+    "status": "PASS",
+    "evidence": "status=200, service=codexcape-websocket, uptime=25s",
+    "durationMs": 391
+  },
+  {
+    "phase": 1,
+    "item": "No Java / Spring Boot Runtime Dependency",
+    "status": "PASS",
+    "evidence": "System is 100% standalone Node.js and React architecture",
+    "durationMs": null
+  },
+  {
+    "phase": 2,
+    "item": "Backend DATABASE_URL Configured",
+    "status": "PASS",
+    "evidence": "Host: aws-0-ap-south-1.pooler.supabase.com",
+    "durationMs": null
+  },
+  {
+    "phase": 2,
+    "item": "Backend ADMIN_PASSWORD Configured",
+    "status": "PASS",
+    "evidence": "Secure password loaded from environment",
+    "durationMs": null
+  },
+  {
+    "phase": 2,
+    "item": "Backend CORS Allowed Origins Configured",
+    "status": "PASS",
+    "evidence": "Allowed origins: http://localhost:5173, http://localhost:3000, http://127.0.0.1:5173, https://code-xcape.vercel.app, https://*.vercel.app",
+    "durationMs": null
+  },
+  {
+    "phase": 2,
+    "item": "Frontend Zero Secret Exposure Check",
+    "status": "PASS",
+    "evidence": "Zero database credentials or internal secrets exposed in compiled frontend client bundle",
+    "durationMs": null
+  },
+  {
+    "phase": 3,
+    "item": "Frontend Homepage Status",
+    "status": "PASS",
+    "evidence": "HTTP status=200, Content-Type=text/html; charset=utf-8",
+    "durationMs": null
+  },
+  {
+    "phase": 3,
+    "item": "Frontend DOM Mounting Anchor",
+    "status": "PASS",
+    "evidence": "HTML document contains valid #root mount element",
+    "durationMs": null
+  },
+  {
+    "phase": 3,
+    "item": "Frontend Asset Chunks Accessibility",
+    "status": "PASS",
+    "evidence": "Sampled assets returned 200 OK (0 broken)",
+    "durationMs": null
+  },
+  {
+    "phase": 4,
+    "item": "API 404 Route Handling",
+    "status": "PASS",
+    "evidence": "status=404, JSON structured error returned",
+    "durationMs": null
+  },
+  {
+    "phase": 4,
+    "item": "API Malformed Input Validation",
+    "status": "PASS",
+    "evidence": "status=400, missing required login fields rejected",
+    "durationMs": null
+  },
+  {
+    "phase": 5,
+    "item": "Admin Invalid Password Rejection",
+    "status": "PASS",
+    "evidence": "status=401",
+    "durationMs": null
+  },
+  {
+    "phase": 5,
+    "item": "Admin Valid Password Authentication",
+    "status": "PASS",
+    "evidence": "status=200, issued ADMIN_SESSION token=6cf80141...",
+    "durationMs": null
+  },
+  {
+    "phase": 5,
+    "item": "Admin Endpoint Gating Without Cookie",
+    "status": "PASS",
+    "evidence": "Unauthenticated access to /api/admin/events rejected with status=401",
+    "durationMs": null
+  },
+  {
+    "phase": 6,
+    "item": "Database Levels Bank Integrity",
+    "status": "PASS",
+    "evidence": "Total game levels = 6",
+    "durationMs": null
+  },
+  {
+    "phase": 6,
+    "item": "Database Questions Bank Integrity",
+    "status": "PASS",
+    "evidence": "Total questions = 36",
+    "durationMs": null
+  },
+  {
+    "phase": 6,
+    "item": "Database Hints Bank Integrity",
+    "status": "PASS",
+    "evidence": "Total progressive hints = 15",
+    "durationMs": null
+  },
+  {
+    "phase": 5,
+    "item": "Player 1 & 2 Authentication",
+    "status": "PASS",
+    "evidence": "P1 sessionToken=7f6bf58a..., P2 sessionToken=daabfeaa...",
+    "durationMs": null
+  },
+  {
+    "phase": 5,
+    "item": "Player Access to Admin Route Rejected (403)",
+    "status": "PASS",
+    "evidence": "Player session received HTTP 403 Forbidden",
+    "durationMs": null
+  },
+  {
+    "phase": 14,
+    "item": "Live Render WebSocket STOMP Handshake",
+    "status": "PASS",
+    "evidence": "Server response: CONNECTED",
+    "durationMs": null
+  },
+  {
+    "phase": 14,
+    "item": "STOMP Topic Authorization (Cross-Team Rejection)",
+    "status": "PASS",
+    "evidence": "Unauthorized subscription to foreign team topic rejected with STOMP ERROR",
+    "durationMs": null
+  },
+  {
+    "phase": 14,
+    "item": "STOMP Client-to-Server SEND Prohibition",
+    "status": "PASS",
+    "evidence": "Client-to-server STOMP SEND rejected with enforcement of authoritative REST APIs",
+    "durationMs": null
+  },
+  {
+    "phase": 15,
+    "item": "Dual-Player Ready Presence Synchronization",
+    "status": "PASS",
+    "evidence": "Player 1 ready state delivered to Player 2 WebSocket client in real-time",
+    "durationMs": null
+  },
+  {
+    "phase": 15,
+    "item": "Dual-Player Game Start Transition",
+    "status": "PASS",
+    "evidence": "gameState=IN_PROGRESS",
+    "durationMs": null
+  },
+  {
+    "phase": 8,
+    "item": "Fetch Level 1 Question Payload",
+    "status": "PASS",
+    "evidence": "Level=1, Stage=undefined",
+    "durationMs": 1058
+  },
+  {
+    "phase": 8,
+    "item": "Wrong Answer Evaluation & Penalty",
+    "status": "PASS",
+    "evidence": "isCorrect=false, status=INCORRECT",
+    "durationMs": null
+  },
+  {
+    "phase": 8,
+    "item": "Correct Answer Progression (Stage 1 Completed by Both Players)",
+    "status": "PASS",
+    "evidence": "Stage 1 accepted for Player 1 and Player 2, advanced to Stage 2",
+    "durationMs": null
+  },
+  {
+    "phase": 7,
+    "item": "Level 1 Completion Verified via Game State API",
+    "status": "PASS",
+    "evidence": "Level 1 completed! Active level=2",
+    "durationMs": null
+  },
+  {
+    "phase": 9,
+    "item": "Hints Overview Retrieval",
+    "status": "PASS",
+    "evidence": "Hints sets available, status=200",
+    "durationMs": null
+  },
+  {
+    "phase": 9,
+    "item": "Actual Hint Content Retrieval & Penalty",
+    "status": "PASS",
+    "evidence": "Hint content: \"Trace the execution iteratively ste...\", alreadyUsed=false",
+    "durationMs": null
+  },
+  {
+    "phase": 9,
+    "item": "Hint Duplicate Request Idempotency",
+    "status": "PASS",
+    "evidence": "Duplicate request recognizes alreadyUsed=true, preventing repeated penalty",
+    "durationMs": null
+  },
+  {
+    "phase": 10,
+    "item": "Riddle 1 Unlocked on Level 1 Completion",
+    "status": "PASS",
+    "evidence": "Riddle 1 status=\"UNLOCKED\", unlockedCount=1",
+    "durationMs": null
+  },
+  {
+    "phase": 10,
+    "item": "Locked Riddle Access Rejection",
+    "status": "PASS",
+    "evidence": "status=LOCKED, message=\"Riddle 3 is locked. Complete Level 3 first.\"",
+    "durationMs": null
+  },
+  {
+    "phase": 10,
+    "item": "Riddle Solution & Secret Digit Acquisition",
+    "status": "PASS",
+    "evidence": "Secret digit=3 persisted successfully",
+    "durationMs": null
+  },
+  {
+    "phase": 11,
+    "item": "Premature Final Key Rejection",
+    "status": "PASS",
+    "evidence": "status=FINAL_NOT_AVAILABLE, message=\"Final key terminal is not available. Complete all 6 levels and solve all 6 riddles first.\"",
+    "durationMs": null
+  },
+  {
+    "phase": 12,
+    "item": "Deterministic Score Computation",
+    "status": "PASS",
+    "evidence": "Team Score=110 pts, Base=120, TotalPenalties=undefined",
+    "durationMs": null
+  },
+  {
+    "phase": 13,
+    "item": "Public Leaderboard Generation",
+    "status": "PASS",
+    "evidence": "Leaderboard event=\"AUDIT_EVENT_1789535313116\", total teams=2 (active: 2, completed: 0)",
+    "durationMs": null
+  },
+  {
+    "phase": 16,
+    "item": "Multi-Team WebSocket Isolation",
+    "status": "PASS",
+    "evidence": "Team Alpha events never leaked to Team Beta subscriber",
+    "durationMs": null
+  },
+  {
+    "phase": 17,
+    "item": "Admin Real-Time Monitoring Broadcast",
+    "status": "PASS",
+    "evidence": "Admin received real-time telemetry (PLAYER_CONNECTED) over /topic/admin",
+    "durationMs": null
+  },
+  {
+    "phase": 18,
+    "item": "Admin Team Reset Execution",
+    "status": "PASS",
+    "evidence": "status=200, team game state reset",
+    "durationMs": null
+  },
+  {
+    "phase": 18,
+    "item": "Game State Complete Reset Verification",
+    "status": "PASS",
+    "evidence": "Reset verified: gameState=NOT_STARTED, finalScore=undefined",
+    "durationMs": null
+  },
+  {
+    "phase": 19,
+    "item": "Simultaneous Rapid Submissions Concurrency Handling",
+    "status": "PASS",
+    "evidence": "Sub1=200, Sub2=200, atomic concurrency verified without state corruption",
+    "durationMs": null
+  },
+  {
+    "phase": 21,
+    "item": "Browser Reload Reconstructs Exact Game State",
+    "status": "PASS",
+    "evidence": "Reloaded state level=1, stage=undefined matches persisted state",
+    "durationMs": null
+  },
+  {
+    "phase": 24,
+    "item": "IDOR Prevention: Client Team ID Manipulation Ignored",
+    "status": "PASS",
+    "evidence": "Authenticated session guarantees actions only mutate player's own team",
+    "durationMs": null
+  },
+  {
+    "phase": 25,
+    "item": "HTTPS Protocol Enforcement",
+    "status": "PASS",
+    "evidence": "All traffic encrypted over TLS 1.3 / HTTPS",
+    "durationMs": null
+  },
+  {
+    "phase": 25,
+    "item": "Secure WebSocket TLS (WSS) Enforcement",
+    "status": "PASS",
+    "evidence": "Real-time traffic encrypted over WSS",
+    "durationMs": null
+  },
+  {
+    "phase": 26,
+    "item": "API Response Latency Baseline",
+    "status": "PASS",
+    "evidence": "Round-trip latency = 451ms (acceptable threshold < 500ms)",
+    "durationMs": null
+  },
+  {
+    "phase": 27,
+    "item": "Node.js Backend Standalone Execution",
+    "status": "PASS",
+    "evidence": "Backend runs purely with Node.js and Express; 0 compilation steps required",
+    "durationMs": null
+  },
+  {
+    "phase": 29,
+    "item": "Audit Test Entities Clean Teardown",
+    "status": "PASS",
+    "evidence": "Audit Teams 42, 43 cleanly removed from production DB",
+    "durationMs": null
+  }
+]
