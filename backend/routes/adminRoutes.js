@@ -24,6 +24,17 @@ router.post('/logout', (req, res, next) => adminAuthController.logout(req, res, 
 // Authenticated Admin Routes
 router.use(authenticateAdmin);
 
+// Schema Migration / Init
+router.post('/init-schema', async (req, res, next) => {
+  try {
+    const initSchema = require('../config/initSchema');
+    await initSchema();
+    res.json({ success: true, message: 'Schema initialized successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Events
 router.post('/events', (req, res, next) => adminEventController.createEvent(req, res, next));
 router.get('/events', (req, res, next) => adminEventController.listEvents(req, res, next));

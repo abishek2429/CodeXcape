@@ -173,6 +173,9 @@ class RiddleService {
       progress.solvedByPlayerId = player.id;
       await teamRiddleProgressRepository.save(progress);
 
+      team.stateVersion = (team.stateVersion || 1) + 1;
+      await teamRepository.save(team);
+
       const totalSolved = await this.countSolvedRiddles(team.id);
 
       await auditService.logEvent(
@@ -184,13 +187,24 @@ class RiddleService {
         'PLAYER'
       );
 
-      webSocketService.broadcastToTeam(team.id, {
-        type: 'GAME_STATE_UPDATED',
+      const riddleEvent = {
+        type: 'RIDDLE_SOLVED',
         teamId: team.id,
         playerId: player.id,
         playerNumber: player.player_number,
-        message: `Teammate solved Riddle ${riddleIndex} ✓`,
+        riddleIndex,
+        solvedDigit: expectedDigit,
+        solvedCount: totalSolved,
+        allRiddlesSolved: (totalSolved === 6),
+        stateVersion: team.stateVersion,
+        message: `Operator 0${player.player_number} solved Riddle ${riddleIndex} [Digit: ${expectedDigit}] ✓`,
         timestamp: new Date().toISOString()
+      };
+
+      webSocketService.broadcastToTeam(team.id, riddleEvent);
+      webSocketService.broadcastToTeam(team.id, {
+        ...riddleEvent,
+        type: 'GAME_STATE_UPDATED'
       });
 
       return {
@@ -198,7 +212,8 @@ class RiddleService {
         status: 'SOLVED',
         message: 'CORRECT. RIDDLE SOLVED.',
         solvedDigit: expectedDigit,
-        allRiddlesSolved: (totalSolved === 6)
+        allRiddlesSolved: (totalSolved === 6),
+        stateVersion: team.stateVersion
       };
     } else {
       progress.wrongAttempts = (progress.wrongAttempts || 0) + 1;

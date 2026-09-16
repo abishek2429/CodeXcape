@@ -11,6 +11,8 @@ interface UseGameWebSocketProps {
   onStorySkipped?: (payload: WebSocketEventPayload) => void;
   onStoryCompleted?: (payload: WebSocketEventPayload) => void;
   onLevelCompleted?: (levelNumber: number) => void;
+  onRiddleSolved?: (payload: WebSocketEventPayload) => void;
+  onPartnerChallengeCompleted?: (payload: WebSocketEventPayload) => void;
 }
 
 export function useGameWebSocket({
@@ -23,6 +25,8 @@ export function useGameWebSocket({
   onStorySkipped,
   onStoryCompleted,
   onLevelCompleted,
+  onRiddleSolved,
+  onPartnerChallengeCompleted,
 }: UseGameWebSocketProps) {
   const [partnerStatus, setPartnerStatus] = useState<ConnectionStatus>('DISCONNECTED');
   const [wsConnectionStatus, setWsConnectionStatus] = useState<ConnectionStatus>('DISCONNECTED');
@@ -48,6 +52,12 @@ export function useGameWebSocket({
 
   const onLevelCompletedRef = useRef(onLevelCompleted);
   onLevelCompletedRef.current = onLevelCompleted;
+
+  const onRiddleSolvedRef = useRef(onRiddleSolved);
+  onRiddleSolvedRef.current = onRiddleSolved;
+
+  const onPartnerChallengeCompletedRef = useRef(onPartnerChallengeCompleted);
+  onPartnerChallengeCompletedRef.current = onPartnerChallengeCompleted;
 
   const refreshTimerRef = useRef<any>(null);
   const lastStateVersionRef = useRef<number>(0);
@@ -89,12 +99,12 @@ export function useGameWebSocket({
       }
     });
 
-    // Polling fallback when WebSockets are disconnected (e.g. pure serverless Vercel deployment)
-    const pollingFallbackInterval = setInterval(() => {
-      if (webSocketService.getStatus() !== 'CONNECTED') {
-        triggerCoalescedRefresh();
-      }
-    }, 4000);
+    // Active background synchronization during live gameplay
+    // Runs unconditionally every 2.5 seconds to guarantee synchronization across Vercel serverless instances,
+    // handling potential PgBouncer connection pooling drops of LISTEN/NOTIFY.
+    const backgroundSyncInterval = setInterval(() => {
+      triggerCoalescedRefresh();
+    }, 2500);
 
     const unsubConnected = webSocketService.subscribe('PLAYER_CONNECTED', (payload: WebSocketEventPayload) => {
       if (payload.playerNumber && payload.playerNumber !== playerNumber) {
@@ -116,8 +126,31 @@ export function useGameWebSocket({
       if (!checkAndApplyVersion(payload)) return;
       if (payload.playerNumber && payload.playerNumber !== playerNumber) {
         setLatestNotification(payload.message || 'Your teammate has completed their challenge ✓');
+        if (onPartnerChallengeCompletedRef.current) {
+          onPartnerChallengeCompletedRef.current(payload);
+        }
         triggerCoalescedRefresh();
       }
+    });
+
+    const unsubRiddleSolved = webSocketService.subscribe('RIDDLE_SOLVED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
+      setLatestNotification(payload.message || `Riddle ${payload.riddleIndex} solved by team! ✓`);
+      if (onRiddleSolvedRef.current) {
+        onRiddleSolvedRef.current(payload);
+      }
+      triggerCoalescedRefresh();
+    });
+
+    const unsubGameStateUpdated = webSocketService.subscribe('GAME_STATE_UPDATED', (payload: WebSocketEventPayload) => {
+      if (!checkAndApplyVersion(payload)) return;
+      if (payload.message) {
+        setLatestNotification(payload.message);
+      }
+      if (payload.riddleIndex && onRiddleSolvedRef.current) {
+        onRiddleSolvedRef.current(payload);
+      }
+      triggerCoalescedRefresh();
     });
 
     const unsubStageComplete = webSocketService.subscribe('STAGE_COMPLETED', (payload: WebSocketEventPayload) => {
@@ -209,7 +242,7 @@ export function useGameWebSocket({
     });
 
     return () => {
-      clearInterval(pollingFallbackInterval);
+      clearInterval(backgroundSyncInterval);
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
         refreshTimerRef.current = null;
@@ -218,6 +251,8 @@ export function useGameWebSocket({
       unsubConnected();
       unsubDisconnected();
       unsubPartnerComplete();
+      unsubRiddleSolved();
+      unsubGameStateUpdated();
       unsubStageComplete();
       unsubLevelComplete();
       unsubNextLevel();

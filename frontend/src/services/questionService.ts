@@ -12,6 +12,7 @@ export interface PlayerQuestionResponse {
   puzzleMetadata?: string;
   answerType: AnswerType;
   isCompleted: boolean;
+  partnerCompleted?: boolean;
   attemptCount: number;
 }
 

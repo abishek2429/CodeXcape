@@ -185,6 +185,15 @@ class QuestionAnswerService {
       question.id
     );
 
+    const stageProgress = await teamStageProgressRepository.findByTeamIdAndLevelIdAndStageNumber(
+      team.id,
+      level.id,
+      currentStage
+    );
+    const partnerCompleted = stageProgress
+      ? (principal.playerNumber === 1 ? Boolean(stageProgress.player2Completed) : Boolean(stageProgress.player1Completed))
+      : false;
+
     return {
       levelNumber: level.levelNumber,
       stageNumber: currentStage,
@@ -196,6 +205,7 @@ class QuestionAnswerService {
       puzzleMetadata: question.puzzleMetadata,
       answerType: question.answerType,
       isCompleted,
+      partnerCompleted,
       attemptCount,
       stateVersion: team.stateVersion || 1
     };

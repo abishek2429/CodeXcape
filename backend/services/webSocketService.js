@@ -181,7 +181,7 @@ class WebSocketService {
     }
   }
 
-  broadcast(topic, payload) {
+  async broadcast(topic, payload) {
     const clients = this.subscriptions.get(topic);
     if (clients && clients.size > 0) {
       const payloadJson = typeof payload === 'object' ? JSON.stringify(payload) : String(payload);
@@ -212,15 +212,16 @@ class WebSocketService {
     try {
       const db = require('../config/db');
       const msgPayload = JSON.stringify({ topic, payload });
-      db.query('SELECT pg_notify($1, $2)', ['codexcape_events', msgPayload]).catch(() => {});
+      await db.query('SELECT pg_notify($1, $2)', ['codexcape_events', msgPayload]).catch(() => {});
     } catch (_) {}
 
-    // Direct HTTP bridge to Render WebSocket Server if configured
-    if (process.env.RENDER_WS_HTTP_URL) {
+    // Direct HTTP bridge to Render WebSocket Server
+    const renderWsUrl = process.env.RENDER_WS_HTTP_URL || (process.env.NODE_ENV === 'production' ? 'https://codexcape-hpo8.onrender.com' : null);
+    if (renderWsUrl) {
       try {
         const secret = process.env.INTERNAL_WS_SECRET || 'codexcape-internal-secret';
-        const targetUrl = `${process.env.RENDER_WS_HTTP_URL.replace(/\/$/, '')}/api/internal/broadcast`;
-        fetch(targetUrl, {
+        const targetUrl = `${renderWsUrl.replace(/\/$/, '')}/api/internal/broadcast`;
+        await fetch(targetUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -232,13 +233,13 @@ class WebSocketService {
     }
   }
 
-  broadcastToTeam(teamId, eventPayload) {
+  async broadcastToTeam(teamId, eventPayload) {
     if (!teamId) return;
-    this.broadcast(`/topic/team/${teamId}`, eventPayload);
+    return this.broadcast(`/topic/team/${teamId}`, eventPayload);
   }
 
-  broadcastToAdmin(eventPayload) {
-    this.broadcast('/topic/admin', eventPayload);
+  async broadcastToAdmin(eventPayload) {
+    return this.broadcast('/topic/admin', eventPayload);
   }
 
   broadcastAll(eventPayload) {
