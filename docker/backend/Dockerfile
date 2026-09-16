@@ -1,26 +1,11 @@
-# Build Stage
-FROM maven:3.9-eclipse-temurin-21-alpine AS builder
-WORKDIR /app/backend
-
-# 1. Cache Maven dependencies layer
-COPY backend/pom.xml .
-RUN mvn dependency:resolve -B
-
-# 2. Build backend source
-COPY backend/src ./src
-RUN mvn clean package -DskipTests -B
-
-
-# Runtime Stage
-FROM eclipse-temurin:21-jre-alpine
+FROM node:20-alpine
 WORKDIR /app
 
-# Non-root user for production container security
-RUN addgroup -S codexcape && adduser -S codexcape -G codexcape
-USER codexcape:codexcape
+COPY package*.json ./
+RUN npm ci --only=production
 
-COPY --from=builder --chown=codexcape:codexcape /app/backend/target/*.jar app.jar
+COPY . .
 
-EXPOSE 10000
-
-ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-Xmx380m", "-XX:+UseSerialGC", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]
+EXPOSE 8080
+USER node
+CMD ["node", "server.js"]

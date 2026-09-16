@@ -7,8 +7,8 @@ Write-Host "[1/2] Connecting to Supabase Remote Database..." -ForegroundColor Ye
 Write-Host "Database connected!" -ForegroundColor Green
 
 Write-Host ""
-Write-Host "[1/2] Starting Spring Boot Backend..." -ForegroundColor Yellow
-Start-Process cmd.exe -ArgumentList "/k cd /d `"$PSScriptRoot\backend`" && .\mvnw.cmd spring-boot:run"
+Write-Host "[1/2] Starting Node.js Express Backend..." -ForegroundColor Yellow
+Start-Process cmd.exe -ArgumentList "/k cd /d `"$PSScriptRoot\backend`" && npm.cmd start"
 
 Write-Host ""
 Write-Host "[2/2] Starting React Frontend Dev Server..." -ForegroundColor Yellow

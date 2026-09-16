@@ -26,10 +26,8 @@ services:
     ports:
       - "${SERVER_PORT:-8080}:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-technical_escape_room}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      SPRING_PROFILES_ACTIVE: dev
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-technical_escape_room}
+      PORT: 8080
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:80
     depends_on:
       postgres:
