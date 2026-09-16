@@ -92,6 +92,8 @@ export const PlayerGamePage: React.FC = () => {
   const [isCoreEntryOpen, setIsCoreEntryOpen] = useState(false);
   const [isRestorationOpen, setIsRestorationOpen] = useState(false);
   const [activeStory, setActiveStory] = useState<StorySequence | null>(null);
+  const activeStoryRef = useRef<StorySequence | null>(null);
+  activeStoryRef.current = activeStory;
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [isMysteryBoardOpen, setIsMysteryBoardOpen] = useState(false);
   const [riddleBoardState, setRiddleBoardState] = useState<RiddleBoardState | null>(null);
@@ -186,8 +188,8 @@ export const PlayerGamePage: React.FC = () => {
 
       if (activeStoryData && activeStoryData.isStoryActive && activeStoryData.storyKey) {
         const key = activeStoryData.storyKey;
-        // Only trigger story if not previously processed or resolved
-        if (!processedStoriesRef.current.has(key)) {
+        // Only trigger story if not previously processed or resolved and not currently playing
+        if (!processedStoriesRef.current.has(key) && activeStoryRef.current?.storyKey !== key) {
           const seq = activeStoryData.sequence || STORY_SEQUENCES[key];
           if (seq) {
             // If in black screen transition, queue next story so it never starts prematurely
@@ -329,12 +331,13 @@ export const PlayerGamePage: React.FC = () => {
     }
   }, [transitionInfo, serverState?.currentLevel, loadData]);
 
-  const handleStorySkip = async () => {
+  const handleStorySkip = useCallback(async () => {
     voiceNarratorService.stop();
     setIsStoryModalOpen(false);
-    if (activeStory?.storyKey) {
-      processedStoriesRef.current.add(activeStory.storyKey);
-      markStoryProcessed(activeStory.storyKey);
+    const currentKey = activeStoryRef.current?.storyKey || activeStory?.storyKey;
+    if (currentKey) {
+      processedStoriesRef.current.add(currentKey);
+      markStoryProcessed(currentKey);
     }
     setActiveStory(null);
     soundService.playClick();
@@ -355,14 +358,15 @@ export const PlayerGamePage: React.FC = () => {
       await loadData();
       setTransitionStage('IDLE');
     }
-  };
+  }, [loadData, activeStory?.storyKey]);
 
-  const handleStoryComplete = async () => {
+  const handleStoryComplete = useCallback(async () => {
     voiceNarratorService.stop();
     setIsStoryModalOpen(false);
-    if (activeStory?.storyKey) {
-      processedStoriesRef.current.add(activeStory.storyKey);
-      markStoryProcessed(activeStory.storyKey);
+    const currentKey = activeStoryRef.current?.storyKey || activeStory?.storyKey;
+    if (currentKey) {
+      processedStoriesRef.current.add(currentKey);
+      markStoryProcessed(currentKey);
     }
     setActiveStory(null);
     setTransitionStage('NEXT_LEVEL_STORY_COMPLETE');
@@ -382,7 +386,7 @@ export const PlayerGamePage: React.FC = () => {
       await loadData();
       setTransitionStage('IDLE');
     }
-  };
+  }, [loadData, activeStory?.storyKey]);
 
   const handleRiddleRevealAcknowledge = async () => {
     setRevealingRiddleLevel(null);
@@ -414,7 +418,7 @@ export const PlayerGamePage: React.FC = () => {
     },
     onStoryStarted: (payload) => {
       const key = payload.storyKey;
-      if (!key || processedStoriesRef.current.has(key)) {
+      if (!key || processedStoriesRef.current.has(key) || activeStoryRef.current?.storyKey === key) {
         return;
       }
       const seq = payload.storyState?.sequence || (key ? STORY_SEQUENCES[key] : null);
@@ -437,11 +441,21 @@ export const PlayerGamePage: React.FC = () => {
     onStorySkipped: () => {
       voiceNarratorService.stop();
       setIsStoryModalOpen(false);
+      const currentKey = activeStoryRef.current?.storyKey;
+      if (currentKey) {
+        processedStoriesRef.current.add(currentKey);
+        markStoryProcessed(currentKey);
+      }
       setActiveStory(null);
     },
     onStoryCompleted: () => {
       voiceNarratorService.stop();
       setIsStoryModalOpen(false);
+      const currentKey = activeStoryRef.current?.storyKey;
+      if (currentKey) {
+        processedStoriesRef.current.add(currentKey);
+        markStoryProcessed(currentKey);
+      }
       setActiveStory(null);
     },
   });
@@ -499,7 +513,7 @@ export const PlayerGamePage: React.FC = () => {
     );
   }
 
-  if (authStatus === 'INITIALIZING' || !player || isLoadingData || !serverState) {
+  if (authStatus === 'INITIALIZING' || !player || (!serverState && isLoadingData) || !serverState) {
     if (authStatus === 'AUTHENTICATED' && loadError && !serverState) {
       return <GameErrorState message={loadError || 'AUTHORITATIVE GAME STATE UNAVAILABLE.'} onRetry={loadData} />;
     }
@@ -515,18 +529,21 @@ export const PlayerGamePage: React.FC = () => {
   }
 
   if (!liveQuestion && serverState.gameStatus !== 'NOT_STARTED' && serverState.gameStatus !== 'FINAL_PASSKEY' && serverState.gameStatus !== 'COMPLETED') {
-    if (transitionStage !== 'IDLE' || isLoadingData) {
+    if (isStoryModalOpen || isBriefingOpen || transitionStage !== 'IDLE') {
+      // Keep main UI mounted so story / briefing modal is never unmounted during transient sync
+    } else if (isLoadingData) {
       return <GameLoadingState message="SYNCHRONIZING SECURE ESCAPE NODES..." />;
+    } else {
+      return (
+        <GameErrorState
+          message="CURRENT COOPERATIVE STAGE DATA IS TEMPORARILY UNAVAILABLE."
+          onRetry={() => {
+            setIsLoadingData(true);
+            loadData();
+          }}
+        />
+      );
     }
-    return (
-      <GameErrorState
-        message="CURRENT COOPERATIVE STAGE DATA IS TEMPORARILY UNAVAILABLE."
-        onRetry={() => {
-          setIsLoadingData(true);
-          loadData();
-        }}
-      />
-    );
   }
 
   const activeChallenge: ChallengeData = liveQuestion
@@ -935,6 +952,8 @@ export const PlayerGamePage: React.FC = () => {
           // Launch the opening Artemis holographic transmission
           const storyToPlay = activeStory || STORY_SEQUENCES.STORY_PROLOGUE;
           if (storyToPlay) {
+            processedStoriesRef.current.add(storyToPlay.storyKey);
+            markStoryProcessed(storyToPlay.storyKey);
             setActiveStory(storyToPlay);
             setIsStoryModalOpen(true);
           }

@@ -2,6 +2,7 @@ import React from 'react';
 import { Headphones, Radio, Sparkles } from 'lucide-react';
 import { soundService } from '../../services/soundService';
 import { voiceNarratorService } from '../../services/voiceNarratorService';
+import { requestGameFullscreen } from '../../services/fullscreenService';
 
 interface OpeningBriefingModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export const OpeningBriefingModal: React.FC<OpeningBriefingModalProps> = ({
   if (!isOpen) return null;
 
   const handleCommence = (enableAudio: boolean) => {
+    requestGameFullscreen();
     if (enableAudio) {
       voiceNarratorService.setMuted(false);
       soundService.setMuted(false);
