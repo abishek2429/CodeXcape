@@ -92,4 +92,8 @@ process.on('SIGINT', () => {
   });
 });
 
-module.exports = { app, server };
+// Support both default callable export (for Vercel serverless) and named destructuring (for local tests)
+app.app = app;
+app.server = server;
+module.exports = app;
+

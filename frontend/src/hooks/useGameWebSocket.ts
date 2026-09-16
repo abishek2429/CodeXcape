@@ -76,6 +76,13 @@ export function useGameWebSocket({
       }
     });
 
+    // Polling fallback when WebSockets are disconnected (e.g. pure serverless Vercel deployment)
+    const pollingFallbackInterval = setInterval(() => {
+      if (webSocketService.getStatus() !== 'CONNECTED') {
+        triggerCoalescedRefresh();
+      }
+    }, 4000);
+
     const unsubConnected = webSocketService.subscribe('PLAYER_CONNECTED', (payload: WebSocketEventPayload) => {
       if (payload.playerNumber && payload.playerNumber !== playerNumber) {
         setPartnerStatus('CONNECTED');
@@ -178,6 +185,7 @@ export function useGameWebSocket({
     });
 
     return () => {
+      clearInterval(pollingFallbackInterval);
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
         refreshTimerRef.current = null;
