@@ -21,6 +21,10 @@ const { WebSocketServer } = require('ws');
 const { Client } = require('pg');
 const db = require('./config/db');
 const env = require('./config/env');
+const initSchema = require('./config/initSchema');
+
+// Ensure database schema tables and columns exist
+initSchema().catch((err) => console.warn('[WS] initSchema notice:', err.message));
 
 const PORT = process.env.PORT || 10000;
 const INTERNAL_SECRET = process.env.INTERNAL_WS_SECRET || 'codexcape-internal-secret';

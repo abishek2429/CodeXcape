@@ -55,10 +55,32 @@ const PORT = env.PORT || 8080;
 
 const initSchema = require('./config/initSchema');
 
+let schemaInitialized = false;
+let schemaPromise = null;
+async function ensureSchema() {
+  if (schemaInitialized) return;
+  if (!schemaPromise) {
+    schemaPromise = initSchema().then(() => {
+      schemaInitialized = true;
+    }).catch(err => {
+      console.warn('initSchema notice:', err.message);
+    });
+  }
+  return schemaPromise;
+}
+
+// Auto-run schema check for serverless environments (Vercel)
+app.use(async (req, res, next) => {
+  if (!schemaInitialized) {
+    await ensureSchema();
+  }
+  next();
+});
+
 if (require.main === module) {
   (async () => {
     try {
-      await initSchema();
+      await ensureSchema();
     } catch (err) {
       console.warn('initSchema notice:', err.message);
     }
