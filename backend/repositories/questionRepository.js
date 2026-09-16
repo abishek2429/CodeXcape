@@ -1,9 +1,10 @@
 const db = require('../config/db');
 
 class QuestionRepository {
-  async findByLevelIdAndStageNumberAndPlayerNumber(levelId, stageNumber, playerNumber) {
+  async findByLevelIdAndStageNumberAndPlayerNumber(levelId, stageNumber, playerNumber, client = null) {
     const role = (playerNumber === 1 || playerNumber === 'PLAYER_1') ? 'PLAYER_1' : 'PLAYER_2';
-    const res = await db.query(
+    const executor = client || db;
+    const res = await executor.query(
       `SELECT * FROM questions 
        WHERE level_id = $1 AND stage_number = $2 AND player_number = $3 AND is_active = true`,
       [levelId, stageNumber, role]

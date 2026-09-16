@@ -12,14 +12,16 @@ class LevelRepository {
     return this.findAllActive();
   }
 
-  async findById(id) {
-    const res = await db.query(`SELECT * FROM levels WHERE id = $1`, [id]);
+  async findById(id, client = null) {
+    const executor = client || db;
+    const res = await executor.query(`SELECT * FROM levels WHERE id = $1`, [id]);
     if (res.rows.length === 0) return null;
     return this._mapRow(res.rows[0]);
   }
 
-  async findByLevelNumber(levelNumber) {
-    const res = await db.query(
+  async findByLevelNumber(levelNumber, client = null) {
+    const executor = client || db;
+    const res = await executor.query(
       `SELECT * FROM levels WHERE level_number = $1`,
       [levelNumber]
     );

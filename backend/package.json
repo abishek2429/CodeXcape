@@ -6,6 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
+    "start:ws": "node websocketServer.js",
     "dev": "node --watch server.js",
     "test": "node test/runAllTests.js"
   },

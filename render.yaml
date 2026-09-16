@@ -1,32 +1,24 @@
 services:
   - type: web
-    name: codexcape-backend
-    runtime: docker
-    dockerfilePath: docker/backend/Dockerfile
-    dockerContext: .
-    plan: starter
+    name: codexcape-websocket
+    runtime: node
+    plan: free
     region: singapore
-    branch: main
+    branch: feature/render-websocket
     autoDeploy: true
+    buildCommand: cd backend && npm install --production
+    startCommand: cd backend && npm run start:ws
     healthCheckPath: /api/health
     buildFilter:
       paths:
         - backend/**
-        - docker/backend/**
-        - pom.xml
         - render.yaml
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: prod
-      - key: SPRING_DATASOURCE_URL
+      - key: DATABASE_URL
         sync: false
-      - key: SPRING_DATASOURCE_USERNAME
-        sync: false
-      - key: SPRING_DATASOURCE_PASSWORD
-        sync: false
+      - key: INTERNAL_WS_SECRET
+        generateValue: true
       - key: CORS_ALLOWED_ORIGINS
-        value: https://code-xcape.vercel.app,https://*.vercel.app
-      - key: ADMIN_PASSWORD
-        sync: false
-      - key: PORT
-        value: 10000
+        value: https://code-xcape.vercel.app,https://*.vercel.app,http://localhost:5173
+      - key: NODE_ENV
+        value: production

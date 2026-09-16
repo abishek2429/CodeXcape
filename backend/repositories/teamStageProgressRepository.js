@@ -11,8 +11,9 @@ class TeamStageProgressRepository {
     return res.rows.map(this._mapRow);
   }
 
-  async findByTeamIdAndLevelIdOrderByStageNumberAsc(teamId, levelId) {
-    const res = await db.query(
+  async findByTeamIdAndLevelIdOrderByStageNumberAsc(teamId, levelId, client = null) {
+    const executor = client || db;
+    const res = await executor.query(
       `SELECT * FROM team_stage_progress
        WHERE team_id = $1 AND level_id = $2
        ORDER BY stage_number ASC`,
@@ -21,8 +22,9 @@ class TeamStageProgressRepository {
     return res.rows.map(this._mapRow);
   }
 
-  async findByTeamIdAndLevelIdAndStageNumber(teamId, levelId, stageNumber) {
-    const res = await db.query(
+  async findByTeamIdAndLevelIdAndStageNumber(teamId, levelId, stageNumber, client = null) {
+    const executor = client || db;
+    const res = await executor.query(
       `SELECT * FROM team_stage_progress
        WHERE team_id = $1 AND level_id = $2 AND stage_number = $3`,
       [teamId, levelId, stageNumber]

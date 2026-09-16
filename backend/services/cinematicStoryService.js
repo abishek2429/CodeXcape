@@ -11,6 +11,7 @@ class CinematicStoryService {
 
     return {
       hasActiveStory,
+      isStoryActive: hasActiveStory,
       storyKey: team.currentStoryKey || null,
       eventId: team.currentStoryKey ? `story_${team.id}_${team.currentStoryKey}` : null,
       stateVersion: team.stateVersion || 1,

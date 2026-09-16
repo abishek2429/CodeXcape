@@ -20,9 +20,9 @@ class QuestionAnswerService {
     return (levelNumber >= 4) ? 3 : 2;
   }
 
-  async findCurrentStage(teamId, levelId, levelNumber) {
+  async findCurrentStage(teamId, levelId, levelNumber, client = null) {
     const totalStages = this.getTotalStages(levelNumber);
-    const progressList = await teamStageProgressRepository.findByTeamIdAndLevelIdOrderByStageNumberAsc(teamId, levelId);
+    const progressList = await teamStageProgressRepository.findByTeamIdAndLevelIdOrderByStageNumberAsc(teamId, levelId, client);
 
     for (let s = 1; s <= totalStages; s++) {
       const sp = progressList.find(p => p.stageNumber === s);
@@ -220,7 +220,7 @@ class QuestionAnswerService {
         throw new EventUnavailableException('CodeXcape has already been completed by your team.');
       }
 
-      const progressList = await teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.id);
+      const progressList = await teamLevelProgressRepository.findByTeamIdOrderByLevelIdAsc(team.id, client);
       const activeProgress = progressList.find(
         p => p.levelStatus === 'AVAILABLE' || p.levelStatus === 'IN_PROGRESS'
       );
@@ -228,7 +228,7 @@ class QuestionAnswerService {
         throw new InvalidLevelTransitionException('No active level available for answer submission.');
       }
 
-      const level = await levelRepository.findById(activeProgress.levelId);
+      const level = await levelRepository.findById(activeProgress.levelId, client);
       if (request.levelNumber != null && parseInt(request.levelNumber, 10) !== level.levelNumber) {
         const completedLvl = progressList.find(
           p => p.level.levelNumber === parseInt(request.levelNumber, 10) && p.levelStatus === 'COMPLETED'
@@ -256,7 +256,7 @@ class QuestionAnswerService {
         throw new InvalidLevelTransitionException(`Submitted level number does not match current active level ${level.levelNumber}.`);
       }
 
-      const currentStage = await this.findCurrentStage(team.id, level.id, level.levelNumber);
+      const currentStage = await this.findCurrentStage(team.id, level.id, level.levelNumber, client);
       const totalStages = this.getTotalStages(level.levelNumber);
 
       // Idempotency: if request specifies a stageNumber that has already been completed for this level
@@ -284,7 +284,8 @@ class QuestionAnswerService {
       const question = await questionRepository.findByLevelIdAndStageNumberAndPlayerNumber(
         level.id,
         currentStage,
-        principal.playerNumber
+        principal.playerNumber,
+        client
       );
       if (!question) {
         throw new ResourceNotFoundException(`Question not found for Level ${level.levelNumber}, Stage ${currentStage}`);
@@ -346,7 +347,8 @@ class QuestionAnswerService {
         team.id,
         principal.playerId,
         level.id,
-        question.id
+        question.id,
+        client
       );
       const attemptNumber = previousAttempts + 1;
 
@@ -362,14 +364,15 @@ class QuestionAnswerService {
       }, client);
 
       if (!isCorrect) {
-        await scoringService.recordWrongAttempt(team.id, principal.playerId, level.levelNumber, currentStage, recordedAttempt.id);
+        await scoringService.recordWrongAttempt(team.id, principal.playerId, level.levelNumber, currentStage, recordedAttempt.id, client);
         await auditService.logEvent(
           'ANSWER_WRONG',
           team.event,
           team,
           { id: principal.playerId },
           { levelNumber: level.levelNumber, stageNumber: currentStage, attemptNumber },
-          'PLAYER'
+          'PLAYER',
+          client
         );
         return {
           earlyReturn: true,
@@ -398,7 +401,8 @@ class QuestionAnswerService {
         team,
         { id: principal.playerId },
         { levelNumber: level.levelNumber, stageNumber: currentStage, attemptNumber },
-        'PLAYER'
+        'PLAYER',
+        client
       );
 
       if (principal.playerNumber === 1) {
@@ -413,16 +417,15 @@ class QuestionAnswerService {
       if (stageFinished) {
         stageProgress.completedAt = new Date().toISOString();
         await teamStageProgressRepository.save(stageProgress, client);
-        await scoringService.recordMiniGameCompletion(team.id, level.levelNumber, currentStage, client);
+        const updatedTeam = await scoringService.recordMiniGameCompletion(team.id, level.levelNumber, currentStage, client);
+        if (updatedTeam) {
+          team.baseScore = updatedTeam.baseScore;
+          team.finalScore = updatedTeam.finalScore;
+          team.completedMiniGames = updatedTeam.completedMiniGames;
+        }
 
         team.stateVersion = (team.stateVersion || 1) + 1;
-
-        if (isFinalStage) {
-          const gameStateService = require('./gameStateService');
-          await gameStateService.completeLevel(team.id, level.levelNumber, client);
-        } else {
-          await teamRepository.save(team, client);
-        }
+        await teamRepository.save(team, client);
       } else {
         await teamStageProgressRepository.save(stageProgress, client);
         team.stateVersion = (team.stateVersion || 1) + 1;
@@ -472,6 +475,15 @@ class QuestionAnswerService {
       });
     }
 
+    let finalTeam = team;
+    if (stageFinished && isFinalStage) {
+      const gameStateService = require('./gameStateService');
+      const lvlTeam = await gameStateService.completeLevel(team.id, level.levelNumber);
+      if (lvlTeam) {
+        finalTeam = lvlTeam;
+      }
+    }
+
     return {
       correct: true,
       isCorrect: true,
@@ -482,9 +494,9 @@ class QuestionAnswerService {
       stageNumber: currentStage,
       nextStageNumber: stageFinished ? (isFinalStage ? null : currentStage + 1) : null,
       currentLevel: isFinalStage ? Math.min(6, level.levelNumber + 1) : level.levelNumber,
-      finalScore: team.finalScore || 0,
-      baseScore: team.baseScore || 0,
-      stateVersion: team.stateVersion || 1,
+      finalScore: finalTeam.finalScore || 0,
+      baseScore: finalTeam.baseScore || 0,
+      stateVersion: finalTeam.stateVersion || 1,
       message: stageFinished
         ? (isFinalStage
             ? 'Level completed. Both players solved the final stage.'

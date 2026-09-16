@@ -180,10 +180,10 @@ class GameStateService {
       const team = await teamRepository.findForUpdateById(teamId, client);
       if (!team) throw new ResourceNotFoundException('Team not found.');
 
-      const level = await levelRepository.findByLevelNumber(levelNumber);
+      const level = await levelRepository.findByLevelNumber(levelNumber, client);
       if (!level) throw new ResourceNotFoundException(`Level ${levelNumber} not found.`);
 
-      const progress = await teamLevelProgressRepository.findByTeamIdAndLevelId(teamId, level.id);
+      const progress = await teamLevelProgressRepository.findByTeamIdAndLevelId(teamId, level.id, client);
       if (!progress) throw new ResourceNotFoundException('Level progress not initialized for team.');
 
       if (progress.levelStatus === 'LOCKED') {
@@ -205,9 +205,9 @@ class GameStateService {
       // Unpack next level atomically inside the SAME transaction
       let nextStoryKey = null;
       if (levelNumber < 6) {
-        const nextLevel = await levelRepository.findByLevelNumber(levelNumber + 1);
+        const nextLevel = await levelRepository.findByLevelNumber(levelNumber + 1, client);
         if (nextLevel) {
-          const nextProgress = await teamLevelProgressRepository.findByTeamIdAndLevelId(teamId, nextLevel.id);
+          const nextProgress = await teamLevelProgressRepository.findByTeamIdAndLevelId(teamId, nextLevel.id, client);
           if (nextProgress && nextProgress.levelStatus === 'LOCKED') {
             nextProgress.levelStatus = 'AVAILABLE';
             nextProgress.startedAt = new Date().toISOString();
@@ -288,6 +288,26 @@ class GameStateService {
     const leaderboardService = require('./admin/leaderboardService');
     const currentRank = await leaderboardService.getTeamCurrentRank(team.id);
 
+    let currentStage = 1;
+    if (activeProgress) {
+      const questionAnswerService = require('./questionAnswerService');
+      currentStage = await questionAnswerService.findCurrentStage(team.id, activeProgress.levelId, currentLevel);
+    }
+
+    const teamScore = {
+      teamId: team.id,
+      teamCode: team.teamCode,
+      teamName: team.teamName,
+      baseScore: team.baseScore || 0,
+      hintPenalty: team.hintPenalty || 0,
+      wrongAttemptPenalty: team.wrongAttemptPenalty || 0,
+      antiCheatPenalty: team.antiCheatPenalty || 0,
+      finalScore: team.finalScore || 0,
+      stagesCompleted: team.completedMiniGames || 0,
+      totalStages: 15,
+      rank: currentRank || 0
+    };
+
     return {
       teamId: team.id,
       teamCode: team.teamCode,
@@ -296,11 +316,13 @@ class GameStateService {
       displayName: principal.displayName,
       gameState: team.gameState,
       currentLevel,
+      currentStage,
       currentRank,
       isCompleted,
       completedAt: team.completedAt,
       myCompletedCurrentLevel: myCompleted,
       partnerCompletedCurrentLevel: partnerCompleted,
+      teamScore,
       stateVersion: team.stateVersion || 1
     };
   }

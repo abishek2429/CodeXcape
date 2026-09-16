@@ -55,12 +55,14 @@ class ScoringService {
     }
   }
 
-  async recordWrongAttempt(teamId, playerId, levelNumber, stageNumber, attemptId) {
+  async recordWrongAttempt(teamId, playerId, levelNumber, stageNumber, attemptId, existingClient = null) {
     const referenceId = `WRONG_ATTEMPT_${attemptId}`;
-    const exists = await scoreEventRepository.existsByTeamIdAndReferenceId(teamId, referenceId);
-    if (exists) return;
+    if (!existingClient) {
+      const exists = await scoreEventRepository.existsByTeamIdAndReferenceId(teamId, referenceId);
+      if (exists) return;
+    }
 
-    await withTransaction(async (client) => {
+    const executeWrong = async (client) => {
       const team = await teamRepository.findForUpdateById(teamId, client);
       if (!team) return;
 
@@ -82,7 +84,13 @@ class ScoringService {
 
       await teamRepository.save(team, client);
       this.broadcastScoreUpdate(team);
-    });
+    };
+
+    if (existingClient) {
+      await executeWrong(existingClient);
+    } else {
+      await withTransaction(executeWrong);
+    }
   }
 
   async recordHintUsage(teamId, playerId, levelNumber, stageNumber, hintNumber) {

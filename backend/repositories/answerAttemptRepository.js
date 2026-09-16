@@ -1,8 +1,9 @@
 const db = require('../config/db');
 
 class AnswerAttemptRepository {
-  async countByTeamIdAndPlayerIdAndLevelIdAndQuestionId(teamId, playerId, levelId, questionId) {
-    const res = await db.query(
+  async countByTeamIdAndPlayerIdAndLevelIdAndQuestionId(teamId, playerId, levelId, questionId, client = null) {
+    const executor = client || db;
+    const res = await executor.query(
       `SELECT COUNT(*) FROM answer_attempts
        WHERE team_id = $1 AND player_id = $2 AND level_id = $3 AND question_id = $4`,
       [teamId, playerId, levelId, questionId]
