@@ -11,6 +11,11 @@
  * - Render liveness/health probe (GET /api/health)
  */
 
+const dns = require('dns');
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const { Client } = require('pg');
