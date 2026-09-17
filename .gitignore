@@ -57,5 +57,8 @@ docs/CODEXCAPE_HARD_COOPERATIVE_QUESTIONS_AND_PUZZLES.md
 *ANSWERS*.md
 *answers*.md
 answers.md
-
-
+# Event Results & Leaderboard CSV Exports
+codexcape_event_progress.csv
+codexcape_event_results.csv
+leaderboard.csv
+*.csv
